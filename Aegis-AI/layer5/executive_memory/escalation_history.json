@@ -1,0 +1,31 @@
+{
+    "version": "5.0",
+    "escalation_categories": {
+        "customer_complaint": {
+            "severity": "high",
+            "executive_review_required": true
+        },
+        "claim_dispute": {
+            "severity": "critical",
+            "executive_review_required": true
+        },
+        "recommendation_conflict": {
+            "severity": "high",
+            "executive_review_required": true
+        },
+        "advisor_failure": {
+            "severity": "critical",
+            "executive_review_required": true
+        },
+        "multi_category_case": {
+            "severity": "high",
+            "executive_review_required": true
+        }
+    },
+    "executive_response_policy": {
+        "track_all_escalations": true,
+        "store_resolution_outcome": true,
+        "store_root_cause": true,
+        "generate_prevention_rules": true
+    }
+}

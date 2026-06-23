@@ -1,0 +1,35 @@
+{
+    "decision_framework": {
+        "decision_priority_order": [
+            "customer_protection",
+            "coverage_adequacy",
+            "eligibility_validation",
+            "risk_alignment",
+            "budget_alignment",
+            "claim_support_quality",
+            "long_term_value"
+        ]
+    },
+    "final_decision_types": {
+        "approved": {
+            "action": "deliver_recommendation"
+        },
+        "approved_with_conditions": {
+            "action": "deliver_with_disclosures"
+        },
+        "executive_review_required": {
+            "action": "route_to_sri_ai"
+        },
+        "rejected": {
+            "action": "request_new_information"
+        }
+    },
+    "executive_principles": [
+        "customer_first",
+        "transparency",
+        "ethical_recommendation",
+        "risk_awareness",
+        "long_term_customer_value",
+        "compliance_before_profit"
+    ]
+}

@@ -1,0 +1,16 @@
+{
+    "faqs": [
+        {
+            "question": "Is student travel insurance mandatory?",
+            "answer": "Many universities require valid travel insurance."
+        },
+        {
+            "question": "Does it cover study interruption?",
+            "answer": "Certain plans provide academic interruption benefits."
+        },
+        {
+            "question": "Can medical emergencies be covered?",
+            "answer": "Yes, eligible medical emergencies are covered."
+        }
+    ]
+}

@@ -1,0 +1,34 @@
+{
+    "version": "5.0",
+    "escalation_framework": {
+        "level_1": {
+            "type": "advisor_review",
+            "owner": "category_advisor"
+        },
+        "level_2": {
+            "type": "senior_review",
+            "owner": "specialist_advisor"
+        },
+        "level_3": {
+            "type": "executive_review",
+            "owner": "Sri AI"
+        }
+    },
+    "automatic_escalation_conditions": [
+        "customer_complaint",
+        "claim_dispute",
+        "advisor_conflict",
+        "multiple_category_request",
+        "high_risk_customer",
+        "recommendation_score_below_threshold",
+        "confidence_below_threshold"
+    ],
+    "executive_actions": [
+        "review",
+        "override",
+        "reassign",
+        "recalculate",
+        "approve",
+        "reject"
+    ]
+}

@@ -1,0 +1,36 @@
+{
+    "version": "5.0",
+    "advisor_governance": {
+        "Sarah AI": {
+            "department": "Health",
+            "expected_accuracy": 95,
+            "maximum_escalation_rate": 5,
+            "minimum_customer_satisfaction": 90
+        },
+        "Alex AI": {
+            "department": "Motor",
+            "expected_accuracy": 95,
+            "maximum_escalation_rate": 5,
+            "minimum_customer_satisfaction": 90
+        },
+        "Emma AI": {
+            "department": "Home Property",
+            "expected_accuracy": 95,
+            "maximum_escalation_rate": 5,
+            "minimum_customer_satisfaction": 90
+        },
+        "Ethan AI": {
+            "department": "Travel",
+            "expected_accuracy": 95,
+            "maximum_escalation_rate": 5,
+            "minimum_customer_satisfaction": 90
+        }
+    },
+    "executive_intervention_conditions": [
+        "advisor_accuracy_below_90",
+        "advisor_confidence_below_85",
+        "advisor_escalation_rate_above_10",
+        "customer_complaint_spike"
+    ],
+    "ceo_policy": "Every advisor must maintain enterprise-grade recommendation quality."
+}

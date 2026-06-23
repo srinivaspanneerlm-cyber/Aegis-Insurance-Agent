@@ -1,0 +1,29 @@
+{
+    "version": "5.0",
+    "unified_recommendation_framework": {
+        "objective": "Generate a single executive-approved recommendation."
+    },
+    "required_inputs": [
+        "layer1_knowledge",
+        "layer2_routing",
+        "layer3_customer_profile",
+        "layer4_recommendation"
+    ],
+    "executive_evaluation_dimensions": [
+        "customer_fit",
+        "coverage_fit",
+        "budget_fit",
+        "risk_fit",
+        "claim_support_quality",
+        "long_term_value"
+    ],
+    "output_structure": {
+        "primary_recommendation": true,
+        "alternative_recommendation": true,
+        "executive_reasoning": true,
+        "risk_summary": true,
+        "confidence_score": true,
+        "executive_approval_status": true
+    },
+    "executive_goal": "Deliver the safest and most suitable recommendation."
+}

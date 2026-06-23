@@ -1,0 +1,30 @@
+{
+    "category": "Health Insurance",
+    "subcategory": "Group Health",
+    "plans": [
+        {
+            "plan_id": "GH001",
+            "plan_name": "Corporate Health Shield",
+            "coverage": [
+                "300000",
+                "500000",
+                "1000000"
+            ],
+            "premium_range": {
+                "monthly": "Variable",
+                "yearly": "Based on employee count"
+            },
+            "best_for": [
+                "Startups",
+                "SMEs",
+                "Corporate organizations"
+            ],
+            "benefits": [
+                "Employee hospitalization",
+                "Dependent coverage",
+                "Cashless treatment",
+                "Corporate wellness programs"
+            ]
+        }
+    ]
+}

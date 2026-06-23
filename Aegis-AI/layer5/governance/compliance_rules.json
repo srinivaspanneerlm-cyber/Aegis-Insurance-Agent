@@ -1,0 +1,35 @@
+{
+    "version": "5.0",
+    "owner": "Sri AI",
+    "governance_level": "Enterprise",
+    "compliance_mission": {
+        "objective": "Ensure every recommendation is legally compliant, customer-safe, transparent and auditable."
+    },
+    "mandatory_controls": {
+        "eligibility_validation": true,
+        "coverage_validation": true,
+        "budget_validation": true,
+        "risk_validation": true,
+        "recommendation_explanation": true,
+        "alternative_option_generation": true
+    },
+    "regulatory_principles": [
+        "fair_customer_treatment",
+        "transparency",
+        "suitability_assessment",
+        "risk_disclosure",
+        "informed_decision_making"
+    ],
+    "compliance_violations": [
+        "recommending_ineligible_policy",
+        "hiding_exclusions",
+        "hiding_waiting_periods",
+        "misrepresenting_claim_support",
+        "recommending_unaffordable_plans"
+    ],
+    "executive_actions": {
+        "minor_violation": "review",
+        "major_violation": "reject",
+        "critical_violation": "executive_intervention"
+    }
+}

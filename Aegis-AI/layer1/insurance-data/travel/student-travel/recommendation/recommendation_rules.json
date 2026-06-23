@@ -1,0 +1,88 @@
+{
+    "student_profile_analysis": {
+        "undergraduate": {
+            "recommended_plan": "Student Essential Plan",
+            "reason": "Suitable for first-time international students requiring basic protection."
+        },
+        "postgraduate": {
+            "recommended_plan": "Student Premium Plan",
+            "reason": "Provides higher medical and academic protection."
+        },
+        "research_scholar": {
+            "recommended_plan": "Research Protection Plan",
+            "reason": "Supports long-duration overseas education."
+        }
+    },
+    "destination_based_recommendation": {
+        "usa": {
+            "recommended_plan": "Premium Medical Student Plan",
+            "reason": "Healthcare expenses are significantly higher."
+        },
+        "canada": {
+            "recommended_plan": "Comprehensive Student Plan",
+            "reason": "Provides balanced medical and travel protection."
+        },
+        "uk": {
+            "recommended_plan": "Academic Security Plan",
+            "reason": "Provides strong education and travel protection."
+        },
+        "europe": {
+            "recommended_plan": "Schengen Student Plan",
+            "reason": "Meets Schengen travel requirements."
+        },
+        "australia": {
+            "recommended_plan": "International Student Premium Plan",
+            "reason": "Provides extended medical and travel protection."
+        }
+    },
+    "budget_based_recommendation": {
+        "low_budget": {
+            "recommended_plan": "Student Essential Plan",
+            "features": [
+                "Medical Emergency",
+                "Passport Protection",
+                "Travel Assistance"
+            ]
+        },
+        "medium_budget": {
+            "recommended_plan": "Student Comprehensive Plan",
+            "features": [
+                "Medical Protection",
+                "Study Interruption",
+                "Baggage Protection",
+                "Emergency Support"
+            ]
+        },
+        "high_budget": {
+            "recommended_plan": "Student Elite Plan",
+            "features": [
+                "Premium Medical Coverage",
+                "Academic Protection",
+                "Sponsor Protection",
+                "Personal Liability"
+            ]
+        }
+    },
+    "study_duration_analysis": {
+        "less_than_1_year": {
+            "recommended": "Single Academic Year Plan"
+        },
+        "1_to_3_years": {
+            "recommended": "Extended Student Coverage"
+        },
+        "more_than_3_years": {
+            "recommended": "Long-Term Academic Protection Plan"
+        }
+    },
+    "risk_analysis": {
+        "high_medical_risk": {
+            "recommended": "Premium Medical Student Plan"
+        },
+        "high_travel_frequency": {
+            "recommended": "Multi-Trip Student Coverage"
+        },
+        "first_time_abroad": {
+            "recommended": "Student Guidance Protection Plan"
+        }
+    }
+}

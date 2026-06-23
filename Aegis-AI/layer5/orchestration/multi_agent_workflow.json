@@ -1,0 +1,34 @@
+{
+    "version": "5.0",
+    "workflow": [
+        {
+            "step": 1,
+            "action": "identify_categories"
+        },
+        {
+            "step": 2,
+            "action": "assign_specialist_advisors"
+        },
+        {
+            "step": 3,
+            "action": "collect_advisor_recommendations"
+        },
+        {
+            "step": 4,
+            "action": "aggregate_results"
+        },
+        {
+            "step": 5,
+            "action": "executive_review"
+        },
+        {
+            "step": 6,
+            "action": "generate_unified_recommendation"
+        }
+    ],
+    "executive_policy": {
+        "require_consensus": true,
+        "require_risk_validation": true,
+        "require_customer_fit_validation": true
+    }
+}

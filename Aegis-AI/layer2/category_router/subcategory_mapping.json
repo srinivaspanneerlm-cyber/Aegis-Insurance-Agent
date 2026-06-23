@@ -1,0 +1,132 @@
+{
+    "health": {
+        "family-health": [
+            "family",
+            "wife",
+            "husband",
+            "children",
+            "family floater"
+        ],
+        "individual-health": [
+            "individual",
+            "self",
+            "single person"
+        ],
+        "senior-citizen": [
+            "father",
+            "mother",
+            "aged",
+            "elderly",
+            "senior citizen"
+        ],
+        "maternity": [
+            "pregnancy",
+            "delivery",
+            "newborn",
+            "maternity"
+        ],
+        "group-health": [
+            "employees",
+            "corporate",
+            "group policy",
+            "company staff"
+        ]
+    },
+    "motor": {
+        "private-car": [
+            "car",
+            "creta",
+            "swift",
+            "baleno",
+            "suv",
+            "sedan"
+        ],
+        "two-wheeler": [
+            "bike",
+            "motorcycle",
+            "scooter",
+            "activa"
+        ],
+        "goods-carrying-vehicle": [
+            "truck",
+            "lorry",
+            "goods vehicle"
+        ],
+        "passenger-carrying-vehicle": [
+            "bus",
+            "taxi",
+            "cab",
+            "van"
+        ],
+        "commercial-vehicle": [
+            "commercial vehicle"
+        ],
+        "miscellaneous-vehicle": [
+            "tractor",
+            "special vehicle"
+        ]
+    },
+    "travel": {
+        "domestic-travel": [
+            "domestic",
+            "india trip"
+        ],
+        "international-travel": [
+            "usa",
+            "uk",
+            "europe",
+            "foreign travel"
+        ],
+        "family-travel": [
+            "family vacation",
+            "family trip"
+        ],
+        "student-travel": [
+            "study abroad",
+            "student visa"
+        ],
+        "business-travel": [
+            "business trip",
+            "official travel"
+        ]
+    },
+    "home-property": {
+        "home-insurance": [
+            "house",
+            "home"
+        ],
+        "building-insurance": [
+            "building",
+            "structure"
+        ],
+        "contents-insurance": [
+            "electronics",
+            "furniture",
+            "contents"
+        ],
+        "tenant-insurance": [
+            "tenant",
+            "rent"
+        ],
+        "landlord-insurance": [
+            "landlord",
+            "rental property"
+        ]
+    },
+    "miscellaneous": {
+        "pet-insurance": [
+            "pet",
+            "dog",
+            "cat"
+        ],
+        "personal-accident": [
+            "accident cover",
+            "personal accident"
+        ],
+        "cyber-insurance": [
+            "cyber attack",
+            "online fraud",
+            "identity theft"
+        ]
+    }
+}

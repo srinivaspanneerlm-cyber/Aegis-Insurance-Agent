@@ -1,0 +1,28 @@
+{
+  "version": "1.0",
+  "rules": {
+    "required_for_recommendation": [
+      "age",
+      "budget",
+      "family_size"
+    ],
+    "weights": {
+      "customer_id": 5,
+      "name": 10,
+      "age": 20,
+      "gender": 5,
+      "marital_status": 5,
+      "occupation": 5,
+      "annual_income": 10,
+      "family_size": 15,
+      "budget": 15,
+      "location": 5,
+      "preferred_category": 5
+    },
+    "thresholds": {
+      "partial_ready": 40,
+      "ready_for_recommendation": 60,
+      "completed": 95
+    }
+  }
+}

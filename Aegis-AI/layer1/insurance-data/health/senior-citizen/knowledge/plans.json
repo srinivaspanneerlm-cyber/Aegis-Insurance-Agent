@@ -1,0 +1,29 @@
+{
+    "category": "Health Insurance",
+    "subcategory": "Senior Citizen",
+    "plans": [
+        {
+            "plan_id": "SH001",
+            "plan_name": "Senior Care Shield",
+            "coverage": [
+                "500000",
+                "1000000",
+                "2500000"
+            ],
+            "premium_range": {
+                "monthly": "2500-7000",
+                "yearly": "30000-84000"
+            },
+            "best_for": [
+                "Retired individuals",
+                "Senior citizens above 60"
+            ],
+            "benefits": [
+                "Pre-existing disease coverage",
+                "Hospitalization benefits",
+                "Emergency treatment",
+                "Annual health checkups"
+            ]
+        }
+    ]
+}

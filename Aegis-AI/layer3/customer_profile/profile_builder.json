@@ -1,0 +1,58 @@
+{
+  "version": "1.0",
+  "strategy": "progressive_enrichment",
+  "rules": {
+    "merge_mode": "override_if_high_confidence",
+    "enrichment": {
+      "increment_history_count": true,
+      "update_timestamps": true
+    },
+    "mappings": {
+      "age": {
+        "source": "extracted.age",
+        "type": "integer",
+        "min_confidence": 0.85
+      },
+      "family_size": {
+        "source": "extracted.family_size",
+        "type": "integer",
+        "min_confidence": 0.85
+      },
+      "budget": {
+        "source": "extracted.budget",
+        "type": "number",
+        "min_confidence": 0.85
+      },
+      "annual_income": {
+        "source": "extracted.annual_income",
+        "type": "number",
+        "min_confidence": 0.85
+      },
+      "location": {
+        "source": "extracted.location",
+        "type": "string",
+        "min_confidence": 0.8
+      },
+      "name": {
+        "source": "extracted.name",
+        "type": "string",
+        "min_confidence": 0.9
+      },
+      "gender": {
+        "source": "extracted.gender",
+        "type": "string",
+        "min_confidence": 0.85
+      },
+      "marital_status": {
+        "source": "extracted.marital_status",
+        "type": "string",
+        "min_confidence": 0.85
+      },
+      "occupation": {
+        "source": "extracted.occupation",
+        "type": "string",
+        "min_confidence": 0.8
+      }
+    }
+  }
+}

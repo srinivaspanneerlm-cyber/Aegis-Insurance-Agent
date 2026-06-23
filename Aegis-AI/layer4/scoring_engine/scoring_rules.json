@@ -1,0 +1,40 @@
+{
+  "version": "1.0",
+  "match_logic": {
+    "budget_match": {
+      "scoring_type": "ratio_decay",
+      "exact_fit_threshold": 1.0,
+      "unacceptable_threshold": 1.5,
+      "description": "Calculates compatibility by comparing plan premium against customer target budget limit."
+    },
+    "coverage_match": {
+      "scoring_type": "sizing_suitability",
+      "min_individual_coverage": 500000,
+      "family_floater_multiplier": 1.5,
+      "description": "Measures suitability of coverage limits for family floater sizing requirements."
+    },
+    "eligibility_match": {
+      "scoring_type": "strict_binary",
+      "required_checks": ["age", "income", "budget"],
+      "description": "Checks age, income limits, and budget floors for binary pre-qualification."
+    },
+    "risk_match": {
+      "scoring_type": "risk_tier_compatibility",
+      "mappings": {
+        "High": ["elite", "comprehensive"],
+        "Medium": ["comprehensive", "essential"],
+        "Low": ["essential"]
+      },
+      "description": "Matches plan rider holdings to the calculated client underwriting risk tier."
+    },
+    "claim_support_match": {
+      "scoring_type": "settlement_proximity",
+      "baseline_settlement_ratio": 98.4,
+      "description": "Grants high score based on Aegis' high 98.4% claim ratio and network hospitals list."
+    },
+    "preference_match": {
+      "scoring_type": "keyword_affinity",
+      "description": "Evaluates client keyword overlap (e.g. cashless, zero-copay, engine-protect) with plan options."
+    }
+  }
+}

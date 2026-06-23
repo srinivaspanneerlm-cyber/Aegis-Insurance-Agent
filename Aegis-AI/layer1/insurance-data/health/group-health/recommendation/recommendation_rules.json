@@ -1,0 +1,7 @@
+{
+    "employee_count": {
+        "5-50": "Startup Group Plan",
+        "51-500": "SME Group Plan",
+        "500+": "Enterprise Group Plan"
+    }
+}

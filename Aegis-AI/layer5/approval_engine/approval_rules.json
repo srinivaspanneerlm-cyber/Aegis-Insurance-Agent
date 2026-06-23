@@ -1,0 +1,39 @@
+{
+    "version": "5.0",
+    "executive_authority": {
+        "owner": "Sri AI",
+        "role": "Chief Executive Intelligence Officer",
+        "authority_level": 5
+    },
+    "approval_categories": {
+        "auto_approved": {
+            "minimum_recommendation_score": 90,
+            "minimum_confidence_score": 90,
+            "risk_level": [
+                "low",
+                "medium"
+            ]
+        },
+        "executive_review_required": {
+            "minimum_recommendation_score": 75,
+            "maximum_recommendation_score": 89,
+            "risk_level": [
+                "medium",
+                "high"
+            ]
+        },
+        "mandatory_executive_intervention": {
+            "recommendation_score_below": 75,
+            "critical_risk": true,
+            "customer_complaint": true,
+            "claim_dispute": true
+        }
+    },
+    "mandatory_validation_checks": [
+        "budget_match",
+        "coverage_match",
+        "risk_match",
+        "eligibility_check",
+        "customer_profile_validation"
+    ]
+}

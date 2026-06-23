@@ -1,0 +1,14 @@
+{
+    "trust_factors": {
+        "customer_history": 30,
+        "claim_history": 25,
+        "policy_retention": 20,
+        "payment_history": 15,
+        "advisor_feedback": 10
+    },
+    "trust_levels": {
+        "high": 80,
+        "medium": 50,
+        "low": 20
+    }
+}

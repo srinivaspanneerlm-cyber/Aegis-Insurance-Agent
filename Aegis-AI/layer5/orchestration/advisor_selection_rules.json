@@ -1,0 +1,32 @@
+{
+    "version": "5.0",
+    "selection_policy": {
+        "health": "Sarah AI",
+        "motor": "Alex AI",
+        "travel": "Ethan AI",
+        "home_property": "Emma AI",
+        "miscellaneous": "Emma AI"
+    },
+    "executive_selection_rules": [
+        {
+            "condition": "multi_category_case",
+            "advisor": "Sri AI"
+        },
+        {
+            "condition": "customer_complaint",
+            "advisor": "Sri AI"
+        },
+        {
+            "condition": "claim_dispute",
+            "advisor": "Sri AI"
+        },
+        {
+            "condition": "recommendation_conflict",
+            "advisor": "Sri AI"
+        }
+    ],
+    "executive_priority": {
+        "customer_protection": true,
+        "recommendation_quality": true
+    }
+}

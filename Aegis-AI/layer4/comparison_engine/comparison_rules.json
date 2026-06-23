@@ -1,0 +1,30 @@
+{
+  "version": "1.0",
+  "comparison_criteria": {
+    "premium": {
+      "type": "numeric",
+      "sorting": "ascending",
+      "weight": "high"
+    },
+    "coverage_limit": {
+      "type": "numeric",
+      "sorting": "descending",
+      "weight": "high"
+    },
+    "claim_support_ratio": {
+      "type": "percentage",
+      "sorting": "descending",
+      "weight": "medium"
+    },
+    "waiting_period_months": {
+      "type": "numeric",
+      "sorting": "ascending",
+      "weight": "medium"
+    },
+    "customer_fit_score": {
+      "type": "numeric",
+      "sorting": "descending",
+      "weight": "critical"
+    }
+  }
+}

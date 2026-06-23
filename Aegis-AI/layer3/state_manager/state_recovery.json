@@ -1,0 +1,20 @@
+{
+  "version": "1.0",
+  "recovery_rules": {
+    "session_timeout_seconds": 1800,
+    "recovery_strategies": {
+      "timeout": {
+        "action": "reconstruct_from_last_profile",
+        "fallback_stage": "collecting_age"
+      },
+      "interrupted_flow": {
+        "action": "resume_from_saved_state",
+        "verify_timestamp": true
+      }
+    },
+    "backup_frequency": {
+      "turns": 1,
+      "event": "state_change"
+    }
+  }
+}

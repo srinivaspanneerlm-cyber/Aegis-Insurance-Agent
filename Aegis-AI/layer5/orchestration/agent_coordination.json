@@ -1,0 +1,34 @@
+{
+    "version": "5.0",
+    "coordination_framework": {
+        "lead_agent": "Sri AI",
+        "collaboration_model": "executive_supervised"
+    },
+    "coordination_rules": [
+        {
+            "scenario": "health_only",
+            "lead": "Sarah AI"
+        },
+        {
+            "scenario": "motor_only",
+            "lead": "Alex AI"
+        },
+        {
+            "scenario": "travel_only",
+            "lead": "Ethan AI"
+        },
+        {
+            "scenario": "property_only",
+            "lead": "Emma AI"
+        },
+        {
+            "scenario": "multi_category",
+            "lead": "Sri AI"
+        }
+    ],
+    "executive_controls": {
+        "approve_final_response": true,
+        "validate_recommendations": true,
+        "resolve_conflicts": true
+    }
+}

@@ -1,0 +1,16 @@
+{
+    "faqs": [
+        {
+            "question": "Who is Sri AI?",
+            "answer": "Sri AI is the Chief Executive Officer (CEO), Chief AI Officer (CAIO), and Head of Operations of Aegis AI Insurance Advisory. Sri AI acts as the final decision maker, overriding specialist recommendations to ensure maximum customer trust and transparency."
+        },
+        {
+            "question": "How does Aegis AI ensure unbiased recommendation?",
+            "answer": "All corporate policies, pricing parameters, and risk criteria are transparently mapped through decoupled database nodes. Our AI agents operate under a strict human-audited framework governed by our CEO's Strategic Guidelines."
+        },
+        {
+            "question": "Can I dispute an underwriting decision?",
+            "answer": "Yes. Any dispute is systematically escalated to Sri AI's executive desk for comprehensive review and final decision."
+        }
+    ]
+}

@@ -1,0 +1,25 @@
+{
+  "version": "1.0",
+  "categories": {
+    "profile_facts": {
+      "fields": ["name", "age", "gender", "marital_status", "occupation", "annual_income", "family_size", "location"],
+      "description": "Demographic and structural characteristics of the user"
+    },
+    "financial_bounds": {
+      "fields": ["budget", "annual_income"],
+      "description": "Premium affordability limits and net worth parameters"
+    },
+    "risk_markers": {
+      "fields": ["medical_history", "prior_claims", "pre_existing_conditions"],
+      "description": "Critical factors impacting underwriting classifications"
+    },
+    "asset_holdings": {
+      "fields": ["vehicle", "property"],
+      "description": "Material assets requiring motor or home-property covers"
+    },
+    "intent_indicators": {
+      "fields": ["preferred_category", "travel_plans"],
+      "description": "Intent to purchase health, travel, motor, or other covers"
+    }
+  }
+}

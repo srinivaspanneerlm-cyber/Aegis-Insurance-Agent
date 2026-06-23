@@ -1,0 +1,36 @@
+{
+    "version": "5.0",
+    "executive_dashboard": {
+        "real_time_metrics": [
+            "recommendation_accuracy",
+            "customer_satisfaction",
+            "advisor_performance",
+            "active_escalations",
+            "compliance_status",
+            "governance_status"
+        ],
+        "executive_views": [
+            "enterprise_health",
+            "advisor_rankings",
+            "recommendation_quality",
+            "customer_trust",
+            "business_risk"
+        ]
+    },
+    "ceo_summary": {
+        "mission": "Deliver trusted, transparent and high quality insurance recommendations.",
+        "success_criteria": [
+            "high_accuracy",
+            "high_customer_trust",
+            "high_governance_compliance",
+            "low_escalation_rate",
+            "consistent_advisor_quality"
+        ]
+    },
+    "executive_authority": {
+        "can_override": true,
+        "can_investigate": true,
+        "can_reassign_advisors": true,
+        "can_trigger_platform_review": true
+    }
+}

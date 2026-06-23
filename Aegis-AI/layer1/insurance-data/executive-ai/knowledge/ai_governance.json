@@ -1,0 +1,17 @@
+{
+    "governance_model": "Human-in-the-Loop Strategic Oversight",
+    "ethical_standards": {
+        "fairness_constraints": "AI must never offer differential pricing based on race, gender, or orientation.",
+        "transparency_rules": "All policy exclusions must be actively displayed and highlighted upfront in natural language.",
+        "explainability_policy": "For every recommended product, the system must provide a minimum of 3 primary logic reasons."
+    },
+    "drift_and_bias_controls": {
+        "bias_auditing_frequency_days": 30,
+        "maximum_acceptable_variance_ratio": 0.02,
+        "fallback_protocol": "Automated rollback to the last verified prompt version if high variance is detected."
+    },
+    "data_safety": {
+        "pii_masking": "Enabled for all logging screens.",
+        "encryption_standard": "AES-256 in transit and at rest."
+    }
+}

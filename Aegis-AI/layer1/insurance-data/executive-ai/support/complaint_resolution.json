@@ -1,0 +1,20 @@
+{
+    "complaint_levels": {
+        "minor": {
+            "handled_by": "Department AI"
+        },
+        "major": {
+            "handled_by": "Sri AI"
+        },
+        "critical": {
+            "handled_by": "Sri AI Executive Review"
+        }
+    },
+    "resolution_principles": [
+        "Listen Carefully",
+        "Identify Root Cause",
+        "Provide Clear Explanation",
+        "Offer Solution",
+        "Follow Up"
+    ]
+}

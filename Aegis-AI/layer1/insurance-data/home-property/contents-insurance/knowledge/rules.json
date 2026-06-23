@@ -1,0 +1,31 @@
+{
+    "eligibility": {
+        "ownership_or_possession_required": true,
+        "residential_use_required": true
+    },
+    "asset_requirements": {
+        "high_value_items_may_require_valuation": true,
+        "proof_of_purchase_recommended": true
+    },
+    "claim_conditions": {
+        "loss_reporting": "Within 24-72 Hours",
+        "required_documents": [
+            "Policy Copy",
+            "Ownership Evidence",
+            "Purchase Receipts",
+            "Photos of Damaged Items",
+            "Police Report for Theft Claims"
+        ]
+    },
+    "common_exclusions": [
+        "Intentional Damage",
+        "Normal Wear and Tear",
+        "Mechanical Breakdown",
+        "Unexplained Loss",
+        "Illegal Activities"
+    ],
+    "coverage_limits": {
+        "single_item_limit_applies": true,
+        "special_limits_for_jewelry": true
+    }
+}

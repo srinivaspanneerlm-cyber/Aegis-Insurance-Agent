@@ -1,0 +1,16 @@
+{
+    "faqs": [
+        {
+            "question": "Is domestic travel insurance mandatory?",
+            "answer": "No, but it provides financial protection during travel."
+        },
+        {
+            "question": "Does it cover medical emergencies?",
+            "answer": "Yes, eligible emergency medical expenses are covered."
+        },
+        {
+            "question": "Does it cover trip cancellation?",
+            "answer": "Coverage depends on policy conditions."
+        }
+    ]
+}

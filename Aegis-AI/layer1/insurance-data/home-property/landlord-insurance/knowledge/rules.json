@@ -1,0 +1,27 @@
+{
+    "eligibility": {
+        "property_ownership_required": true,
+        "rental_property_required": true
+    },
+    "claim_conditions": {
+        "damage_reporting": "Within 48 Hours",
+        "required_documents": [
+            "Ownership Proof",
+            "Rental Agreement",
+            "Policy Copy",
+            "Damage Evidence",
+            "Repair Estimates"
+        ]
+    },
+    "common_exclusions": [
+        "Intentional Damage",
+        "Illegal Tenant Activities",
+        "Normal Wear and Tear",
+        "Poor Property Maintenance",
+        "Undisclosed Property Modifications"
+    ],
+    "rental_income_rules": {
+        "proof_of_rental_income_required": true,
+        "covered_event_required": true
+    }
+}

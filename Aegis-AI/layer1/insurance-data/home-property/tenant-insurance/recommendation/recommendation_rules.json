@@ -1,0 +1,35 @@
+{
+    "tenant_profile_analysis": {
+        "student": {
+            "recommended_plan": "Basic Tenant Protection"
+        },
+        "working_professional": {
+            "recommended_plan": "Comprehensive Tenant Protection"
+        },
+        "family": {
+            "recommended_plan": "Family Tenant Coverage"
+        },
+        "luxury_renter": {
+            "recommended_plan": "Premium Tenant Shield"
+        }
+    },
+    "asset_value_analysis": {
+        "below_300000": {
+            "recommended": "Basic Tenant Protection"
+        },
+        "300000_to_1500000": {
+            "recommended": "Comprehensive Tenant Protection"
+        },
+        "above_1500000": {
+            "recommended": "Premium Tenant Shield"
+        }
+    },
+    "risk_analysis": {
+        "high_crime_area": {
+            "recommended": "Theft & Burglary Protection"
+        },
+        "shared_accommodation": {
+            "recommended": "Personal Belongings Protection"
+        }
+    }
+}

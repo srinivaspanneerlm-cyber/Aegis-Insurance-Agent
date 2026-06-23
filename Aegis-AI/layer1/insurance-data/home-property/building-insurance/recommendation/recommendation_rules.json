@@ -1,0 +1,52 @@
+{
+    "property_value_analysis": {
+        "below_5000000": {
+            "recommended_plan": "Basic Building Protection",
+            "reason": "Suitable for lower-value residential properties."
+        },
+        "5000000_to_10000000": {
+            "recommended_plan": "Comprehensive Building Protection",
+            "reason": "Balanced protection and cost efficiency."
+        },
+        "above_10000000": {
+            "recommended_plan": "Premium Property Shield",
+            "reason": "High-value assets require enhanced protection."
+        }
+    },
+    "building_age_analysis": {
+        "0_to_10_years": {
+            "recommended": "Standard Structural Coverage"
+        },
+        "10_to_25_years": {
+            "recommended": "Enhanced Structural Protection"
+        },
+        "25_plus_years": {
+            "recommended": "Premium Structural Coverage"
+        }
+    },
+    "location_risk_analysis": {
+        "low_risk": {
+            "recommended": "Basic Protection"
+        },
+        "flood_prone": {
+            "recommended": "Flood Protection Add-on"
+        },
+        "earthquake_zone": {
+            "recommended": "Earthquake Protection Add-on"
+        },
+        "coastal_area": {
+            "recommended": "Natural Disaster Protection"
+        }
+    },
+    "occupancy_analysis": {
+        "owner_occupied": {
+            "recommended": "Residential Building Plan"
+        },
+        "rented": {
+            "recommended": "Landlord Protection Plan"
+        },
+        "commercial": {
+            "recommended": "Commercial Property Shield"
+        }
+    }
+}

@@ -1,0 +1,114 @@
+{
+  "version": "1.0",
+  "memory_types": {
+    "short_term": {
+      "max_turns": 10,
+      "purpose": "Maintain conversational thread context and transient questions."
+    },
+    "long_term": {
+      "purpose": "Archive verified profile attributes, preferences, and calculated indicators.",
+      "triggers": ["profile_update", "insurance_preference_locked"]
+    },
+    "important": {
+      "purpose": "Store high-priority indicators like medical history, claims, asset types, and high budgets.",
+      "indicators": ["pre_existing_conditions", "prior_claims", "high_budget_threshold"]
+    },
+    "temporary": {
+      "purpose": "Store temporary calculation variables, raw search queries, and transient options.",
+      "ttl_seconds": 900
+    }
+  },
+  "extraction_rules": {
+    "confidence_threshold": 0.85,
+    "detectors": {
+      "age": {
+        "patterns": [
+          "age\\s*(?:is)?\\s*(\\d+)",
+          "i(?:\\s+am|'m)\\s+(\\d+)\\s*(?:years\\s+old|yrs\\s+old)?",
+          "i\\s+am\\s+(\\d+)"
+        ],
+        "type": "integer"
+      },
+      "family_size": {
+        "patterns": [
+          "family\\s*(?:of|size)?\\s*(?:is)?\\s*(\\d+)",
+          "family\\s+of\\s+(\\d+)",
+          "family\\s+size\\s+(?:is\\s+)?(\\d+)",
+          "i\\s+have\\s+a\\s+family\\s+of\\s+(\\d+)",
+          "household\\s+of\\s+(\\d+)",
+          "myself\\s+and\\s+(\\d+)\\s*(?:children|kids)?",
+          "just\\s+me"
+        ],
+        "type": "integer"
+      },
+      "budget": {
+        "patterns": [
+          "budget\\s*(?:is|of|around)?\\s*(?:rs\\.?|rupees|₹)?\\s*(\\d+)",
+          "budget\\s+is\\s*(?:rs\\.?|rupees|₹)?\\s*(\\d+)",
+          "budget\\s+of\\s*(?:rs\\.?|rupees|₹)?\\s*(\\d+)",
+          "spend\\s*(?:rs\\.?|rupees|₹)?\\s*(\\d+)\\s*(?:per\\s+month|/mo|monthly)?",
+          "budget\\s+around\\s*(\\d+)",
+          "premium\\s+comfort\\s+zone\\s+is\\s*(\\d+)"
+        ],
+        "type": "number"
+      },
+      "income": {
+        "patterns": [
+          "income\\s+is\\s*(?:rs\\.?|rupees|₹)?\\s*(\\d+)",
+          "earn\\s*(?:rs\\.?|rupees|₹)?\\s*(\\d+)\\s*(?:per\\s+year|/yr|annually)?",
+          "annual\\s+income\\s+(?:is\\s+)?(?:rs\\.?|rupees|₹)?\\s*(\\d+)",
+          "salary\\s+is\\s*(?:rs\\.?|rupees|₹)?\\s*(\\d+)"
+        ],
+        "type": "number"
+      },
+      "location": {
+        "patterns": [
+          "live\\s+in\\s+([a-zA-Z\\s]+)",
+          "postal\\s+code\\s+is\\s+(\\d{5,6})",
+          "zip\\s+code\\s+is\\s+(\\d{5,6})",
+          "pin\\s+code\\s+is\\s+(\\d{5,6})",
+          "location\\s+is\\s+([a-zA-Z\\s]+)"
+        ],
+        "type": "string"
+      },
+      "vehicle": {
+        "patterns": [
+          "drive\\s+a\\s+([a-zA-Z0-9\\s]+)",
+          "own\\s+a\\s+(?:car|bike|suv|sedan|vehicle|motorcycle)?\\s*([a-zA-Z0-9\\s]+)",
+          "vehicle\\s+is\\s+([a-zA-Z0-9\\s]+)",
+          "insure\\s+my\\s+([a-zA-Z0-9\\s]+)",
+          "have\\s+a\\s+([a-zA-Z0-9\\s]+)",
+          "have\\s+([a-zA-Z0-9\\s]+)",
+          "have\\s+royal\\s+enfield\\s+bike"
+        ],
+        "type": "string"
+      },
+      "property": {
+        "patterns": [
+          "own\\s+a\\s+(?:house|apartment|villa|building|property)",
+          "tenant\\s+in\\s+a\\s+([a-zA-Z0-9\\s]+)",
+          "rent\\s+an\\s+([a-zA-Z0-9\\s]+)",
+          "property\\s+size\\s+is\\s+(\\d+)",
+          "house\\s+is\\s+([a-zA-Z0-9\\s]+)",
+          "live\\s+in\\s+a\\s+([a-zA-Z0-9\\s]+)",
+          "need\\s+insurance\\s+for\\s+my\\s+([a-zA-Z0-9\\s]+)",
+          "insurance\\s+for\\s+my\\s+([a-zA-Z0-9\\s]+)",
+          "live\\s+in\\s+a\\s+rented\\s+apartment"
+        ],
+        "type": "string"
+      },
+      "travel_plans": {
+        "patterns": [
+          "traveling\\s+to\\s+([a-zA-Z\\s]+)",
+          "travelling\\s+to\\s+([a-zA-Z\\s]+)",
+          "trip\\s+to\\s+([a-zA-Z\\s]+)",
+          "going\\s+to\\s+([a-zA-Z\\s]+)\\s+for\\s+studies",
+          "going\\s+to\\s+([a-zA-Z\\s]+)",
+          "flying\\s+to\\s+([a-zA-Z\\s]+)",
+          "vacation\\s+in\\s+([a-zA-Z\\s]+)"
+        ],
+        "type": "string"
+      }
+    }
+  }
+}

@@ -1,0 +1,24 @@
+{
+    "faqs": [
+        {
+            "question": "What does Home Insurance cover?",
+            "answer": "Home Insurance protects the building structure and household contents against covered risks."
+        },
+        {
+            "question": "Does it cover natural disasters?",
+            "answer": "Most comprehensive plans cover events such as floods, storms, earthquakes, and cyclones."
+        },
+        {
+            "question": "Does it cover theft?",
+            "answer": "Theft coverage is generally available under comprehensive plans."
+        },
+        {
+            "question": "Can I insure only the building?",
+            "answer": "Yes, building-only protection is commonly available."
+        },
+        {
+            "question": "Can I insure only household contents?",
+            "answer": "Yes, contents-only coverage may be available."
+        }
+    ]
+}

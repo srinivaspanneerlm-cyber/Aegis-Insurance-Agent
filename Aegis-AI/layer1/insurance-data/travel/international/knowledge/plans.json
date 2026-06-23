@@ -1,0 +1,52 @@
+{
+    "category": "Travel Insurance",
+    "subcategory": "International Travel",
+    "plan_tiers": [
+        {
+            "tier": "Essential",
+            "target_users": [
+                "Tourists",
+                "Short-Term Travelers"
+            ],
+            "medical_coverage": {
+                "emergency_hospitalization": true,
+                "medical_consultation": true,
+                "emergency_medical_evacuation": true
+            },
+            "travel_protection": {
+                "trip_delay": true,
+                "trip_cancellation": true,
+                "missed_connection": true
+            },
+            "baggage_protection": {
+                "baggage_delay": true,
+                "baggage_loss": true
+            }
+        },
+        {
+            "tier": "Premium",
+            "target_users": [
+                "Business Travelers",
+                "Frequent Flyers",
+                "Family Travelers"
+            ],
+            "medical_coverage": {
+                "cashless_hospitalization": true,
+                "emergency_evacuation": true,
+                "repatriation": true
+            },
+            "travel_protection": {
+                "passport_loss": true,
+                "financial_emergency_assistance": true,
+                "trip_interruption": true
+            }
+        }
+    ],
+    "advanced_coverages": [
+        "Hijack Distress Allowance",
+        "Emergency Cash Assistance",
+        "Personal Liability Protection",
+        "Dental Emergency Coverage",
+        "Compassionate Visit"
+    ]
+}

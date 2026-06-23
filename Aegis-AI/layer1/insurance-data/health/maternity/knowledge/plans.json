@@ -1,0 +1,29 @@
+{
+    "category": "Health Insurance",
+    "subcategory": "Maternity",
+    "plans": [
+        {
+            "plan_id": "MH001",
+            "plan_name": "Mother Care Shield",
+            "coverage": [
+                "300000",
+                "500000",
+                "1000000"
+            ],
+            "premium_range": {
+                "monthly": "1500-4000",
+                "yearly": "18000-48000"
+            },
+            "best_for": [
+                "Married couples",
+                "Pregnancy planning families"
+            ],
+            "benefits": [
+                "Normal delivery coverage",
+                "C-section coverage",
+                "Newborn coverage",
+                "Pre and post natal care"
+            ]
+        }
+    ]
+}

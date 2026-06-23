@@ -1,0 +1,102 @@
+{
+  "category": "motor",
+  "subcategories": [
+    "Comprehensive Car Shield",
+    "Smart Two-Wheeler Guard",
+    "Commercial Asset Cover",
+    "Roadside Telemetry Plus"
+  ],
+  "insurance_plans": [
+    {
+      "plan_name": "Aegis Motor Premium Shield",
+      "coverage": "₹50 Lakh Cover",
+      "premium": "₹650/month",
+      "eligibility": "Passenger cars and SUVs up to 10 years of age, registered in India.",
+      "waiting_period": "Instant activation upon automated video self-inspection approval through the Aegis App.",
+      "exclusions": "Drunk driving damage, racing accidents, driving without a valid license, consequential damage (driving after engine oil leakage), general wear and tear.",
+      "benefits": [
+        "Zero Depreciation Cover (100% parts recovery)",
+        "24/7 Roadside Assistance (towing, tyre change, minor mechanical fixes)",
+        "Cashless Garage Network access at 6,500+ corporate garages",
+        "Engine Protection Shield (guards against hydrostatic lock and water damage)"
+      ],
+      "claim_process": "Snap photos/video of vehicle damage on the Aegis App, get instant cashless approval in 30 minutes, and vehicle pickup is arranged automatically.",
+      "tax_benefits": "Business asset depreciation write-offs and tax deductions on premiums allowed for commercial and self-employed corporate entities.",
+      "best_for": "Premium sedan and SUV owners looking for bulletproof road assistance and complete parts depreciation lock.",
+      "risk_level": "High-protection mechanical shield",
+      "recommendation_priority": 1,
+      "emotional_protection_benefits": "Guarantees complete protection of your primary mobile asset, keeping your family safe on highways, and eliminating unexpected mechanic bills."
+    },
+    {
+      "plan_name": "Aegis Basic Auto Guard",
+      "coverage": "₹15 Lakh Cover",
+      "premium": "₹250/month",
+      "eligibility": "All road-legal passenger vehicles, including older legacy models.",
+      "waiting_period": "Instant activation on payment.",
+      "exclusions": "Damage to own vehicle under pure third-party plans, general mechanical breakdown not caused by external collisions.",
+      "benefits": [
+        "Mandatory legal third-party liability fully covered",
+        "Emergency towing assistance up to 50 km",
+        "Personal accident insurance for owner-driver up to ₹15 Lakh"
+      ],
+      "claim_process": "Online filing through TPA desk with automated surveyor clearance within 24 hours.",
+      "tax_benefits": "None for individual owners, standard corporate expenses deductions apply for commercial usage.",
+      "best_for": "Budget-focused drivers and older vehicles seeking legal compliance and reliable roadside backing.",
+      "risk_level": "Standard legal coverage",
+      "recommendation_priority": 2,
+      "emotional_protection_benefits": "Ensures complete legal compliance with road laws, avoiding expensive police penalties, and basic roadside backup."
+    }
+  ],
+  "faqs": [
+    {
+      "question": "What is Zero Depreciation cover?",
+      "answer": "Zero Depreciation means Aegis covers the entire cost of replacing plastic, rubber, and glass parts without subtracting age-based wear and tear values from your claim."
+    },
+    {
+      "question": "Is roadside towing covered?",
+      "answer": "Yes! Both plans include roadside emergency towing. Our Premium plan provides unlimited towing to the nearest empanelled corporate garage."
+    }
+  ],
+  "recommendation_rules": [
+    "If user budget is ₹400/month or less, recommend Aegis Basic Auto Guard.",
+    "If vehicle age is under 7 years or user budget is above ₹400/month, recommend Aegis Motor Premium Shield for full Zero-Depreciation cover.",
+    "If road safety, highway travel, or engine safety is a priority, recommend Aegis Motor Premium Shield."
+  ],
+  "emotional_protection_benefits": [
+    "Highway safety peace of mind for you and your family.",
+    "No out-of-pocket surprise bills from repair garages.",
+    "Rapid roadside rescue, ensuring you are never stranded alone in the dark."
+  ],
+  "conversational_templates": {
+    "default_recommendation_flow": {
+      "greeting": "Salutations! 🚗",
+      "intro_pitch": "For protecting your primary mechanical assets, I highly recommend our Comprehensive Mechanical Shield because it covers own-damage incidents, engine hydrolocks, and key replacements together.",
+      "coverage_sizing_guide": "Based on your vehicle's IDV (Insured Declared Value), a coverage range between ₹15–50 Lakhs shields you from road liabilities and mechanical repair shocks.",
+      "benefits_checklist": {
+        "title": "✅ Recommended Benefits:",
+        "items": [
+          "Zero depreciation cover (100% parts recovery)",
+          "24/7 roadside assistance & towing support",
+          "Cashless corporate garage network access",
+          "Engine Protection rider"
+        ]
+      },
+      "suitability_criteria": {
+        "title": "This type of cover is especially suitable for:",
+        "items": [
+          "Daily commuters and city drivers",
+          "Owners of luxury SUVs or high-performance sedans",
+          "Drivers looking for complete post-collision peace of mind"
+        ]
+      },
+      "next_steps_consultation": {
+        "title": "Would you like me to suggest:",
+        "options": [
+          "1. Essential legal third-party protection",
+          "2. Comprehensive zero-depreciation plans",
+          "3. Elite asset protection packages"
+        ]
+      }
+    }
+  }
+}

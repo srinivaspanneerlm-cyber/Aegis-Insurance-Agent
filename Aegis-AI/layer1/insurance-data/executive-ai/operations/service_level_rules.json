@@ -1,0 +1,11 @@
+{
+    "chat_channel": {
+        "max_initial_response_seconds": 2.0,
+        "average_handle_minutes": 5.0
+    },
+    "escalation_payout_processing": {
+        "Platinum_VIP": "Under 2 hours",
+        "Gold": "Under 12 hours",
+        "Standard": "Under 24 hours"
+    }
+}

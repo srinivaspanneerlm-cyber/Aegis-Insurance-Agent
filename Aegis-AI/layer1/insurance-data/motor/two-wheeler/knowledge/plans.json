@@ -1,0 +1,46 @@
+{
+    "category": "Motor Insurance",
+    "subcategory": "Two Wheeler",
+    "coverage_options": [
+        {
+            "coverage_type": "Third Party",
+            "description": "Provides legal liability protection against bodily injury, death, or property damage caused to third parties.",
+            "best_for": [
+                "Budget-conscious riders",
+                "Older motorcycles"
+            ],
+            "advantages": [
+                "Affordable premium",
+                "Legal compliance"
+            ],
+            "limitations": [
+                "No own vehicle damage coverage"
+            ]
+        },
+        {
+            "coverage_type": "Comprehensive",
+            "description": "Provides coverage for third-party liabilities and damages to the insured vehicle.",
+            "best_for": [
+                "New bikes",
+                "Daily commuters",
+                "Premium motorcycles"
+            ],
+            "advantages": [
+                "Accident protection",
+                "Fire damage protection",
+                "Natural disaster protection",
+                "Theft protection"
+            ]
+        }
+    ],
+    "add_on_covers": [
+        {
+            "name": "Zero Depreciation",
+            "purpose": "Higher claim settlement without depreciation deduction."
+        },
+        {
+            "name": "Roadside Assistance",
+            "purpose": "Emergency breakdown support."
+        }
+    ]
+}

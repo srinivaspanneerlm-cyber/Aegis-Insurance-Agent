@@ -1,0 +1,22 @@
+{
+    "eligibility": {
+        "valid_rental_agreement_required": true,
+        "residential_tenant_required": true
+    },
+    "claim_conditions": {
+        "incident_reporting": "Within 48 Hours",
+        "required_documents": [
+            "Rental Agreement",
+            "Policy Copy",
+            "Purchase Receipts",
+            "Photos of Damaged Items",
+            "Police Report for Theft Claims"
+        ]
+    },
+    "common_exclusions": [
+        "Intentional Damage",
+        "Illegal Activities",
+        "Normal Wear and Tear",
+        "Unverified Ownership Claims"
+    ]
+}

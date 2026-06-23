@@ -1,0 +1,51 @@
+{
+    "category": "Home & Property Insurance",
+    "subcategory": "Tenant Insurance",
+    "coverage_tiers": [
+        {
+            "tier": "Basic Tenant Protection",
+            "coverages": [
+                "Personal Belongings Protection",
+                "Fire Damage Coverage",
+                "Theft Protection"
+            ],
+            "best_for": [
+                "Students",
+                "Single Occupants"
+            ]
+        },
+        {
+            "tier": "Comprehensive Tenant Protection",
+            "coverages": [
+                "Contents Protection",
+                "Liability Coverage",
+                "Accidental Damage Protection",
+                "Temporary Accommodation"
+            ],
+            "best_for": [
+                "Families",
+                "Working Professionals"
+            ]
+        },
+        {
+            "tier": "Premium Tenant Shield",
+            "coverages": [
+                "High Value Asset Protection",
+                "Portable Electronics Coverage",
+                "Identity Theft Support",
+                "Extended Liability Coverage"
+            ],
+            "best_for": [
+                "High Value Asset Owners",
+                "Luxury Renters"
+            ]
+        }
+    ],
+    "insured_assets": [
+        "Furniture",
+        "Electronics",
+        "Jewelry",
+        "Personal Belongings",
+        "Home Office Equipment"
+    ]
+}

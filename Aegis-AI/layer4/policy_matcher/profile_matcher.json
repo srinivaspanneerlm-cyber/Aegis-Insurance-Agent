@@ -1,0 +1,14 @@
+{
+  "version": "1.0",
+  "profile_matching_rules": {
+    "segments_to_categories": {
+      "Family Protector": ["health", "home-property"],
+      "Young Professional": ["health", "motor"],
+      "Senior Citizen Planner": ["health"],
+      "Business Owner": ["miscellaneous", "home-property"],
+      "Frequent Traveler": ["travel"],
+      "Property Owner": ["home-property"],
+      "Vehicle Owner": ["motor"]
+    }
+  }
+}

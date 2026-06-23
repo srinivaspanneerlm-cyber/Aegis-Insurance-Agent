@@ -1,0 +1,26 @@
+{
+    "subcategory": "executive-ai",
+    "premium_intelligence": {
+        "customer_priority_factor": {
+            "Platinum_VIP": 0.85,
+            "Gold": 0.92,
+            "Standard": 1.0
+        },
+        "escalation_priority_factor": {
+            "first_time_escalation": 1.0,
+            "repeated_dispute": 1.15,
+            "legal_threat": 1.5
+        },
+        "risk_priority_factor": {
+            "low_risk_portfolio": 0.9,
+            "medium_risk_portfolio": 1.0,
+            "high_risk_portfolio": 1.25
+        },
+        "trust_score_factor": {
+            "score_gt_90": 0.9,
+            "score_70_to_89": 0.95,
+            "score_50_to_69": 1.05,
+            "score_under_50": 1.3
+        }
+    }
+}

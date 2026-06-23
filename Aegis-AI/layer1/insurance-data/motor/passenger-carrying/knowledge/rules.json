@@ -1,0 +1,20 @@
+{
+    "eligibility": {
+        "commercial_registration_required": true,
+        "valid_permit_required": true
+    },
+    "claim_conditions": {
+        "accident_reporting": "Immediate",
+        "documents_required": [
+            "Permit",
+            "RC Book",
+            "Driving License",
+            "Policy Copy"
+        ]
+    },
+    "common_exclusions": [
+        "Overloading",
+        "Unauthorized Usage",
+        "Driving Under Influence"
+    ]
+}

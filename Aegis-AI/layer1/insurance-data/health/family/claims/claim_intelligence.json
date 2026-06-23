@@ -1,0 +1,35 @@
+{
+    "subcategory": "family",
+    "claim_intelligence": {
+        "hospitalization_claims": {
+            "pre_authorization_required": true,
+            "emergency_reporting_window_hours": 24,
+            "planned_reporting_window_days_prior": 2
+        },
+        "cashless_claims": {
+            "network_hospital_only": true,
+            "tpa_approval_sla_minutes": 60,
+            "required_forms": [
+                "Pre-Auth Form",
+                "Government Photo ID",
+                "Corporate Card / Policy Schedule"
+            ]
+        },
+        "reimbursement_claims": {
+            "claim_submission_limit_days_post_discharge": 30,
+            "verification_timeline_days": 10
+        },
+        "document_requirements": [
+            "Original Discharge Summary",
+            "Itemized Hospital Bill & Receipt",
+            "Diagnostic Reports with Doctor Prescriptions",
+            "Cancel Checklist Receipt / Pharmacy Bills",
+            "KYC Form"
+        ],
+        "claim_timelines": {
+            "initial_review_days": 3,
+            "document_clarification_days": 7,
+            "final_settlement_days": 14
+        }
+    }
+}

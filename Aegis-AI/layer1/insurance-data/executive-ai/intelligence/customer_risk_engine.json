@@ -1,0 +1,12 @@
+{
+    "indicators": {
+        "claims_frequency_12m": {
+            "limit": 2,
+            "action": "Escalate to L2 for premium loading."
+        },
+        "trust_score_drop": {
+            "limit": 40.0,
+            "action": "Trigger manual identity and fraud audits."
+        }
+    }
+}

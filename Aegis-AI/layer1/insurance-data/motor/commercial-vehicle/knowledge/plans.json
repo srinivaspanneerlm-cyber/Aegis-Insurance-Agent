@@ -1,0 +1,26 @@
+{
+    "category": "Motor Insurance",
+    "subcategory": "Commercial Vehicle",
+    "vehicle_types": [
+        "Business Car",
+        "Fleet Vehicle",
+        "Corporate Transport",
+        "Company Vehicle"
+    ],
+    "coverage_options": [
+        {
+            "coverage_type": "Commercial Comprehensive",
+            "benefits": [
+                "Business continuity protection",
+                "Vehicle damage coverage",
+                "Third-party liability",
+                "Driver protection"
+            ]
+        }
+    ],
+    "business_benefits": [
+        "Fleet management support",
+        "Reduced downtime",
+        "Business risk protection"
+    ]
+}

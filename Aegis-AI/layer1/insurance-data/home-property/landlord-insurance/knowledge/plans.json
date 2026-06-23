@@ -1,0 +1,54 @@
+{
+    "category": "Home & Property Insurance",
+    "subcategory": "Landlord Insurance",
+    "coverage_tiers": [
+        {
+            "tier": "Standard Landlord Protection",
+            "coverages": [
+                "Building Damage",
+                "Fire Damage",
+                "Natural Disaster Protection",
+                "Water Damage"
+            ],
+            "best_for": [
+                "Single Rental Property Owners",
+                "Small Property Investors"
+            ]
+        },
+        {
+            "tier": "Comprehensive Landlord Protection",
+            "coverages": [
+                "Building Protection",
+                "Loss of Rental Income",
+                "Tenant Liability Protection",
+                "Legal Expense Coverage",
+                "Property Owner Liability"
+            ],
+            "best_for": [
+                "Multiple Rental Property Owners",
+                "Long-Term Investors"
+            ]
+        },
+        {
+            "tier": "Premium Property Portfolio Shield",
+            "coverages": [
+                "Multi-Property Protection",
+                "Rental Income Security",
+                "Tenant Default Protection",
+                "Legal Representation",
+                "Property Management Support"
+            ],
+            "best_for": [
+                "Professional Landlords",
+                "Property Portfolio Owners"
+            ]
+        }
+    ],
+    "risk_factors": [
+        "Property Age",
+        "Tenant Profile",
+        "Rental Location",
+        "Property Condition",
+        "Occupancy Rate"
+    ]
+}

@@ -1,0 +1,21 @@
+{
+    "industry_type": {
+        "agriculture": {
+            "recommended": "Agricultural Vehicle Plan"
+        },
+        "construction": {
+            "recommended": "Heavy Equipment Protection"
+        },
+        "industrial": {
+            "recommended": "Custom Commercial Coverage"
+        }
+    },
+    "equipment_value": {
+        "high_value": {
+            "recommended": "Premium Specialized Coverage"
+        },
+        "standard_value": {
+            "recommended": "Basic Specialized Coverage"
+        }
+    }
+}

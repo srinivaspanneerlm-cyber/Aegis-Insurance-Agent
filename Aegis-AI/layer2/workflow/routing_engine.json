@@ -1,0 +1,33 @@
+{
+    "workflow": [
+        {
+            "step": 1,
+            "action": "detect_intent"
+        },
+        {
+            "step": 2,
+            "action": "detect_category"
+        },
+        {
+            "step": 3,
+            "action": "detect_subcategory"
+        },
+        {
+            "step": 4,
+            "action": "select_advisor"
+        },
+        {
+            "step": 5,
+            "action": "load_context"
+        },
+        {
+            "step": 6,
+            "action": "generate_response"
+        }
+    ],
+    "fallback_rules": {
+        "unknown_category": "Sri AI",
+        "low_confidence": "Sri AI",
+        "multi_category_query": "Sri AI"
+    }
+}

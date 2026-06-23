@@ -1,0 +1,34 @@
+{
+    "version": "5.0",
+    "executive_dashboard": {
+        "primary_kpis": [
+            "customer_satisfaction_score",
+            "recommendation_accuracy",
+            "claim_resolution_quality",
+            "advisor_performance_score",
+            "customer_retention_score",
+            "executive_escalation_rate"
+        ]
+    },
+    "strategic_focus_areas": [
+        "customer_protection",
+        "recommendation_quality",
+        "risk_management",
+        "advisor_efficiency",
+        "customer_trust",
+        "long_term_value_creation"
+    ],
+    "executive_alerts": {
+        "low_recommendation_accuracy": true,
+        "high_escalation_rate": true,
+        "advisor_performance_drop": true,
+        "customer_satisfaction_drop": true
+    },
+    "ceo_objectives": [
+        "maximize_customer_value",
+        "minimize_bad_recommendations",
+        "increase_trust",
+        "improve_advisor_consistency",
+        "maintain_governance"
+    ]
+}

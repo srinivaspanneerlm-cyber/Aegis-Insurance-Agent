@@ -1,0 +1,25 @@
+{
+  "version": "1.0",
+  "validation_rules": {
+    "customer_summary": {
+      "type": "string",
+      "min_length": 15,
+      "required": true
+    },
+    "risk_summary": {
+      "type": "string",
+      "min_length": 15,
+      "required": true
+    },
+    "coverage_summary": {
+      "type": "string",
+      "min_length": 15,
+      "required": true
+    },
+    "budget_summary": {
+      "type": "string",
+      "min_length": 15,
+      "required": true
+    }
+  }
+}

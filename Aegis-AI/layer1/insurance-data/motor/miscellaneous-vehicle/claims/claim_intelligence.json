@@ -1,0 +1,29 @@
+{
+    "subcategory": "miscellaneous-vehicle",
+    "claim_intelligence": {
+        "accident_claims": {
+            "police_fir_required": "Mandatory if third-party damage or human injury occurs",
+            "spot_surveyor_required": "Recommended for damages exceeding $2,500"
+        },
+        "theft_claims": {
+            "fir_mandatory": true,
+            "untraceable_report_from_police_required": true,
+            "keys_surrender_required": true
+        },
+        "total_loss_claims": {
+            "trigger_threshold_pct_of_idv": 75.0,
+            "payout_process": "IDV minus deductible upon salvage ownership transfer"
+        },
+        "repair_claims": {
+            "cashless_garage_network": true,
+            "self_survey_app_limit_usd": 500
+        },
+        "required_documents": [
+            "Copy of Driving License",
+            "Registration Certificate (RC) of Vehicle",
+            "Policy Schedule",
+            "Original Repair Estimate & Invoice",
+            "FIR Copy (if applicable)"
+        ]
+    }
+}

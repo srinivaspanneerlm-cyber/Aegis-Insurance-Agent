@@ -1,0 +1,67 @@
+{
+    "version": "2.0",
+    "intents": {
+        "recommendation": {
+            "keywords": [
+                "recommend",
+                "suggest",
+                "best plan",
+                "which insurance",
+                "which policy",
+                "suitable plan",
+                "coverage recommendation"
+            ],
+            "priority": 100
+        },
+        "claim": {
+            "keywords": [
+                "claim",
+                "cashless",
+                "reimbursement",
+                "settlement",
+                "claim status",
+                "claim process"
+            ],
+            "priority": 95
+        },
+        "premium": {
+            "keywords": [
+                "premium",
+                "price",
+                "cost",
+                "renewal amount",
+                "quotation"
+            ],
+            "priority": 90
+        },
+        "comparison": {
+            "keywords": [
+                "compare",
+                "difference",
+                "which is better",
+                "plan comparison"
+            ],
+            "priority": 85
+        },
+        "faq": {
+            "keywords": [
+                "what",
+                "why",
+                "how",
+                "when",
+                "explain"
+            ],
+            "priority": 70
+        },
+        "complaint": {
+            "keywords": [
+                "complaint",
+                "issue",
+                "problem",
+                "not satisfied",
+                "escalate"
+            ],
+            "priority": 120
+        }
+    }
+}

@@ -1,0 +1,108 @@
+{
+  "category": "health",
+  "subcategories": [
+    "Individual Health Shield",
+    "Family Sovereignty Plan",
+    "Senior Citizens Care",
+    "Critical Illness Matrix"
+  ],
+  "insurance_plans": [
+    {
+      "plan_name": "Aegis Supreme Health Shield",
+      "coverage": "₹1 Crore Cover",
+      "premium": "₹850/month",
+      "eligibility": "Ages 18 to 65, entry age for children starts at 91 days under family floater options.",
+      "waiting_period": "30 days for general illnesses, 2 years for specific ailments (cataract, hernia), 1 year for pre-existing diseases under the premium gold-lock rider.",
+      "exclusions": "Cosmetic surgeries, self-inflicted injuries, adventure sports injuries, substance abuse related therapies, diagnostic-only hospitalizations.",
+      "benefits": [
+        "Unlimited cashless network hospital beds across 12,000+ empanelled institutions",
+        "Day-1 pre-existing illness cover (optional gold-lock rider)",
+        "Zero co-payment required system-wide",
+        "No room rent sublimits or capping (including premium luxury suites)",
+        "Free annual corporate diagnostic health checkups"
+      ],
+      "claim_process": "Cashless pre-approval in 15 minutes through Aegis TPA App or digital wallet card, or physical reimbursement processed within 7 working days.",
+      "tax_benefits": "Up to ₹25,000 tax exemption under Section 80D of the Income Tax Act (and up to ₹50,000 for senior citizen parent add-ons).",
+      "best_for": "Multi-generational families looking for a comprehensive safety net with zero out-of-pocket room-rent surprises.",
+      "risk_level": "Minimal / Zero-risk sovereign protection",
+      "recommendation_priority": 1,
+      "emotional_protection_benefits": "Complete emotional tranquility, protecting parental legacy health, safeguarding children's futures, and securing family savings during medical distress."
+    },
+    {
+      "plan_name": "Aegis Essential Welfare Plan",
+      "coverage": "₹10 Lakh Cover",
+      "premium": "₹350/month",
+      "eligibility": "Ages 18 to 75, open to individual students and working executives.",
+      "waiting_period": "30 days for general illnesses, 3 years for pre-existing conditions.",
+      "exclusions": "Maternity expenses, outpatient treatments (OPD) unless specifically hospitalized, cosmetic dental enhancements, self-inflicted injuries.",
+      "benefits": [
+        "Shared room rent fully covered",
+        "10,000+ pan-India cashless network hospital listings",
+        "Post-hospitalization cost recovery up to 60 days",
+        "Emergency organ donor expenses covered up to ₹1 Lakh"
+      ],
+      "claim_process": "Present Aegis Digital Card at any empanelled desk for rapid pre-authorization within 1 hour.",
+      "tax_benefits": "Up to ₹25,000 under Section 80D.",
+      "best_for": "Young professionals, budget-focused nuclear families, and individuals seeking high-quality basic emergency backing.",
+      "risk_level": "Low-risk basic protection",
+      "recommendation_priority": 2,
+      "emotional_protection_benefits": "Basic financial dignity, emergency assurance, avoiding high-interest medical debt, and ensuring timely premium care access."
+    }
+  ],
+  "faqs": [
+    {
+      "question": "Does this plan cover surgery?",
+      "answer": "Yes, surgeries are covered up to the insured amount."
+    },
+    {
+      "question": "Can I add my elderly parents to this plan?",
+      "answer": "Yes, our plans allow multi-generational parent additions under the senior rider clause, locking in their care without separate billing."
+    },
+    {
+      "question": "Are pre-existing conditions covered?",
+      "answer": "With the Aegis Supreme Health Shield's optional gold-lock rider, pre-existing diseases are covered starting from Day 1. Under normal conditions, they are unlocked after 1 to 3 years."
+    }
+  ],
+  "recommendation_rules": [
+    "If user budget is ₹500/month or less, recommend Aegis Essential Welfare Plan.",
+    "If family size is greater than 2 or budget is above ₹500/month, recommend Aegis Supreme Health Shield for bulletproof family floater security.",
+    "If priority is zero out-of-pocket costs or immediate pre-existing disease coverage, recommend Aegis Supreme Health Shield with Day-1 pre-existing rider."
+  ],
+  "emotional_protection_benefits": [
+    "Protects you from high medical debts that can devastate family dreams.",
+    "Ensures you never have to compromise on the medical care quality for your children or parents.",
+    "Brings complete peace of mind, knowing that your savings are fully ring-fenced during medical emergencies."
+  ],
+  "conversational_templates": {
+    "default_recommendation_flow": {
+      "greeting": "Hello 👋",
+      "intro_pitch": "For a family of 4, I’d recommend choosing a Family Floater Health Insurance plan because it provides protection for all members under a single policy and is usually more cost-effective.",
+      "coverage_sizing_guide": "Based on your requirement, a coverage range between ₹10–25 Lakhs would provide balanced protection for hospitalization, emergencies, and medical expenses.",
+      "benefits_checklist": {
+        "title": "✅ Recommended Benefits:",
+        "items": [
+          "Cashless hospitalization",
+          "Emergency coverage",
+          "Family-wide protection",
+          "Pre & post hospitalization support"
+        ]
+      },
+      "suitability_criteria": {
+        "title": "This type of plan is especially suitable for:",
+        "items": [
+          "Parents with children",
+          "Middle-income families",
+          "Long-term health protection"
+        ]
+      },
+      "next_steps_consultation": {
+        "title": "Would you like me to suggest:",
+        "options": [
+          "1. Budget-friendly plans",
+          "2. Premium protection plans",
+          "3. Maximum family coverage plans"
+        ]
+      }
+    }
+  }
+}

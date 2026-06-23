@@ -1,0 +1,26 @@
+{
+    "subcategory": "domestic",
+    "claim_intelligence": {
+        "medical_emergency_claims": {
+            "emergency_contact_number": "+1-800-AEGIS-HELP",
+            "direct_billing_with_hospital": true,
+            "evacuation_approval_required": "Must be authorized by Aegis Medical Director"
+        },
+        "baggage_loss_claims": {
+            "pir_report_required": "Property Irregularity Report from airline must be submitted within 24 hours",
+            "compensation_limit_per_bag_usd": 500
+        },
+        "passport_loss_claims": {
+            "embassy_receipt_for_duplicate_passport": true,
+            "fir_police_complaint_required": true
+        },
+        "trip_cancellation_claims": {
+            "covered_reasons": [
+                "Medical emergencies",
+                "Natural disasters",
+                "Visa rejection last-minute"
+            ],
+            "proof_of_non_refundable_loss_required": true
+        }
+    }
+}

@@ -1,0 +1,180 @@
+{
+    "version": "2.0",
+    "health": {
+        "family-health": {
+            "keywords": [
+                "family",
+                "children",
+                "wife",
+                "husband",
+                "family floater"
+            ]
+        },
+        "individual-health": {
+            "keywords": [
+                "individual",
+                "self",
+                "single person"
+            ]
+        },
+        "senior-citizen": {
+            "keywords": [
+                "father",
+                "mother",
+                "senior citizen",
+                "elderly",
+                "aged"
+            ]
+        },
+        "maternity": {
+            "keywords": [
+                "pregnancy",
+                "delivery",
+                "newborn",
+                "maternity"
+            ]
+        },
+        "group-health": {
+            "keywords": [
+                "employee",
+                "corporate",
+                "group insurance",
+                "staff"
+            ]
+        }
+    },
+    "motor": {
+        "private-car": {
+            "keywords": [
+                "car",
+                "creta",
+                "swift",
+                "suv",
+                "sedan"
+            ]
+        },
+        "two-wheeler": {
+            "keywords": [
+                "bike",
+                "motorcycle",
+                "scooter",
+                "activa"
+            ]
+        },
+        "goods-carrying-vehicle": {
+            "keywords": [
+                "truck",
+                "lorry",
+                "goods vehicle"
+            ]
+        },
+        "passenger-carrying-vehicle": {
+            "keywords": [
+                "bus",
+                "taxi",
+                "cab",
+                "van"
+            ]
+        },
+        "commercial-vehicle": {
+            "keywords": [
+                "commercial vehicle"
+            ]
+        },
+        "miscellaneous-vehicle": {
+            "keywords": [
+                "tractor",
+                "special vehicle"
+            ]
+        }
+    },
+    "travel": {
+        "domestic-travel": {
+            "keywords": [
+                "india trip",
+                "domestic travel"
+            ]
+        },
+        "international-travel": {
+            "keywords": [
+                "usa",
+                "uk",
+                "europe",
+                "foreign travel"
+            ]
+        },
+        "family-travel": {
+            "keywords": [
+                "family vacation",
+                "family trip"
+            ]
+        },
+        "student-travel": {
+            "keywords": [
+                "student visa",
+                "study abroad"
+            ]
+        },
+        "business-travel": {
+            "keywords": [
+                "business trip",
+                "official travel"
+            ]
+        }
+    },
+    "home-property": {
+        "home-insurance": {
+            "keywords": [
+                "home",
+                "house"
+            ]
+        },
+        "building-insurance": {
+            "keywords": [
+                "building",
+                "structure"
+            ]
+        },
+        "contents-insurance": {
+            "keywords": [
+                "furniture",
+                "electronics",
+                "contents"
+            ]
+        },
+        "tenant-insurance": {
+            "keywords": [
+                "tenant",
+                "rent"
+            ]
+        },
+        "landlord-insurance": {
+            "keywords": [
+                "landlord",
+                "rental property"
+            ]
+        }
+    },
+    "miscellaneous": {
+        "pet-insurance": {
+            "keywords": [
+                "dog",
+                "cat",
+                "pet"
+            ]
+        },
+        "cyber-insurance": {
+            "keywords": [
+                "cyber attack",
+                "identity theft",
+                "online fraud"
+            ]
+        },
+        "personal-accident": {
+            "keywords": [
+                "accident cover",
+                "personal accident"
+            ]
+        }
+    }
+}

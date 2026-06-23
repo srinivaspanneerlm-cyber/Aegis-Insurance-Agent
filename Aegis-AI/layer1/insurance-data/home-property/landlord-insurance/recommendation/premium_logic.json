@@ -1,0 +1,26 @@
+{
+    "subcategory": "landlord-insurance",
+    "premium_intelligence": {
+        "property_value_factor": {
+            "structure_valuation_per_sq_ft_usd": 150.0,
+            "contents_valuation_limit": 50000.0
+        },
+        "building_age_factor": {
+            "under_5_years": 0.9,
+            "5_to_15_years": 1.0,
+            "15_to_30_years": 1.2,
+            "above_30_years": 1.4
+        },
+        "location_risk_factor": {
+            "gated_community": 0.85,
+            "urban_residential": 1.0,
+            "industrial_zone_proximity": 1.2,
+            "coastal_beachfront": 1.5
+        },
+        "disaster_risk_factor": {
+            "seismic_zone_5": 1.35,
+            "flood_prone_riverbed": 1.45,
+            "wildfire_boundary": 1.25
+        }
+    }
+}

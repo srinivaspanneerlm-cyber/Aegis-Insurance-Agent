@@ -1,0 +1,13 @@
+{
+    "eligibility": {
+        "minimum_age": 60,
+        "maximum_age": 85
+    },
+    "waiting_period": {
+        "general": "30 Days",
+        "pre_existing_disease": "2-4 Years"
+    },
+    "medical_requirements": [
+        "Health screening may be required"
+    ]
+}

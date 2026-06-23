@@ -1,0 +1,39 @@
+{
+    "subcategory": "maternity",
+    "premium_intelligence": {
+        "age_based_premium": {
+            "under_25": 1.0,
+            "25_to_40": 1.2,
+            "41_to_60": 1.5,
+            "above_60": 2.0
+        },
+        "family_size_factor": {
+            "individual": 1.0,
+            "couple": 1.8,
+            "family_3_members": 2.2,
+            "family_4_members": 2.5,
+            "each_additional_member": 0.4
+        },
+        "medical_risk_factor": {
+            "no_pre_existing_conditions": 1.0,
+            "diabetes_controlled": 1.15,
+            "hypertension_controlled": 1.1,
+            "high_risk_smoking": 1.25,
+            "critical_illness_history": 1.5
+        },
+        "coverage_amount_factor": {
+            "sum_insured_300k": 1.0,
+            "sum_insured_500k": 1.25,
+            "sum_insured_1m": 1.6,
+            "sum_insured_5m": 2.5
+        },
+        "budget_segment": {
+            "type": "Health Dynamic Budget Segmenter",
+            "segments": {
+                "affordable": "Standard Tier with 15% co-pay option",
+                "balanced": "Silver Floater with zero co-pay for non-critical care",
+                "premium": "Gold / Platinum Tier with global coverage and private suite options"
+            }
+        }
+    }
+}

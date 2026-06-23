@@ -1,0 +1,18 @@
+{
+    "usage_based": {
+        "daily_commuter": {
+            "recommended": "Comprehensive + Roadside Assistance"
+        },
+        "occasional_rider": {
+            "recommended": "Third Party"
+        }
+    },
+    "bike_value_based": {
+        "premium_bike": {
+            "recommended": "Comprehensive + Zero Depreciation"
+        },
+        "economy_bike": {
+            "recommended": "Comprehensive"
+        }
+    }
+}

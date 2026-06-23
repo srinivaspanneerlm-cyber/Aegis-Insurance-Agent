@@ -1,0 +1,12 @@
+{
+    "conflict_rules": {
+        "multi_agent_contradiction": {
+            "scenario": "Sarah AI flags high health risk, but Ethan AI recommends high-activity travel coverage.",
+            "default_action": " Sri AI overrides Travel coverage to include comprehensive medical evacuation benefits, increasing premium but mitigating life-safety risk."
+        },
+        "budget_vs_protection_gap": {
+            "scenario": "Customer budget is too low for essential structural protection rules.",
+            "default_action": " Sri AI triggers step-down coverage (Essential Shield) with higher deductibles, maintaining core catastrophe protection while fitting budget."
+        }
+    }
+}

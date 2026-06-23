@@ -1,0 +1,20 @@
+{
+    "faqs": [
+        {
+            "question": "What is Passenger Carrying Vehicle Insurance?",
+            "answer": "It protects commercial vehicles used to transport passengers."
+        },
+        {
+            "question": "Does it cover passenger injuries?",
+            "answer": "Coverage depends on passenger liability protection included in the policy."
+        },
+        {
+            "question": "Is insurance mandatory for school buses?",
+            "answer": "Yes, valid commercial insurance is mandatory."
+        },
+        {
+            "question": "Can fleet vehicles be insured under one policy?",
+            "answer": "Yes, fleet insurance options are available."
+        }
+    ]
+}

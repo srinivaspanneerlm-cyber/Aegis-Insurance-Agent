@@ -1,0 +1,10 @@
+{
+    "trip_type": {
+        "vacation": "Standard Travel Plan",
+        "business": "Business Travel Plan"
+    },
+    "trip_duration": {
+        "short_trip": "Basic Coverage",
+        "long_trip": "Extended Coverage"
+    }
+}

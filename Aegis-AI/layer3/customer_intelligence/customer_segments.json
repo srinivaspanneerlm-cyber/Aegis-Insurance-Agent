@@ -1,0 +1,50 @@
+{
+  "version": "1.0",
+  "segments": {
+    "Family Protector": {
+      "rules": {
+        "family_size": { "operator": ">=", "value": 3 },
+        "age": { "operator": ">=", "value": 25 }
+      },
+      "description": "Demographic focused on securing child health policies, pediatric floaters, and life buffers."
+    },
+    "Young Professional": {
+      "rules": {
+        "age": { "operator": "<", "value": 32 },
+        "family_size": { "operator": "<=", "value": 2 },
+        "occupation": { "operator": "not_null" }
+      },
+      "description": "Rising income bracket seeking digital-first tax deductions, low-premium basic covers, and lifestyle riders."
+    },
+    "Senior Citizen Planner": {
+      "rules": {
+        "age": { "operator": ">=", "value": 60 }
+      },
+      "description": "Elderly client requiring specific senior packages, co-payment waivers, and legacy health floaters."
+    },
+    "Business Owner": {
+      "rules": {
+        "occupation": { "operator": "contains_any", "values": ["business", "owner", "founder", "entrepreneur", "ceo", "partner", "merchant", "director", "corporate"] }
+      },
+      "description": "Corporate decision-maker requiring general liability, D&O protections, and staff welfare schemes."
+    },
+    "Frequent Traveler": {
+      "rules": {
+        "travel_plans": { "operator": "not_null" }
+      },
+      "description": "Nomad or corporate traveler requiring international multi-trip travel insurance coverage."
+    },
+    "Property Owner": {
+      "rules": {
+        "property": { "operator": "not_null" }
+      },
+      "description": "Asset-heavy client requiring comprehensive home-property rebuilding, structures, and content covers."
+    },
+    "Vehicle Owner": {
+      "rules": {
+        "vehicle": { "operator": "not_null" }
+      },
+      "description": "Daily commuter requiring comprehensive zero-depreciation motor insurance and roadside shields."
+    }
+  }
+}

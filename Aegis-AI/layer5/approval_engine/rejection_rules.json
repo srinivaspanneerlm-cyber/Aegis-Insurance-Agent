@@ -1,0 +1,16 @@
+{
+    "rejection_conditions": {
+        "customer_ineligible": true,
+        "coverage_mismatch": true,
+        "budget_mismatch": true,
+        "high_risk_without_coverage": true,
+        "confidence_below_threshold": true,
+        "insufficient_customer_data": true
+    },
+    "rejection_actions": [
+        "request_missing_information",
+        "provide_alternative_recommendation",
+        "escalate_to_sri_ai",
+        "restart_recommendation_process"
+    ]
+}

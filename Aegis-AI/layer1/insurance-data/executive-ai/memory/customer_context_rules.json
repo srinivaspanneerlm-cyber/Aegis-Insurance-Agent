@@ -1,0 +1,12 @@
+{
+    "context_keys": [
+        "customer_id",
+        "membership_tier",
+        "trust_score",
+        "active_claims_count",
+        "last_interaction_timestamp",
+        "detected_sentiment",
+        "primary_insurance_needs"
+    ],
+    "memory_window_interactions": 10
+}

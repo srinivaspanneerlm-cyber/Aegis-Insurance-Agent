@@ -1,0 +1,7 @@
+{
+  "customer_id": "cust_john",
+  "calculated_risk_score": 0,
+  "assigned_risk_tier": "Medium",
+  "assigned_segments": [],
+  "last_processed": "2026-06-21T00:54:31.266648"
+}

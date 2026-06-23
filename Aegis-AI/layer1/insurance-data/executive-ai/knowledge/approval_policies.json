@@ -1,0 +1,21 @@
+{
+    "underwriting_approval_limits": {
+        "standard_tier": {
+            "max_coverage": 1000000.0,
+            "required_approver": "Department Head AI"
+        },
+        "premium_tier": {
+            "max_coverage": 5000000.0,
+            "required_approver": "CEO AI (Sri AI)"
+        },
+        "enterprise_tier": {
+            "max_coverage": 25000000.0,
+            "required_approver": "Sri AI with Board Override"
+        }
+    },
+    "exemption_criteria": [
+        "Zero accident history for 5 consecutive years allows 10% rate relief.",
+        "Corporate bulk bundling permits up to 12.5% premium discount.",
+        "Pre-existing medical condition waiver requires manual specialist advisor audit."
+    ]
+}

@@ -1,0 +1,24 @@
+{
+    "eligibility": {
+        "vehicle_registration_required": true,
+        "valid_driving_license_required": true
+    },
+    "claim_conditions": {
+        "claim_reporting_time": "24-48 Hours",
+        "mandatory_documents": [
+            "Driving License",
+            "RC Book",
+            "Policy Copy"
+        ]
+    },
+    "common_exclusions": [
+        "Drunk Driving",
+        "Illegal Racing",
+        "Mechanical Breakdown",
+        "Consequential Damages"
+    ],
+    "renewal_rules": {
+        "grace_period": "30 Days",
+        "inspection_required_after_expiry": true
+    }
+}

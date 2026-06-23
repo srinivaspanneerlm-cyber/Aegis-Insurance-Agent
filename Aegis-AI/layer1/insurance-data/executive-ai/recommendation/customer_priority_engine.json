@@ -1,0 +1,19 @@
+{
+    "tier_definition": {
+        "Platinum_VIP": {
+            "income_range_or_premium_gt": 100000.0,
+            "sla_support_response_seconds": 15,
+            "discretionary_claims_approval": "Auto-approved up to $10,000"
+        },
+        "Gold": {
+            "income_range_or_premium_gt": 25000.0,
+            "sla_support_response_seconds": 60,
+            "discretionary_claims_approval": "Auto-approved up to $2,500"
+        },
+        "Standard": {
+            "income_range_or_premium_gt": 0.0,
+            "sla_support_response_seconds": 300,
+            "discretionary_claims_approval": "Requires full underwriting flow"
+        }
+    }
+}

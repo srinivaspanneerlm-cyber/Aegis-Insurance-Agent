@@ -1,0 +1,52 @@
+{
+    "version": "2.0",
+    "conditions": {
+        "recommendation": {
+            "load": [
+                "recommendation_rules.json",
+                "premium_logic.json",
+                "plans.json",
+                "advisor.json",
+                "prompt.txt"
+            ]
+        },
+        "claim": {
+            "load": [
+                "claim_intelligence.json",
+                "rules.json",
+                "advisor.json",
+                "prompt.txt"
+            ]
+        },
+        "premium": {
+            "load": [
+                "premium_logic.json",
+                "plans.json",
+                "advisor.json",
+                "prompt.txt"
+            ]
+        },
+        "comparison": {
+            "load": [
+                "plans.json",
+                "recommendation_rules.json",
+                "premium_logic.json",
+                "advisor.json"
+            ]
+        },
+        "faq": {
+            "load": [
+                "faq.json",
+                "advisor.json",
+                "prompt.txt"
+            ]
+        },
+        "complaint": {
+            "load": [
+                "support_rules.json",
+                "advisor.json",
+                "prompt.txt"
+            ]
+        }
+    }
+}

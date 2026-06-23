@@ -1,0 +1,29 @@
+{
+    "user_profile_matching": {
+        "new_vehicle": {
+            "recommended": "Comprehensive Coverage",
+            "reason": "New vehicles require higher financial protection."
+        },
+        "old_vehicle": {
+            "recommended": "Third Party Coverage",
+            "reason": "Vehicle depreciation reduces comprehensive value."
+        }
+    },
+    "budget_matching": {
+        "low_budget": {
+            "recommended": "Third Party"
+        },
+        "medium_budget": {
+            "recommended": "Comprehensive"
+        },
+        "high_budget": {
+            "recommended": "Comprehensive + Add-ons"
+        }
+    },
+    "family_usage": {
+        "recommended": "Comprehensive + Zero Depreciation"
+    },
+    "highway_usage": {
+        "recommended": "Roadside Assistance + Engine Protection"
+    }
+}

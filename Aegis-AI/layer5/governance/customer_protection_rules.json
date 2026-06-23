@@ -1,0 +1,32 @@
+{
+    "version": "5.0",
+    "customer_protection_framework": {
+        "primary_goal": "Protect Customer Interests",
+        "protection_priorities": [
+            "coverage_adequacy",
+            "affordability",
+            "claim_support",
+            "risk_protection",
+            "long_term_sustainability"
+        ]
+    },
+    "customer_safety_checks": [
+        "underinsurance_detection",
+        "overinsurance_detection",
+        "budget_stress_detection",
+        "coverage_gap_detection",
+        "claim_support_validation"
+    ],
+    "executive_intervention_conditions": [
+        "customer_vulnerability_detected",
+        "critical_coverage_gap",
+        "unaffordable_recommendation",
+        "high_risk_customer"
+    ],
+    "mandatory_customer_rights": [
+        "right_to_explanation",
+        "right_to_alternative_options",
+        "right_to_risk_disclosure",
+        "right_to_fair_recommendation"
+    ]
+}

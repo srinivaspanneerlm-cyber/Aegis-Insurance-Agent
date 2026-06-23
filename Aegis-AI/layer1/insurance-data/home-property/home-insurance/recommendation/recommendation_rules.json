@@ -1,0 +1,24 @@
+{
+    "property_value": {
+        "below_5000000": {
+            "recommended": "Standard Home Protection"
+        },
+        "5000000_to_10000000": {
+            "recommended": "Comprehensive Home Protection"
+        },
+        "above_10000000": {
+            "recommended": "Premium Home Protection"
+        }
+    },
+    "location_risk": {
+        "low_risk": {
+            "recommended": "Basic Coverage"
+        },
+        "flood_prone": {
+            "recommended": "Natural Disaster Protection"
+        },
+        "high_crime_area": {
+            "recommended": "Theft & Burglary Protection"
+        }
+    }
+}

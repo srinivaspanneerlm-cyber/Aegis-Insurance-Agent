@@ -1,0 +1,21 @@
+{
+  "version": "1.0",
+  "expiry_rules": {
+    "temporary": {
+      "ttl_seconds": 900,
+      "description": "Transient calculations or calculations, valid for 15 minutes",
+      "eviction_policy": "time_based"
+    },
+    "short_term": {
+      "max_turns": 10,
+      "ttl_seconds": 7200,
+      "description": "Conversation context turns, valid for 2 hours or 10 turns",
+      "eviction_policy": "least_recently_used"
+    },
+    "long_term": {
+      "ttl_seconds": 0,
+      "description": "Permanent profile attributes, never expires",
+      "eviction_policy": "none"
+    }
+  }
+}

@@ -1,0 +1,64 @@
+{
+    "category": "Home & Property Insurance",
+    "subcategory": "Building Insurance",
+    "building_types": [
+        "Independent House",
+        "Apartment Building",
+        "Villa",
+        "Commercial Building",
+        "Office Building"
+    ],
+    "coverage_tiers": [
+        {
+            "tier": "Basic Building Protection",
+            "coverages": [
+                "Fire Damage",
+                "Lightning Damage",
+                "Explosion Damage",
+                "Storm Damage",
+                "Impact Damage"
+            ],
+            "best_for": [
+                "New Building Owners",
+                "Budget Conscious Property Owners"
+            ]
+        },
+        {
+            "tier": "Comprehensive Building Protection",
+            "coverages": [
+                "Structural Damage",
+                "Foundation Damage",
+                "Roof Damage",
+                "Electrical System Damage",
+                "Plumbing Damage",
+                "Natural Disaster Coverage"
+            ],
+            "best_for": [
+                "Residential Buildings",
+                "Commercial Buildings"
+            ]
+        },
+        {
+            "tier": "Premium Property Shield",
+            "coverages": [
+                "Full Structural Protection",
+                "Earthquake Coverage",
+                "Flood Coverage",
+                "Temporary Accommodation",
+                "Architect Fees",
+                "Debris Removal"
+            ],
+            "best_for": [
+                "High Value Buildings",
+                "Premium Properties"
+            ]
+        }
+    ],
+    "risk_factors": [
+        "Building Age",
+        "Construction Quality",
+        "Location Risk",
+        "Natural Disaster Exposure",
+        "Occupancy Type"
+    ]
+}

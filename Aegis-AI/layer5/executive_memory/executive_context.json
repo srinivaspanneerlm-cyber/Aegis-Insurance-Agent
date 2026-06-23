@@ -1,0 +1,26 @@
+{
+    "version": "5.0",
+    "enterprise_context": {
+        "platform_name": "Aegis AI",
+        "business_model": "AI Insurance Advisory Platform",
+        "governance_model": "Executive Driven",
+        "decision_framework": "Review Validate Approve"
+    },
+    "active_departments": [
+        "health",
+        "motor",
+        "travel",
+        "home_property",
+        "miscellaneous"
+    ],
+    "executive_objectives": [
+        "deliver_best_recommendations",
+        "maximize_customer_satisfaction",
+        "maintain_compliance",
+        "improve_advisor_accuracy",
+        "reduce_escalations"
+    ],
+    "executive_mission": {
+        "statement": "Provide trusted, transparent and intelligent insurance guidance."
+    }
+}

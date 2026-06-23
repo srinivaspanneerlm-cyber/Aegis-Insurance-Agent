@@ -1,0 +1,33 @@
+{
+    "version": "5.0",
+    "audit_framework": {
+        "audit_categories": [
+            "recommendation_accuracy",
+            "recommendation_consistency",
+            "coverage_fit",
+            "budget_fit",
+            "risk_fit",
+            "customer_fit"
+        ]
+    },
+    "audit_requirements": {
+        "record_selected_plan": true,
+        "record_rejected_plans": true,
+        "record_recommendation_reason": true,
+        "record_risk_assessment": true,
+        "record_confidence_score": true
+    },
+    "executive_audit_questions": [
+        "Was the customer eligible?",
+        "Was the plan affordable?",
+        "Was the risk level appropriate?",
+        "Was a better alternative available?",
+        "Was the recommendation explainable?"
+    ],
+    "audit_failure_actions": [
+        "request_recalculation",
+        "request_additional_information",
+        "executive_override",
+        "recommendation_rejection"
+    ]
+}

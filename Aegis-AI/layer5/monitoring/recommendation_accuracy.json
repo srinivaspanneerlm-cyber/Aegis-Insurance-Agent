@@ -1,0 +1,30 @@
+{
+    "version": "5.0",
+    "accuracy_framework": {
+        "evaluation_dimensions": [
+            "coverage_match",
+            "budget_match",
+            "risk_match",
+            "eligibility_match",
+            "customer_need_match"
+        ]
+    },
+    "accuracy_targets": {
+        "health": 95,
+        "motor": 95,
+        "travel": 95,
+        "home_property": 95,
+        "miscellaneous": 95
+    },
+    "executive_review_triggers": [
+        "accuracy_below_90",
+        "high_recommendation_rejection",
+        "customer_disagreement",
+        "advisor_conflict"
+    ],
+    "executive_actions": {
+        "minor_drop": "review",
+        "major_drop": "executive_intervention",
+        "critical_drop": "rebuild_recommendation_model"
+    }
+}

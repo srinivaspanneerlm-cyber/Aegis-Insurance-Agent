@@ -1,0 +1,15 @@
+{
+  "version": "1.0",
+  "scoring_rules": {
+    "readiness_criteria": {
+      "customer_summary": { "weight": 0.3, "required_fields": ["name", "age", "family_size"] },
+      "risk_summary": { "weight": 0.2, "required_fields": ["risk_profile"] },
+      "coverage_summary": { "weight": 0.2, "required_fields": ["preferred_category"] },
+      "budget_summary": { "weight": 0.3, "required_fields": ["budget"] }
+    },
+    "thresholds": {
+      "minimum_score_for_routing": 0.7,
+      "optimal_score": 0.9
+    }
+  }
+}

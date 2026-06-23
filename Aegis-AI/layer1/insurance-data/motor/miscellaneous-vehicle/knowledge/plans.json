@@ -1,0 +1,32 @@
+{
+    "category": "Motor Insurance",
+    "subcategory": "Miscellaneous Vehicle",
+    "vehicle_types": [
+        "Agricultural Vehicle",
+        "Tractor",
+        "Construction Equipment",
+        "Earth Mover",
+        "Special Purpose Vehicle"
+    ],
+    "coverage_options": [
+        {
+            "coverage_type": "Special Vehicle Protection",
+            "benefits": [
+                "Equipment damage protection",
+                "Accident protection",
+                "Third-party liability",
+                "Fire damage protection"
+            ]
+        }
+    ],
+    "specialized_addons": [
+        {
+            "name": "Equipment Protection",
+            "purpose": "Coverage for attached machinery."
+        },
+        {
+            "name": "Operational Downtime Cover",
+            "purpose": "Financial protection during breakdown."
+        }
+    ]
+}

@@ -1,0 +1,62 @@
+{
+    "version": "2.0",
+    "priority_profiles": {
+        "recommendation": {
+            "priority_order": [
+                "advisor.json",
+                "prompt.txt",
+                "recommendation_rules.json",
+                "premium_logic.json",
+                "rules.json",
+                "plans.json",
+                "claim_intelligence.json",
+                "faq.json"
+            ]
+        },
+        "claim": {
+            "priority_order": [
+                "advisor.json",
+                "prompt.txt",
+                "claim_intelligence.json",
+                "rules.json",
+                "plans.json",
+                "faq.json",
+                "recommendation_rules.json",
+                "premium_logic.json"
+            ]
+        },
+        "premium": {
+            "priority_order": [
+                "advisor.json",
+                "prompt.txt",
+                "premium_logic.json",
+                "recommendation_rules.json",
+                "plans.json",
+                "rules.json",
+                "faq.json",
+                "claim_intelligence.json"
+            ]
+        },
+        "faq": {
+            "priority_order": [
+                "advisor.json",
+                "prompt.txt",
+                "faq.json",
+                "rules.json",
+                "plans.json",
+                "recommendation_rules.json",
+                "premium_logic.json",
+                "claim_intelligence.json"
+            ]
+        },
+        "executive": {
+            "priority_order": [
+                "advisor.json",
+                "prompt.txt",
+                "support_rules.json",
+                "company_info.json",
+                "faq.json"
+            ]
+        }
+    }
+}

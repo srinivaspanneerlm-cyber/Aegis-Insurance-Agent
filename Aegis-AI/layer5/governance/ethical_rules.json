@@ -1,0 +1,33 @@
+{
+    "version": "5.0",
+    "executive_ethics_framework": {
+        "principle": "Customer Welfare Before Business Benefit"
+    },
+    "ethical_principles": [
+        "customer_first",
+        "honesty",
+        "fairness",
+        "transparency",
+        "accountability",
+        "trustworthiness"
+    ],
+    "ethical_requirements": {
+        "must_disclose_risks": true,
+        "must_disclose_limitations": true,
+        "must_disclose_exclusions": true,
+        "must_provide_alternatives": true,
+        "must_explain_recommendations": true
+    },
+    "prohibited_behaviours": [
+        "manipulative_recommendations",
+        "biased_recommendations",
+        "profit_first_recommendations",
+        "concealing_policy_limitations",
+        "misleading_customer"
+    ],
+    "executive_override_conditions": [
+        "customer_harm_detected",
+        "ethical_conflict_detected",
+        "high_risk_misalignment"
+    ]
+}

@@ -1,0 +1,33 @@
+{
+    "version": "5.0",
+    "decision_model": "Executive Governance Framework",
+    "decision_stages": [
+        "knowledge_validation",
+        "routing_validation",
+        "customer_profile_validation",
+        "recommendation_validation",
+        "risk_review",
+        "executive_review",
+        "final_decision"
+    ],
+    "mandatory_decision_checks": [
+        "customer_eligibility",
+        "coverage_suitability",
+        "budget_suitability",
+        "risk_suitability",
+        "confidence_score",
+        "alternative_options"
+    ],
+    "decision_outcomes": [
+        "approved",
+        "approved_with_conditions",
+        "override",
+        "request_information",
+        "escalated",
+        "rejected"
+    ],
+    "executive_standard": {
+        "minimum_recommendation_score": 85,
+        "minimum_confidence_score": 80
+    }
+}

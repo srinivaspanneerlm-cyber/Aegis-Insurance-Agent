@@ -1,0 +1,103 @@
+{
+  "category": "miscellaneous",
+  "subcategories": [
+    "Sovereign Umbrella Liability",
+    "Digital Cyber Safeguard",
+    "High-Value Asset Protection",
+    "Custom Professional Cover"
+  ],
+  "insurance_plans": [
+    {
+      "plan_name": "Aegis Sovereign Umbrella",
+      "coverage": "₹5 Crore Cover",
+      "premium": "₹1,200/month",
+      "eligibility": "Premium professionals, executives, and high-net-worth individuals.",
+      "waiting_period": "Instant activation following biometric or verified single-sign-on setup.",
+      "exclusions": "Willful criminal actions, speculative trading or investment losses, professional liabilities already covered under specific corporate E&O policies.",
+      "benefits": [
+        "Global Personal Liability Safeguard (covers legal lawsuit damages worldwide)",
+        "Enterprise Cyber Threat Defense (covers cyber attacks, extortion, identity theft)",
+        "High-Value Asset Protection (safeguards luxury watches, art, and custom physical collectibles)",
+        "Legal Defense Cost Recovery (100% covers expert defense and legal representation fees)"
+      ],
+      "claim_process": "Dedicated executive concierge underwriting team manages claims; funds pre-authorized and cleared within 24 hours.",
+      "tax_benefits": "Premium fully deductible under personal asset security or corporate overhead write-off rules.",
+      "best_for": "Executives, HNIs, and premium business professionals seeking bulletproof multi-risk coverage across personal, digital, and professional bounds.",
+      "risk_level": "Futuristic multi-risk sovereign safeguard",
+      "recommendation_priority": 1,
+      "emotional_protection_benefits": "Guarantees complete sovereign protection of your personal wealth and digital reputation, allowing you to operate strategically with maximum peace of mind."
+    },
+    {
+      "plan_name": "Aegis Smart Cyber Safeguard",
+      "coverage": "₹50 Lakh Cover",
+      "premium": "₹350/month",
+      "eligibility": "All active digital citizens, remote employees, and online professionals.",
+      "waiting_period": "Active instantly upon digital security registration.",
+      "exclusions": "Sharing passwords publicly, negligence regarding secondary two-factor authentication, hardware system wear.",
+      "benefits": [
+        "Identity Theft Cost Recovery (legal fees, lost wages during recovery)",
+        "Online Phishing Liability Shield (reimburses direct money stolen via fake links)",
+        "Ransomware Emergency Support (expert negotiation fees and ransom reimbursement riders)",
+        "Digital Reputation Repair (covers PR costs to restore credit or professional reputation)"
+      ],
+      "claim_process": "File a report in the app with direct digital forensic logs; recovery team active within 1 hour.",
+      "tax_benefits": "Eligible for business overhead deductions for freelance and remote work setups.",
+      "best_for": "Digital professionals, remote developers, and online retailers seeking solid safeguards against cybercrime and ransom threats.",
+      "risk_level": "Standard digital security",
+      "recommendation_priority": 2,
+      "emotional_protection_benefits": "Protects your entire digital footprint and financial accounts, securing your daily digital operations from cyber attacks."
+    }
+  ],
+  "faqs": [
+    {
+      "question": "What does Personal Liability cover?",
+      "answer": "Personal Liability covers any accidental damages or bodily injuries caused to third parties anywhere in the world, paying for lawsuits, out-of-court settlements, and legal representation."
+    },
+    {
+      "question": "Does the Cyber plan cover ransomware?",
+      "answer": "Yes, our Smart Cyber plan covers ransomware emergency costs, expert negotiators, and pays out emergency recovery funds to minimize business disruption."
+    }
+  ],
+  "recommendation_rules": [
+    "If user budget is ₹500/month or less or user's main concern is digital crime, recommend Aegis Smart Cyber Safeguard.",
+    "If user has large physical/financial assets, HNI status, or budget allows above ₹500/month, recommend Aegis Sovereign Umbrella.",
+    "If global lawsuits, elite asset protection, or multi-risk umbrella coverage is required, recommend Aegis Sovereign Umbrella."
+  ],
+  "emotional_protection_benefits": [
+    "Complete security for your personal wealth and legacy.",
+    "Bulletproof digital asset security, meaning you can browse and transact without fear.",
+    "Immediate access to top-tier legal defense, shielding you from target lawsuits."
+  ],
+  "conversational_templates": {
+    "default_recommendation_flow": {
+      "greeting": "Executive Consultation Active. 💼",
+      "intro_pitch": "For corporate, HNI, and reputation safeguards, I recommend an Aegis Sovereign Risk Umbrella plan to shield your digital footprint, professional liabilities, and private assets.",
+      "coverage_sizing_guide": "Based on your executive exposures and net worth brackets, a risk limit between ₹50 Lakhs and ₹5 Crore protects you from corporate liability spikes.",
+      "benefits_checklist": {
+        "title": "✅ Recommended Benefits:",
+        "items": [
+          "Comprehensive cyber phishing and ransomware protection",
+          "High-value art and vintage collection indemnification",
+          "Directors and Officers (D&O) executive liability coverage",
+          "Identity theft recovery and legal support"
+        ]
+      },
+      "suitability_criteria": {
+        "title": "This tier is underwritten specifically for:",
+        "items": [
+          "Corporate executives and board directors",
+          "HNIs safeguarding personal reputations and art portfolios",
+          "Individuals seeking sovereign cyber shields"
+        ]
+      },
+      "next_steps_consultation": {
+        "title": "Would you like me to suggest:",
+        "options": [
+          "1. Smart Cyber Protection shields",
+          "2. Sovereign Directors & Officers liability covers",
+          "3. Ultimate HNI umbrella covers"
+        ]
+      }
+    }
+  }
+}

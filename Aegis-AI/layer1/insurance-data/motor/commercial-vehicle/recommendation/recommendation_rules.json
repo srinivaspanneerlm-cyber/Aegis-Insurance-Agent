@@ -1,0 +1,21 @@
+{
+    "business_size": {
+        "small_business": {
+            "recommended": "Commercial Standard Plan"
+        },
+        "medium_business": {
+            "recommended": "Enhanced Commercial Plan"
+        },
+        "enterprise": {
+            "recommended": "Fleet Insurance Solution"
+        }
+    },
+    "vehicle_count": {
+        "1-3": {
+            "recommended": "Single Commercial Policy"
+        },
+        "4+": {
+            "recommended": "Fleet Policy"
+        }
+    }
+}

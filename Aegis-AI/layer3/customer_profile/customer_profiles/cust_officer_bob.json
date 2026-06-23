@@ -1,0 +1,17 @@
+{
+  "customer_id": "cust_officer_bob",
+  "name": "Officer Bob",
+  "age": null,
+  "gender": null,
+  "marital_status": null,
+  "occupation": null,
+  "annual_income": null,
+  "family_size": null,
+  "budget": null,
+  "location": null,
+  "existing_policies": [],
+  "preferred_category": null,
+  "risk_profile": "Medium",
+  "conversation_history_count": 2,
+  "last_interaction": "2026-06-22T16:31:07.754041"
+}

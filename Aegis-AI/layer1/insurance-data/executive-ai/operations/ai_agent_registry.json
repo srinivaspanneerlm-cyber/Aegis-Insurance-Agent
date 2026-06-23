@@ -1,0 +1,24 @@
+{
+    "agents": [
+        {
+            "name": "Sarah AI",
+            "department": "Health Insurance",
+            "authority": "Department Head"
+        },
+        {
+            "name": "Alex AI",
+            "department": "Motor Insurance",
+            "authority": "Department Head"
+        },
+        {
+            "name": "Ethan AI",
+            "department": "Travel Insurance",
+            "authority": "Department Head"
+        },
+        {
+            "name": "Emma AI",
+            "department": "Property Insurance",
+            "authority": "Department Head"
+        }
+    ]
+}

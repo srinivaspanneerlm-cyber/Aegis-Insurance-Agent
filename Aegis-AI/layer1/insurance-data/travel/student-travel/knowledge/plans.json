@@ -1,0 +1,26 @@
+{
+    "category": "Travel Insurance",
+    "subcategory": "Student Travel",
+    "student_coverages": {
+        "education_protection": [
+            "Study Interruption",
+            "Tuition Fee Protection",
+            "Sponsor Protection"
+        ],
+        "medical_coverages": [
+            "Emergency Medical Treatment",
+            "Hospitalization",
+            "Mental Wellness Support"
+        ],
+        "travel_coverages": [
+            "Passport Loss",
+            "Baggage Loss",
+            "Emergency Assistance"
+        ]
+    },
+    "best_for": [
+        "International Students",
+        "Exchange Programs",
+        "Higher Education Abroad"
+    ]
+}

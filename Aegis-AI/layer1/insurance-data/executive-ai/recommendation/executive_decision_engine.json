@@ -1,0 +1,17 @@
+{
+    "decision_framework": {
+        "analyze_customer_profile": true,
+        "analyze_risk": true,
+        "analyze_budget": true,
+        "analyze_agent_recommendation": true,
+        "analyze_claim_history": true,
+        "final_approval_required": true
+    },
+    "priority_matrix": {
+        "customer_success": 100,
+        "risk_reduction": 95,
+        "compliance": 95,
+        "ethical_ai": 90,
+        "business_growth": 85
+    }
+}

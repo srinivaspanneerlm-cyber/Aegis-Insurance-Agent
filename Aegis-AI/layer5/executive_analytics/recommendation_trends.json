@@ -1,0 +1,25 @@
+{
+    "version": "5.0",
+    "trend_tracking": {
+        "monitor": [
+            "health_recommendations",
+            "motor_recommendations",
+            "travel_recommendations",
+            "property_recommendations",
+            "miscellaneous_recommendations"
+        ]
+    },
+    "executive_analysis": {
+        "track_top_recommended_plans": true,
+        "track_rejected_recommendations": true,
+        "track_override_frequency": true,
+        "track_confidence_distribution": true
+    },
+    "executive_alert_conditions": [
+        "recommendation_score_decline",
+        "confidence_score_decline",
+        "increased_rejection_rate",
+        "abnormal_recommendation_patterns"
+    ],
+    "strategic_goal": "continuous_recommendation_improvement"
+}

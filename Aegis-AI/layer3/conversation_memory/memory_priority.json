@@ -1,0 +1,21 @@
+{
+  "version": "1.0",
+  "priority_levels": {
+    "critical": {
+      "score": 10,
+      "attributes": ["age", "budget", "family_size", "medical_conditions"]
+    },
+    "high": {
+      "score": 8,
+      "attributes": ["annual_income", "existing_policies", "prior_claims"]
+    },
+    "medium": {
+      "score": 6,
+      "attributes": ["occupation", "location", "vehicle", "property", "travel_plans"]
+    },
+    "low": {
+      "score": 3,
+      "attributes": ["name", "gender", "marital_status"]
+    }
+  }
+}

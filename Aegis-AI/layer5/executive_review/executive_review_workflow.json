@@ -1,0 +1,57 @@
+{
+    "version": "5.0",
+    "workflow": [
+        {
+            "step": 1,
+            "name": "Knowledge Validation",
+            "source": "Layer1",
+            "objective": "Validate insurance knowledge integrity"
+        },
+        {
+            "step": 2,
+            "name": "Routing Validation",
+            "source": "Layer2",
+            "objective": "Validate category and advisor routing"
+        },
+        {
+            "step": 3,
+            "name": "Customer Profile Validation",
+            "source": "Layer3",
+            "objective": "Validate customer profile completeness"
+        },
+        {
+            "step": 4,
+            "name": "Recommendation Validation",
+            "source": "Layer4",
+            "objective": "Validate recommendation quality"
+        },
+        {
+            "step": 5,
+            "name": "Risk Review",
+            "source": "Layer4",
+            "objective": "Validate risk suitability"
+        },
+        {
+            "step": 6,
+            "name": "Executive Decision",
+            "source": "Sri AI",
+            "objective": "Approve, Reject, Override or Escalate"
+        }
+    ],
+    "possible_outcomes": [
+        "approved",
+        "approved_with_conditions",
+        "request_more_information",
+        "executive_override",
+        "rejected",
+        "escalated"
+    ],
+    "executive_decision_criteria": [
+        "customer_protection",
+        "coverage_adequacy",
+        "risk_alignment",
+        "budget_alignment",
+        "recommendation_quality",
+        "long_term_customer_value"
+    ]
+}

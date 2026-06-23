@@ -1,0 +1,7 @@
+{
+    "support_escalation_rules": [
+        "Customer expressing extreme frustration is L2 escalated.",
+        "System latency exceeding 5.0 seconds automatically prints a server apologetic greeting.",
+        "Discretionary premium discount code issuance limit is capped at 1 per customer per lifetime."
+    ]
+}

@@ -1,0 +1,25 @@
+{
+    "eligibility": {
+        "minimum_age": 6,
+        "maximum_age": 85,
+        "valid_passport_required": true,
+        "valid_visa_required": true
+    },
+    "policy_duration": {
+        "single_trip": "1-180 Days",
+        "annual_multi_trip": "1 Year"
+    },
+    "claim_conditions": {
+        "hospitalization_reporting": "Within 24 Hours",
+        "passport_loss_reporting": "Police Report Required",
+        "trip_cancellation_documents": true
+    },
+    "common_exclusions": [
+        "Self-inflicted injuries",
+        "Drug abuse",
+        "Criminal activities",
+        "Travel against medical advice",
+        "War-risk zones",
+        "Untreated pre-existing illnesses"
+    ]
+}

@@ -1,0 +1,12 @@
+{
+  "venvPath": ".",
+  "venv": "venv",
+  "pythonVersion": "3.13",
+  "pythonPlatform": "Linux",
+  "include": ["app", "main.py"],
+  "exclude": ["venv", "__pycache__", ".git"],
+  "reportMissingImports": "none",
+  "reportMissingModuleSource": "none",
+  "reportGeneralTypeIssues": "information",
+  "typeCheckingMode": "basic"
+}

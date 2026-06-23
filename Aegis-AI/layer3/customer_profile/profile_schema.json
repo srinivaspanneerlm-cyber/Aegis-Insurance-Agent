@@ -1,0 +1,103 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Aegis Customer Profile Schema",
+  "description": "Standard schema for Aegis AI customer profiles containing empty/null defaults",
+  "type": "object",
+  "properties": {
+    "customer_id": {
+      "type": ["string", "null"],
+      "default": null,
+      "description": "Unique identifier for the customer"
+    },
+    "name": {
+      "type": ["string", "null"],
+      "default": null,
+      "description": "Full name of the customer"
+    },
+    "age": {
+      "type": ["integer", "null"],
+      "default": null,
+      "description": "Age in years"
+    },
+    "gender": {
+      "type": ["string", "null"],
+      "default": null,
+      "description": "Gender of the customer"
+    },
+    "marital_status": {
+      "type": ["string", "null"],
+      "default": null,
+      "description": "Marital status"
+    },
+    "occupation": {
+      "type": ["string", "null"],
+      "default": null,
+      "description": "Current profession"
+    },
+    "annual_income": {
+      "type": ["number", "null"],
+      "default": null,
+      "description": "Annual household income"
+    },
+    "family_size": {
+      "type": ["integer", "null"],
+      "default": null,
+      "description": "Total number of members in the household"
+    },
+    "budget": {
+      "type": ["number", "null"],
+      "default": null,
+      "description": "Target monthly premium budget limit"
+    },
+    "location": {
+      "type": ["string", "null"],
+      "default": null,
+      "description": "Geographical location (e.g., zip code or city)"
+    },
+    "existing_policies": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "List of active or past insurance policies"
+    },
+    "preferred_category": {
+      "type": ["string", "null"],
+      "default": null,
+      "description": "Identified main active insurance category (health, motor, travel, etc.)"
+    },
+    "risk_profile": {
+      "type": ["string", "null"],
+      "default": null,
+      "description": "Classified risk tier: Low, Medium, or High"
+    },
+    "conversation_history_count": {
+      "type": "integer",
+      "default": 0,
+      "description": "Total number of interactive conversation turns in session history"
+    },
+    "last_interaction": {
+      "type": ["string", "null"],
+      "default": null,
+      "description": "Timestamp of the last conversation turn"
+    }
+  },
+  "required": [
+    "customer_id",
+    "name",
+    "age",
+    "gender",
+    "marital_status",
+    "occupation",
+    "annual_income",
+    "family_size",
+    "budget",
+    "location",
+    "existing_policies",
+    "preferred_category",
+    "risk_profile",
+    "conversation_history_count",
+    "last_interaction"
+  ]
+}

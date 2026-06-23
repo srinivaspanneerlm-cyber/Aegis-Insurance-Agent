@@ -1,0 +1,16 @@
+{
+    "budget_friendly": {
+        "coverage": "5-10 Lakhs",
+        "target_users": [
+            "Young Families",
+            "Middle Income Households"
+        ]
+    },
+    "premium_protection": {
+        "coverage": "25-50 Lakhs",
+        "target_users": [
+            "High Income Families",
+            "Corporate Employees"
+        ]
+    }
+}

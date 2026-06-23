@@ -1,0 +1,25 @@
+{
+  "version": "1.0",
+  "thresholds": {
+    "excellent_fit": {
+      "min_score": 85,
+      "label": "Excellent Fit",
+      "description": "High alignment across budget, coverage, and risk thresholds."
+    },
+    "good_fit": {
+      "min_score": 70,
+      "label": "Good Fit",
+      "description": "Satisfactory matching with minor compromises on preferences or budget."
+    },
+    "fair_fit": {
+      "min_score": 50,
+      "label": "Fair Fit",
+      "description": "Functional matching but with notable gaps in budget/coverage limits."
+    },
+    "unsuitable": {
+      "max_score": 49,
+      "label": "Unsuitable Plan",
+      "description": "Fails basic affordability guidelines or essential rider protection standards."
+    }
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "version": "1.0",
+  "risk_rules": {
+    "default_risk": "Medium",
+    "evaluation_factors": {
+      "age": {
+        "rules": [
+          { "condition": { "operator": ">=", "value": 55 }, "modifier": "increase_risk", "weight": 2 },
+          { "condition": { "operator": "<", "value": 30 }, "modifier": "decrease_risk", "weight": 1 }
+        ]
+      },
+      "annual_income": {
+        "rules": [
+          { "condition": { "operator": ">=", "value": 1500000 }, "modifier": "decrease_risk", "weight": 1 },
+          { "condition": { "operator": "<", "value": 300000 }, "modifier": "increase_risk", "weight": 1 }
+        ]
+      },
+      "family_size": {
+        "rules": [
+          { "condition": { "operator": ">=", "value": 5 }, "modifier": "increase_risk", "weight": 1 }
+        ]
+      }
+    },
+    "scoring": {
+      "scale": {
+        "low_threshold": 2,
+        "high_threshold": 4
+      },
+      "mapping": {
+        "below_low": "Low",
+        "between_thresholds": "Medium",
+        "above_high": "High"
+      }
+    }
+  }
+}

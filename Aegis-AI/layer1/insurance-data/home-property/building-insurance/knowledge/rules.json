@@ -1,0 +1,38 @@
+{
+    "eligibility": {
+        "ownership_proof_required": true,
+        "building_must_be_legally_constructed": true,
+        "property_inspection_may_be_required": true
+    },
+    "building_age_rules": {
+        "0_to_10_years": {
+            "risk_level": "Low"
+        },
+        "10_to_25_years": {
+            "risk_level": "Medium"
+        },
+        "25_plus_years": {
+            "risk_level": "High"
+        }
+    },
+    "claim_conditions": {
+        "damage_reporting": "Within 48 Hours",
+        "required_documents": [
+            "Ownership Proof",
+            "Policy Copy",
+            "Damage Photographs",
+            "Repair Estimates"
+        ]
+    },
+    "common_exclusions": [
+        "Normal Wear and Tear",
+        "Intentional Damage",
+        "War Related Incidents",
+        "Illegal Activities",
+        "Poor Maintenance"
+    ],
+    "renewal_rules": {
+        "annual_renewal_required": true,
+        "property_reassessment_recommended": true
+    }
+}

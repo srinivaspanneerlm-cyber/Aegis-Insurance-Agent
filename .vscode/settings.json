@@ -1,0 +1,15 @@
+{
+  "python.defaultInterpreterPath": "${workspaceFolder}/ai-python/venv/bin/python",
+  "python.analysis.extraPaths": [
+    "${workspaceFolder}/ai-python",
+    "${workspaceFolder}/ai-python/venv/lib/python3.13/site-packages"
+  ],
+  "python.analysis.autoSearchPaths": true,
+  "python.analysis.useLibraryCodeForTypes": true,
+  "python.analysis.typeCheckingMode": "basic",
+  "python.analysis.reportMissingImports": "none",
+  "python.analysis.reportMissingModuleSource": "none",
+  "[python]": {
+    "editor.formatOnSave": true
+  }
+}

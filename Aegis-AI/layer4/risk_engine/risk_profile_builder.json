@@ -1,0 +1,18 @@
+{
+  "version": "1.0",
+  "aggregation": {
+    "formula": "AgePoints + MedicalPoints + VehiclePoints + PropertyPoints + TravelPoints + ClaimsPoints",
+    "bounds": {
+      "min_allowed_points": 0,
+      "max_allowed_points": 100
+    },
+    "mappings": {
+      "AgePoints": "age_scoring",
+      "MedicalPoints": "medical_scoring",
+      "VehiclePoints": "vehicle_scoring",
+      "PropertyPoints": "property_scoring",
+      "TravelPoints": "travel_scoring",
+      "ClaimsPoints": "claims_scoring"
+    }
+  }
+}

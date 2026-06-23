@@ -1,0 +1,13 @@
+{
+  "version": "1.0",
+  "build_config": {
+    "include_comparison_matrix": true,
+    "confidence_calculation_type": "average_compatibility",
+    "slots_required": [
+      "Best Recommendation",
+      "Alternative Recommendation",
+      "Budget Recommendation",
+      "Premium Recommendation"
+    ]
+  }
+}

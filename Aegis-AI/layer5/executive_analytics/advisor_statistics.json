@@ -1,0 +1,45 @@
+{
+    "version": "5.0",
+    "advisor_performance_framework": {
+        "Sarah AI": {
+            "department": "Health",
+            "evaluation_metrics": [
+                "recommendation_accuracy",
+                "customer_satisfaction",
+                "escalation_rate",
+                "response_quality"
+            ]
+        },
+        "Alex AI": {
+            "department": "Motor",
+            "evaluation_metrics": [
+                "recommendation_accuracy",
+                "customer_satisfaction",
+                "claim_guidance_quality",
+                "escalation_rate"
+            ]
+        },
+        "Emma AI": {
+            "department": "Property",
+            "evaluation_metrics": [
+                "recommendation_accuracy",
+                "customer_satisfaction",
+                "coverage_alignment"
+            ]
+        },
+        "Ethan AI": {
+            "department": "Travel",
+            "evaluation_metrics": [
+                "recommendation_accuracy",
+                "risk_assessment_quality",
+                "customer_satisfaction"
+            ]
+        }
+    },
+    "executive_review_triggers": [
+        "advisor_accuracy_below_threshold",
+        "high_customer_complaints",
+        "excessive_escalations",
+        "low_confidence_recommendations"
+    ]
+}

@@ -1,0 +1,24 @@
+{
+    "faqs": [
+        {
+            "question": "Is bike insurance mandatory in India?",
+            "answer": "Yes, at least Third Party Insurance is mandatory under the Motor Vehicles Act."
+        },
+        {
+            "question": "What does Comprehensive Bike Insurance cover?",
+            "answer": "It covers third-party liabilities and damages to the insured bike."
+        },
+        {
+            "question": "Does bike insurance cover theft?",
+            "answer": "Yes, comprehensive policies generally cover theft."
+        },
+        {
+            "question": "What is Zero Depreciation Cover?",
+            "answer": "It helps receive a higher claim amount by reducing depreciation deductions."
+        },
+        {
+            "question": "Can I renew an expired policy?",
+            "answer": "Yes, subject to insurer inspection and underwriting rules."
+        }
+    ]
+}

@@ -1,0 +1,17 @@
+{
+  "version": "1.0",
+  "weights": {
+    "budget_match": 30,
+    "coverage_match": 25,
+    "risk_match": 20,
+    "claim_support_match": 15,
+    "preference_match": 10
+  },
+  "constraints": {
+    "total_score_range": {
+      "min": 0,
+      "max": 100
+    },
+    "must_sum_to": 100
+  }
+}

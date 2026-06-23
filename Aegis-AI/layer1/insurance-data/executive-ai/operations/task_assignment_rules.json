@@ -1,0 +1,11 @@
+{
+    "routing_logic": {
+        "keywords": {
+            "health_accident_surgery_medical": "Sarah_AI",
+            "car_bike_accident_traffic_driving": "Alex_AI",
+            "flight_passport_visa_travel_trip": "Ethan_AI",
+            "house_apartment_building_property_landlord": "Emma_AI"
+        },
+        "default_recipient": "Sri_AI_Direct"
+    }
+}

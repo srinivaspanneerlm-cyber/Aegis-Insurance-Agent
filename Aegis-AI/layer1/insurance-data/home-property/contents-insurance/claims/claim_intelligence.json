@@ -1,0 +1,21 @@
+{
+    "subcategory": "contents-insurance",
+    "claim_intelligence": {
+        "fire_claims": {
+            "fire_brigade_report_mandatory": true,
+            "structural_engineer_evaluation": "Required for partial or complete collapse"
+        },
+        "flood_claims": {
+            "meteorological_report_needed": true,
+            "photographic_damage_proof_mandatory": true
+        },
+        "burglary_claims": {
+            "police_fir_and_final_untraceable_report_needed": true,
+            "proof_of_forced_entry": "Required to classify as burglary vs theft"
+        },
+        "structural_damage_claims": {
+            "surveyor_inspection_sla_days": 2,
+            "payout_depreciation_factor": "Zero-depreciation add-on honors replacement value"
+        }
+    }
+}

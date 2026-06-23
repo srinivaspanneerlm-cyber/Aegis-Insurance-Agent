@@ -1,0 +1,43 @@
+{
+    "version": "5.0",
+    "quality_dimensions": {
+        "knowledge_quality": {
+            "source": "Layer1",
+            "weight": 20
+        },
+        "routing_quality": {
+            "source": "Layer2",
+            "weight": 15
+        },
+        "profile_quality": {
+            "source": "Layer3",
+            "weight": 20
+        },
+        "recommendation_quality": {
+            "source": "Layer4",
+            "weight": 35
+        },
+        "explanation_quality": {
+            "source": "Layer4",
+            "weight": 10
+        }
+    },
+    "minimum_quality_requirements": {
+        "overall_quality_score": 85,
+        "minimum_confidence_score": 80,
+        "minimum_customer_fit_score": 85,
+        "minimum_budget_alignment_score": 80
+    },
+    "quality_failure_conditions": [
+        "missing_customer_data",
+        "invalid_routing",
+        "weak_recommendation_logic",
+        "low_confidence",
+        "coverage_gap_detected"
+    ],
+    "quality_actions": {
+        "pass": "approve",
+        "warning": "executive_review",
+        "fail": "reject_and_rebuild"
+    }
+}

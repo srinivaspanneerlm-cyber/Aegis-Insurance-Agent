@@ -1,0 +1,24 @@
+{
+    "faqs": [
+        {
+            "question": "What is Individual Health Insurance?",
+            "answer": "Individual Health Insurance provides coverage for a single person under one policy."
+        },
+        {
+            "question": "Can I upgrade my coverage later?",
+            "answer": "Yes, most insurers allow coverage upgrades during renewal."
+        },
+        {
+            "question": "Does it cover hospitalization?",
+            "answer": "Yes, hospitalization expenses are generally covered as per policy terms."
+        },
+        {
+            "question": "Is Individual Insurance better than Family Floater?",
+            "answer": "It depends on your needs. Individual plans are ideal for personal coverage, while Family Floaters cover multiple family members."
+        },
+        {
+            "question": "Are pre-existing diseases covered?",
+            "answer": "Usually after the waiting period specified in the policy."
+        }
+    ]
+}

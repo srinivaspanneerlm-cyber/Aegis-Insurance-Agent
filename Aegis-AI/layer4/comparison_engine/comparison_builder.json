@@ -1,0 +1,16 @@
+{
+  "version": "1.0",
+  "comparison_builder": {
+    "output_fields": [
+      "plan_name",
+      "category",
+      "premium_monthly",
+      "coverage_limit",
+      "waiting_period_months",
+      "calculated_score",
+      "eligibility_status"
+    ],
+    "include_header": true,
+    "format": "matrix"
+  }
+}

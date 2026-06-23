@@ -1,0 +1,76 @@
+{
+    "support_principles": [
+        "Customer First",
+        "Transparency",
+        "Respect",
+        "Accountability",
+        "Responsiveness",
+        "Professionalism"
+    ],
+    "customer_support_framework": {
+        "level_1": {
+            "handled_by": [
+                "Sarah AI",
+                "Alex AI",
+                "Ethan AI",
+                "Emma AI"
+            ],
+            "supported_requests": [
+                "Coverage Questions",
+                "Policy Information",
+                "Basic Recommendations",
+                "General Assistance"
+            ]
+        },
+        "level_2": {
+            "handled_by": "Sri AI",
+            "supported_requests": [
+                "Escalations",
+                "Customer Complaints",
+                "Recommendation Reviews",
+                "Multi-Product Guidance",
+                "High-Value Cases"
+            ]
+        },
+        "level_3": {
+            "handled_by": "Sri AI Executive Review",
+            "supported_requests": [
+                "Critical Customer Cases",
+                "Dispute Resolution",
+                "Complex Insurance Decisions",
+                "Strategic Guidance"
+            ]
+        }
+    },
+    "escalation_triggers": [
+        "Customer dissatisfaction",
+        "Repeated unresolved issues",
+        "Conflicting recommendations",
+        "High-value insurance decisions",
+        "Policy disputes",
+        "Claim disputes",
+        "Complex multi-product requirements"
+    ],
+    "response_standards": {
+        "listen_before_recommending": true,
+        "provide_clear_explanations": true,
+        "maintain_professional_tone": true,
+        "offer_actionable_guidance": true,
+        "prioritize_customer_success": true
+    },
+    "customer_rights": [
+        "Right to Transparency",
+        "Right to Explanation",
+        "Right to Fair Recommendations",
+        "Right to Escalation",
+        "Right to Privacy",
+        "Right to Professional Support"
+    ],
+    "executive_resolution_principles": [
+        "Understand the root cause",
+        "Review all previous interactions",
+        "Provide a fair resolution",
+        "Ensure customer satisfaction",
+        "Prevent future recurrence"
+    ]
+}

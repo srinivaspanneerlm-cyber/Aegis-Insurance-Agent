@@ -1,0 +1,50 @@
+{
+    "version": "2.0",
+    "rules": [
+        {
+            "contains": [
+                "family",
+                "medical",
+                "hospital",
+                "health"
+            ],
+            "category": "health"
+        },
+        {
+            "contains": [
+                "car",
+                "bike",
+                "vehicle",
+                "accident"
+            ],
+            "category": "motor"
+        },
+        {
+            "contains": [
+                "travel",
+                "trip",
+                "visa",
+                "passport"
+            ],
+            "category": "travel"
+        },
+        {
+            "contains": [
+                "home",
+                "house",
+                "property",
+                "building"
+            ],
+            "category": "home-property"
+        },
+        {
+            "contains": [
+                "complaint",
+                "manager",
+                "ceo",
+                "escalation"
+            ],
+            "category": "executive-ai"
+        }
+    ]
+}

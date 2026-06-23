@@ -1,0 +1,24 @@
+{
+    "monitoring_metrics": {
+        "Sarah_AI": {
+            "max_allowable_latency_ms": 1500,
+            "satisfaction_rating_floor": 4.6,
+            "explainability_conformance_pct": 99.5
+        },
+        "Alex_AI": {
+            "max_allowable_latency_ms": 1500,
+            "satisfaction_rating_floor": 4.5,
+            "explainability_conformance_pct": 99.0
+        },
+        "Ethan_AI": {
+            "max_allowable_latency_ms": 1200,
+            "satisfaction_rating_floor": 4.7,
+            "explainability_conformance_pct": 99.8
+        },
+        "Emma_AI": {
+            "max_allowable_latency_ms": 1800,
+            "satisfaction_rating_floor": 4.6,
+            "explainability_conformance_pct": 99.2
+        }
+    }
+}

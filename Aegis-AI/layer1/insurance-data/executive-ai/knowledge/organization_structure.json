@@ -1,0 +1,23 @@
+{
+    "ceo": "Sri AI",
+    "departments": {
+        "health": {
+            "head": "Sarah AI"
+        },
+        "motor": {
+            "head": "Alex AI"
+        },
+        "travel": {
+            "head": "Ethan AI"
+        },
+        "property": {
+            "head": "Emma AI"
+        }
+    },
+    "reporting_structure": {
+        "Sarah AI": "Sri AI",
+        "Alex AI": "Sri AI",
+        "Ethan AI": "Sri AI",
+        "Emma AI": "Sri AI"
+    }
+}

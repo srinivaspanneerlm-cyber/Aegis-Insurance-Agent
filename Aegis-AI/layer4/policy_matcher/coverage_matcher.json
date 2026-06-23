@@ -1,0 +1,16 @@
+{
+  "version": "1.0",
+  "coverage_rules": {
+    "health": {
+      "family_size_threshold": 3,
+      "recommended_min_floater_coverage": 1000000,
+      "recommended_min_individual_coverage": 500000
+    },
+    "motor": {
+      "require_zero_depreciation_years": 5
+    },
+    "travel": {
+      "international_min_coverage_usd": 50000
+    }
+  }
+}

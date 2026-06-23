@@ -1,0 +1,23 @@
+{
+    "version": "5.0",
+    "customer_trust_framework": {
+        "primary_metrics": [
+            "recommendation_acceptance_rate",
+            "customer_confidence",
+            "customer_feedback",
+            "resolution_satisfaction",
+            "advisor_experience"
+        ]
+    },
+    "target_scores": {
+        "customer_satisfaction": 95,
+        "recommendation_acceptance": 90,
+        "trust_score": 95
+    },
+    "executive_response_rules": {
+        "score_below_90": "review",
+        "score_below_85": "executive_action",
+        "score_below_80": "critical_investigation"
+    },
+    "executive_goal": "Create the most trusted AI insurance advisory platform."
+}

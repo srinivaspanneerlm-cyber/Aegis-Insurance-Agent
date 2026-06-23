@@ -1,0 +1,21 @@
+{
+    "category": "Health Insurance",
+    "subcategory": "Family Floater",
+    "coverage_range": [
+        "5 Lakhs",
+        "10 Lakhs",
+        "25 Lakhs",
+        "50 Lakhs"
+    ],
+    "common_benefits": [
+        "Cashless Hospitalization",
+        "Day Care Treatment",
+        "Emergency Coverage",
+        "Pre Hospitalization",
+        "Post Hospitalization"
+    ],
+    "best_for": [
+        "Family of 3-6 Members",
+        "Parents with Children"
+    ]
+}

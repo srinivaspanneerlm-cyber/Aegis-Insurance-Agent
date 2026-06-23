@@ -1,0 +1,31 @@
+{
+    "version": "5.0",
+    "decision_types": {
+        "approval": {
+            "description": "Recommendation approved"
+        },
+        "rejection": {
+            "description": "Recommendation rejected"
+        },
+        "override": {
+            "description": "Executive override applied"
+        },
+        "escalation": {
+            "description": "Escalated for executive review"
+        }
+    },
+    "decision_record_requirements": [
+        "decision_reason",
+        "supporting_evidence",
+        "risk_assessment",
+        "customer_impact",
+        "executive_justification"
+    ],
+    "executive_decision_principles": [
+        "customer_first",
+        "evidence_based",
+        "risk_aware",
+        "ethically_aligned",
+        "transparent"
+    ]
+}

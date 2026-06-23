@@ -1,0 +1,24 @@
+{
+    "faqs": [
+        {
+            "question": "What is Group Health Insurance?",
+            "answer": "Group Health Insurance provides coverage for employees under a single policy."
+        },
+        {
+            "question": "Can employee dependents be covered?",
+            "answer": "Yes, many group plans allow dependent coverage."
+        },
+        {
+            "question": "What is the minimum employee requirement?",
+            "answer": "The requirement varies by insurer and policy."
+        },
+        {
+            "question": "Does Group Health Insurance provide cashless treatment?",
+            "answer": "Most group policies offer cashless hospitalization facilities."
+        },
+        {
+            "question": "Can startups purchase Group Health Insurance?",
+            "answer": "Yes, startups and businesses can purchase group coverage for employees."
+        }
+    ]
+}

@@ -1,0 +1,11 @@
+{
+  "version": "1.0",
+  "budget_matching_rules": {
+    "calculation_type": "proportional_decay",
+    "exact_fit_threshold": 1.0,
+    "warning_threshold": 1.25,
+    "ineligible_threshold": 1.5,
+    "decay_slope": 2.0,
+    "description": "Plans matching budget score 100%. Above budget scores decay down to 0% at 1.5x budget limit."
+  }
+}

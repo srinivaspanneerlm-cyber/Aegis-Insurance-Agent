@@ -1,0 +1,16 @@
+{
+    "budget_friendly": {
+        "coverage": "300000-500000",
+        "recommended_for": [
+            "Young professionals",
+            "Students"
+        ]
+    },
+    "premium_protection": {
+        "coverage": "1000000+",
+        "recommended_for": [
+            "High-income individuals",
+            "Frequent travelers"
+        ]
+    }
+}

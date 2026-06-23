@@ -1,0 +1,20 @@
+{
+  "version": "1.0",
+  "score_formula": {
+    "equation": "BudgetMatch * W_budget + CoverageMatch * W_coverage + RiskMatch * W_risk + ClaimSupportMatch * W_claim + PreferenceMatch * W_pref",
+    "variables": {
+      "W_budget": 0.30,
+      "W_coverage": 0.25,
+      "W_risk": 0.20,
+      "W_claim": 0.15,
+      "W_pref": 0.10
+    },
+    "inputs": {
+      "BudgetMatch": "percentage_budget_fit",
+      "CoverageMatch": "percentage_coverage_fit",
+      "RiskMatch": "percentage_risk_fit",
+      "ClaimSupportMatch": "percentage_claim_fit",
+      "PreferenceMatch": "percentage_preference_fit"
+    }
+  }
+}

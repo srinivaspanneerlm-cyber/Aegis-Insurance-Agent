@@ -1,0 +1,34 @@
+{
+    "advisors": {
+        "health": {
+            "name": "Sarah AI",
+            "specialization": "Health Insurance Specialist",
+            "authority_level": 3
+        },
+        "motor": {
+            "name": "Alex AI",
+            "specialization": "Motor Insurance Specialist",
+            "authority_level": 3
+        },
+        "travel": {
+            "name": "Ethan AI",
+            "specialization": "Travel Insurance Specialist",
+            "authority_level": 3
+        },
+        "home-property": {
+            "name": "Emma AI",
+            "specialization": "Property Insurance Specialist",
+            "authority_level": 3
+        },
+        "miscellaneous": {
+            "name": "Emma AI",
+            "specialization": "Special Risk Insurance Specialist",
+            "authority_level": 3
+        },
+        "executive-ai": {
+            "name": "Sri AI",
+            "specialization": "Chief Executive AI",
+            "authority_level": 5
+        }
+    }
+}

@@ -1,0 +1,15 @@
+{
+    "strategic_objectives": {
+        "net_promoter_score_target": 85.0,
+        "target_loss_ratio_overall": 0.62,
+        "customer_acquisition_cost_limit": 120.0,
+        "target_conversion_rate": 0.28
+    },
+    "product_diversification": {
+        "focus_areas": [
+            "Hyper-personalized individual health coverage",
+            "EV specific motor insurance enhancements",
+            "Climate risk-aware structural property policies"
+        ]
+    }
+}

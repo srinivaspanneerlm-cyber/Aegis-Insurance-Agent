@@ -1,0 +1,28 @@
+{
+  "version": "1.0",
+  "recommendation_slots": {
+    "Best Recommendation": {
+      "selection_criteria": "highest_fit_score",
+      "minimum_score_threshold": 50
+    },
+    "Alternative Recommendation": {
+      "selection_criteria": "second_highest_fit_score",
+      "minimum_score_threshold": 50
+    },
+    "Budget Recommendation": {
+      "selection_criteria": "highest_fit_score_under_budget",
+      "must_satisfy_condition": "plan_premium <= target_budget"
+    },
+    "Premium Recommendation": {
+      "selection_criteria": "highest_coverage_limit_with_riders",
+      "minimum_score_threshold": 60
+    }
+  },
+  "supported_categories": [
+    "health",
+    "motor",
+    "travel",
+    "home-property",
+    "miscellaneous"
+  ]
+}

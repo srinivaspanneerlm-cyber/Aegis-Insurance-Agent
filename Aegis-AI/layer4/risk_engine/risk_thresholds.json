@@ -1,0 +1,23 @@
+{
+  "version": "1.0",
+  "thresholds": {
+    "low_risk": {
+      "max_points": 14,
+      "tier": "Low Risk"
+    },
+    "medium_risk": {
+      "min_points": 15,
+      "max_points": 39,
+      "tier": "Medium Risk"
+    },
+    "high_risk": {
+      "min_points": 40,
+      "max_points": 69,
+      "tier": "High Risk"
+    },
+    "critical_risk": {
+      "min_points": 70,
+      "tier": "Critical Risk"
+    }
+  }
+}

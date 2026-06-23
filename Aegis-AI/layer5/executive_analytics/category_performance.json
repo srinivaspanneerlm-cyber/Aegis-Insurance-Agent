@@ -1,0 +1,44 @@
+{
+    "version": "5.0",
+    "business_categories": {
+        "health": {
+            "performance_metrics": [
+                "recommendation_accuracy",
+                "claim_support_quality",
+                "customer_satisfaction"
+            ]
+        },
+        "motor": {
+            "performance_metrics": [
+                "coverage_match_rate",
+                "claim_guidance_quality",
+                "advisor_efficiency"
+            ]
+        },
+        "travel": {
+            "performance_metrics": [
+                "risk_assessment_accuracy",
+                "recommendation_quality",
+                "customer_satisfaction"
+            ]
+        },
+        "home_property": {
+            "performance_metrics": [
+                "coverage_alignment",
+                "risk_analysis_quality",
+                "recommendation_accuracy"
+            ]
+        },
+        "miscellaneous": {
+            "performance_metrics": [
+                "advisor_accuracy",
+                "recommendation_consistency"
+            ]
+        }
+    },
+    "executive_targets": {
+        "minimum_accuracy": 90,
+        "minimum_confidence": 85,
+        "minimum_customer_satisfaction": 90
+    }
+}

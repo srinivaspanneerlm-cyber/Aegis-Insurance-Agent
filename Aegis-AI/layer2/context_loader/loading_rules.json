@@ -1,0 +1,12 @@
+{
+    "default_load_order": [
+        "advisor.json",
+        "prompt.txt",
+        "recommendation_rules.json",
+        "premium_logic.json",
+        "rules.json",
+        "claim_intelligence.json",
+        "plans.json",
+        "faq.json"
+    ]
+}

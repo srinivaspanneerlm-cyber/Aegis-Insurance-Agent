@@ -1,0 +1,35 @@
+{
+    "property_count_analysis": {
+        "1_property": {
+            "recommended_plan": "Standard Landlord Protection"
+        },
+        "2_to_5_properties": {
+            "recommended_plan": "Comprehensive Landlord Protection"
+        },
+        "5_plus_properties": {
+            "recommended_plan": "Premium Property Portfolio Shield"
+        }
+    },
+    "rental_income_analysis": {
+        "low_income": {
+            "recommended": "Basic Protection"
+        },
+        "medium_income": {
+            "recommended": "Income Protection Coverage"
+        },
+        "high_income": {
+            "recommended": "Premium Rental Income Protection"
+        }
+    },
+    "risk_analysis": {
+        "high_tenant_turnover": {
+            "recommended": "Enhanced Tenant Protection"
+        },
+        "high_crime_area": {
+            "recommended": "Theft & Vandalism Coverage"
+        },
+        "natural_disaster_zone": {
+            "recommended": "Disaster Protection Add-on"
+        }
+    }
+}

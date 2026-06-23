@@ -1,0 +1,19 @@
+{
+    "fraud_flags": {
+        "rapid_enrollment_claim": {
+            "description": "Claim filed within 30 days of policy inception",
+            "risk_score_impact": 45
+        },
+        "inconsistent_damage_reports": {
+            "description": "Mechanic damage report contradicts police accident record",
+            "risk_score_impact": 60
+        },
+        "duplicate_claim_attributes": {
+            "description": "Matching VIN or Medical ID associated with past claims in system",
+            "risk_score_impact": 90
+        }
+    },
+    "action_protocol": {
+        "score_gt_70": "Immediate hold. Transfer file to Fraud Special Investigation Unit."
+    }
+}

@@ -1,0 +1,14 @@
+{
+    "permissions": {
+        "approve_recommendation": true,
+        "reject_recommendation": true,
+        "override_ai_decision": true,
+        "assign_specialist_ai": true,
+        "review_claim_dispute": true,
+        "review_customer_complaint": true,
+        "review_high_value_policy": true,
+        "monitor_all_ai_agents": true,
+        "access_all_customer_context": true,
+        "access_all_knowledge_bases": true
+    }
+}

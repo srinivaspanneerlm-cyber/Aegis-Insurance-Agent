@@ -1,0 +1,11 @@
+{
+    "minimum_group_size": 5,
+    "maximum_group_size": 10000,
+    "eligibility": {
+        "organization_type": [
+            "Startup",
+            "Private Limited",
+            "Corporate"
+        ]
+    }
+}

@@ -1,0 +1,36 @@
+{
+    "faqs": [
+        {
+            "question": "What is Contents Insurance?",
+            "answer": "Contents Insurance protects personal belongings inside a home against covered risks."
+        },
+        {
+            "question": "Does it cover laptops and mobile phones?",
+            "answer": "Many policies provide protection for electronics and portable devices."
+        },
+        {
+            "question": "Does it cover jewelry?",
+            "answer": "Yes, subject to policy limits and valuation requirements."
+        },
+        {
+            "question": "Does it cover accidental damage?",
+            "answer": "Accidental damage protection may be available under comprehensive plans."
+        },
+        {
+            "question": "What happens if my belongings are stolen?",
+            "answer": "Theft and burglary losses may be covered according to policy conditions."
+        },
+        {
+            "question": "Can renters buy Contents Insurance?",
+            "answer": "Yes, tenants often use Contents Insurance to protect personal belongings."
+        },
+        {
+            "question": "Are home office devices covered?",
+            "answer": "Coverage depends on policy terms and selected options."
+        },
+        {
+            "question": "Do I need proof of ownership?",
+            "answer": "Receipts, invoices, or photographs may help support claims."
+        }
+    ]
+}

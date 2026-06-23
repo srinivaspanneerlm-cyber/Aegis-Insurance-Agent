@@ -1,0 +1,90 @@
+{
+    "version": "2.0",
+    "categories": {
+        "health": {
+            "priority": 100,
+            "advisor": "Sarah AI",
+            "keywords": [
+                "health insurance",
+                "medical insurance",
+                "hospitalization",
+                "health policy",
+                "medical cover",
+                "critical illness",
+                "cashless treatment",
+                "family health",
+                "senior citizen insurance",
+                "maternity insurance"
+            ]
+        },
+        "motor": {
+            "priority": 100,
+            "advisor": "Alex AI",
+            "keywords": [
+                "car insurance",
+                "bike insurance",
+                "vehicle insurance",
+                "motor insurance",
+                "accident claim",
+                "own damage",
+                "third party",
+                "car policy",
+                "bike policy",
+                "commercial vehicle"
+            ]
+        },
+        "travel": {
+            "priority": 100,
+            "advisor": "Ethan AI",
+            "keywords": [
+                "travel insurance",
+                "trip insurance",
+                "international travel",
+                "domestic travel",
+                "student travel",
+                "business travel",
+                "passport loss",
+                "travel claim",
+                "trip cancellation"
+            ]
+        },
+        "home-property": {
+            "priority": 100,
+            "advisor": "Emma AI",
+            "keywords": [
+                "home insurance",
+                "house insurance",
+                "property insurance",
+                "building insurance",
+                "tenant insurance",
+                "landlord insurance",
+                "contents insurance",
+                "property protection"
+            ]
+        },
+        "miscellaneous": {
+            "priority": 90,
+            "advisor": "Emma AI",
+            "keywords": [
+                "pet insurance",
+                "personal accident",
+                "cyber insurance",
+                "special insurance",
+                "miscellaneous policy"
+            ]
+        },
+        "executive-ai": {
+            "priority": 200,
+            "advisor": "Sri AI",
+            "keywords": [
+                "complaint",
+                "escalation",
+                "ceo",
+                "manager",
+                "executive",
+                "service issue",
+                "customer issue"
+            ]
+        }
+    }
+}

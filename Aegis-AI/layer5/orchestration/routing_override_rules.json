@@ -1,0 +1,38 @@
+{
+    "version": "5.0",
+    "override_conditions": [
+        {
+            "condition": "customer_complaint",
+            "route_to": "Sri AI"
+        },
+        {
+            "condition": "claim_dispute",
+            "route_to": "Sri AI"
+        },
+        {
+            "condition": "multi_category_case",
+            "route_to": "Sri AI"
+        },
+        {
+            "condition": "advisor_conflict",
+            "route_to": "Sri AI"
+        },
+        {
+            "condition": "recommendation_confidence_below_80",
+            "route_to": "Sri AI"
+        },
+        {
+            "condition": "high_risk_customer",
+            "route_to": "Sri AI"
+        }
+    ],
+    "executive_override_authority": {
+        "can_change_advisor": true,
+        "can_change_route": true,
+        "can_request_reanalysis": true,
+        "can_trigger_full_review": true
+    },
+    "customer_protection_policy": {
+        "override_if_customer_risk_detected": true
+    }
+}

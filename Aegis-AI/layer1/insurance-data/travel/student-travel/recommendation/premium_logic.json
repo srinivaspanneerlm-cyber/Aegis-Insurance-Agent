@@ -1,0 +1,29 @@
+{
+    "subcategory": "student-travel",
+    "premium_intelligence": {
+        "destination_risk_factor": {
+            "schengen_countries": 1.1,
+            "usa_canada": 1.6,
+            "asia_pacific": 0.9,
+            "high_risk_conflict_zones": 2.5
+        },
+        "trip_duration_factor": {
+            "1_to_7_days": 1.0,
+            "8_to_30_days": 1.3,
+            "31_to_90_days": 1.8,
+            "annual_multi_trip": 2.2
+        },
+        "traveler_age_factor": {
+            "under_18": 0.9,
+            "18_to_40": 1.0,
+            "41_to_60": 1.25,
+            "above_60": 1.85
+        },
+        "traveler_type_factor": {
+            "leisure_traveler": 1.0,
+            "student_study_abroad": 0.85,
+            "business_executive": 1.1,
+            "adventure_sports_enthusiast": 1.5
+        }
+    }
+}

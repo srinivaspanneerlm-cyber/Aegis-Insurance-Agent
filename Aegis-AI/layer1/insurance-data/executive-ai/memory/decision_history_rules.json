@@ -1,0 +1,11 @@
+{
+    "audit_trail_fields": [
+        "decision_id",
+        "timestamp",
+        "customer_id",
+        "specialist_agent_recommendations",
+        "ceo_override_applied",
+        "reasoning_code",
+        "compliance_signoff_version"
+    ]
+}

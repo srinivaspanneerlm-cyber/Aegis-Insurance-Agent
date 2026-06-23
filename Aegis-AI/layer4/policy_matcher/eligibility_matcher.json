@@ -1,0 +1,24 @@
+{
+  "version": "1.0",
+  "eligibility_rules": {
+    "age": {
+      "min": 18,
+      "max": 80,
+      "conditional_max": 99,
+      "fallback": "not_eligible"
+    },
+    "family_size": {
+      "max_standard": 6,
+      "conditional_limit": 10,
+      "fallback": "conditionally_eligible"
+    },
+    "budget": {
+      "minimum_budget_rupees": 500,
+      "fallback": "not_eligible"
+    },
+    "income": {
+      "minimum_annual_income": 150000,
+      "fallback": "not_eligible"
+    }
+  }
+}

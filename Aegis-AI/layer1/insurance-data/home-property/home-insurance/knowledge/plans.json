@@ -1,0 +1,41 @@
+{
+    "category": "Home & Property Insurance",
+    "subcategory": "Home Insurance",
+    "coverage_options": [
+        {
+            "coverage_type": "Standard Home Protection",
+            "property_protection": [
+                "Fire Damage",
+                "Lightning Damage",
+                "Explosion Damage",
+                "Natural Disaster Damage",
+                "Storm Damage"
+            ],
+            "contents_protection": [
+                "Furniture",
+                "Electronics",
+                "Appliances",
+                "Personal Belongings"
+            ],
+            "liability_protection": [
+                "Third Party Injury",
+                "Property Damage Liability"
+            ]
+        },
+        {
+            "coverage_type": "Premium Home Protection",
+            "additional_benefits": [
+                "Theft Protection",
+                "Burglary Coverage",
+                "Temporary Accommodation",
+                "Emergency Repairs"
+            ]
+        }
+    ],
+    "risk_factors": [
+        "Property Age",
+        "Construction Type",
+        "Location Risk",
+        "Natural Disaster Exposure"
+    ]
+}

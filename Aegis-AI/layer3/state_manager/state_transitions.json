@@ -1,0 +1,35 @@
+{
+  "version": "1.0",
+  "transitions": [
+    {
+      "from": "greeting",
+      "to": "collecting_age",
+      "condition": "always",
+      "description": "After initial greeting, proceed to gather customer demographic indicators."
+    },
+    {
+      "from": "collecting_age",
+      "to": "collecting_budget",
+      "condition": "age_is_present",
+      "description": "Move to gather financial parameters once age is locked."
+    },
+    {
+      "from": "collecting_budget",
+      "to": "collecting_family_size",
+      "condition": "budget_is_present",
+      "description": "Move to household evaluation once premium threshold is locked."
+    },
+    {
+      "from": "collecting_family_size",
+      "to": "ready_for_recommendation",
+      "condition": "family_size_is_present",
+      "description": "Set readiness flag once all three primary factors are verified."
+    },
+    {
+      "from": "ready_for_recommendation",
+      "to": "presenting_recommendation",
+      "condition": "recommendation_triggered",
+      "description": "Move to presentation phase when LLM or user requests plan reveal."
+    }
+  ]
+}

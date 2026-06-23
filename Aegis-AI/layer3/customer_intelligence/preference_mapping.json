@@ -1,0 +1,20 @@
+{
+  "version": "1.0",
+  "preference_rules": {
+    "price_sensitivity": {
+      "budget_tiers": [
+        { "max": 1000, "label": "highly_price_sensitive", "recommended_plan_style": "essential" },
+        { "min": 1001, "max": 5000, "label": "value_seeking", "recommended_plan_style": "comprehensive" },
+        { "min": 5001, "label": "premium_focused", "recommended_plan_style": "elite" }
+      ]
+    },
+    "rider_affinity": {
+      "keywords": {
+        "zero_dep": ["zero dep", "bumper to bumper", "0 dep", "depreciation shield"],
+        "maternity": ["pregnancy", "baby", "maternity", "delivery", "newborn"],
+        "critical_illness": ["cancer", "heart attack", "bypass", "critical illness", "critical"],
+        "engine_protect": ["water log", "engine damage", "hydrostatic lock", "flooded"]
+      }
+    }
+  }
+}

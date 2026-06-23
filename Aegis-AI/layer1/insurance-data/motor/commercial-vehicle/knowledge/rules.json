@@ -1,0 +1,14 @@
+{
+    "eligibility": {
+        "business_use_required": true,
+        "commercial_registration_required": true
+    },
+    "claim_conditions": {
+        "business_documents_required": true
+    },
+    "common_exclusions": [
+        "Unauthorized Commercial Usage",
+        "Fraudulent Claims",
+        "Intentional Damage"
+    ]
+}

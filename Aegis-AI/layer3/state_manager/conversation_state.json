@@ -1,0 +1,36 @@
+{
+  "version": "1.0",
+  "state_schema": {
+    "current_stage": {
+      "type": "string",
+      "enum": [
+        "greeting",
+        "collecting_age",
+        "collecting_budget",
+        "collecting_family_size",
+        "ready_for_recommendation",
+        "presenting_recommendation",
+        "closed"
+      ],
+      "default": "greeting"
+    },
+    "completed_questions": {
+      "type": "array",
+      "items": { "type": "string" },
+      "default": []
+    },
+    "pending_questions": {
+      "type": "array",
+      "items": { "type": "string" },
+      "default": [
+        "collecting_age",
+        "collecting_budget",
+        "collecting_family_size"
+      ]
+    },
+    "recommendation_readiness": {
+      "type": "boolean",
+      "default": false
+    }
+  }
+}

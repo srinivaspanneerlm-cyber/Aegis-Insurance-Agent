@@ -1,0 +1,23 @@
+{
+    "eligibility": {
+        "vehicle_registration_required": true,
+        "vehicle_types_allowed": [
+            "Private Car"
+        ]
+    },
+    "claim_conditions": {
+        "valid_driving_license_required": true,
+        "vehicle_documents_required": true,
+        "claim_intimation_period": "Within 24-48 hours"
+    },
+    "common_exclusions": [
+        "Driving under influence",
+        "Intentional damage",
+        "Illegal racing",
+        "War-related incidents"
+    ],
+    "renewal_rules": {
+        "grace_period": "30 Days",
+        "inspection_required_after_expiry": true
+    }
+}

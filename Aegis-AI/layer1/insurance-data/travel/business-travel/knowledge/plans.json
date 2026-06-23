@@ -1,0 +1,25 @@
+{
+    "category": "Travel Insurance",
+    "subcategory": "Business Travel",
+    "corporate_coverages": {
+        "business_assets": [
+            "Laptop Protection",
+            "Business Equipment Protection",
+            "Document Protection"
+        ],
+        "travel_protection": [
+            "Trip Delay",
+            "Flight Cancellation",
+            "Missed Meetings Coverage"
+        ],
+        "medical_protection": [
+            "Emergency Medical Coverage",
+            "Cashless Hospitalization"
+        ]
+    },
+    "best_for": [
+        "Corporate Employees",
+        "Executives",
+        "Entrepreneurs"
+    ]
+}

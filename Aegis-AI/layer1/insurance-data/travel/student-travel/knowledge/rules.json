@@ -1,0 +1,10 @@
+{
+    "eligibility": {
+        "student_status_required": true,
+        "admission_letter_required": true,
+        "valid_visa_required": true
+    },
+    "coverage_limits": {
+        "study_duration": "Up to Course Period"
+    }
+}

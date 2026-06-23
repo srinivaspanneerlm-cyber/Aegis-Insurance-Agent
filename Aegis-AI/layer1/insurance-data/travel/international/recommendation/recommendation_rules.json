@@ -1,0 +1,25 @@
+{
+    "destination_based": {
+        "usa": {
+            "recommended": "Premium Medical Coverage",
+            "reason": "High healthcare costs"
+        },
+        "europe": {
+            "recommended": "Schengen-Compliant Coverage"
+        },
+        "asia": {
+            "recommended": "Standard International Plan"
+        }
+    },
+    "traveler_type": {
+        "tourist": {
+            "recommended": "Essential Plan"
+        },
+        "business": {
+            "recommended": "Premium Business Travel Plan"
+        },
+        "family": {
+            "recommended": "Family International Plan"
+        }
+    }
+}

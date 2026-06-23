@@ -1,0 +1,17 @@
+{
+  "customer_id": "cust_sri_nivaspanneer_lm",
+  "name": "Sri Nivaspanneer LM",
+  "age": 25,
+  "gender": null,
+  "marital_status": null,
+  "occupation": null,
+  "annual_income": null,
+  "family_size": null,
+  "budget": 25000.0,
+  "location": null,
+  "existing_policies": [],
+  "preferred_category": null,
+  "risk_profile": "Low",
+  "conversation_history_count": 7,
+  "last_interaction": "2026-06-21T01:52:50.933855"
+}

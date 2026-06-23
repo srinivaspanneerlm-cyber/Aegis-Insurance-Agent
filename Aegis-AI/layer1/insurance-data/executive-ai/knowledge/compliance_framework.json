@@ -1,0 +1,22 @@
+{
+    "statutory_bodies": [
+        "IRDAI Compliance Rules",
+        "SEC Financial Frameworks",
+        "HIPAA Data Privacy Standards"
+    ],
+    "rules": {
+        "policy_disclosure": "Must provide a downloadable Product Summary Leaflet before premium payment.",
+        "cooling_off_period_days": 15,
+        "solvency_margin_ratio": 1.5,
+        "anti_money_laundering_audit": "Required for all yearly premiums exceeding $25,000."
+    },
+    "audit_trails": {
+        "retention_period_years": 7,
+        "data_logged": [
+            "Decision path",
+            "Model weights version",
+            "Customer inputs",
+            "Confidence scores"
+        ]
+    }
+}

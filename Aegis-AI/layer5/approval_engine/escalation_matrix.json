@@ -1,0 +1,35 @@
+{
+    "escalation_levels": {
+        "level_1": {
+            "trigger": [
+                "faq_failure",
+                "low_confidence_response"
+            ],
+            "escalate_to": "category_advisor"
+        },
+        "level_2": {
+            "trigger": [
+                "recommendation_conflict",
+                "risk_mismatch",
+                "policy_confusion"
+            ],
+            "escalate_to": "senior_advisor"
+        },
+        "level_3": {
+            "trigger": [
+                "claim_dispute",
+                "customer_complaint",
+                "recommendation_rejection"
+            ],
+            "escalate_to": "Sri AI"
+        },
+        "level_4": {
+            "trigger": [
+                "critical_customer_case",
+                "executive_intervention_required",
+                "multi_category_conflict"
+            ],
+            "escalate_to": "Sri AI Executive Board"
+        }
+    }
+}

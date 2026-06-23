@@ -1,0 +1,17 @@
+{
+  "customer_id": "cust_raja",
+  "name": null,
+  "age": 26,
+  "gender": null,
+  "marital_status": null,
+  "occupation": null,
+  "annual_income": null,
+  "family_size": 4,
+  "budget": 10000.0,
+  "location": null,
+  "existing_policies": [],
+  "preferred_category": null,
+  "risk_profile": null,
+  "conversation_history_count": 16,
+  "last_interaction": "2026-06-22T17:16:41.925736"
+}

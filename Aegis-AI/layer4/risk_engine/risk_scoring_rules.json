@@ -1,0 +1,35 @@
+{
+  "version": "1.0",
+  "scoring_rules": {
+    "age": {
+      "rules": [
+        { "condition": ">= 60", "points": 30 },
+        { "condition": ">= 45", "points": 15 },
+        { "condition": "< 30", "points": -5 }
+      ]
+    },
+    "medical_risk": {
+      "pre_existing_diseases": 35,
+      "tobacco_user": 20,
+      "high_bmi": 15
+    },
+    "vehicle_risk": {
+      "vehicle_age_years_gt_7": 20,
+      "prior_accidents_count": 15,
+      "commercial_usage": 10
+    },
+    "property_risk": {
+      "structure_age_years_gt_20": 15,
+      "coastal_proximity": 20,
+      "commercial_co_occupancy": 15
+    },
+    "travel_risk": {
+      "high_risk_destinations": 25,
+      "duration_days_gt_30": 15
+    },
+    "claim_history": {
+      "prior_claims_count_gt_1": 20,
+      "recent_claim_within_12_months": 15
+    }
+  }
+}

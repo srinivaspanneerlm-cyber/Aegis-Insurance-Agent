@@ -1,0 +1,21 @@
+{
+    "approval_levels": {
+        "level_1": {
+            "handled_by": [
+                "Sarah AI",
+                "Alex AI",
+                "Emma AI",
+                "Ethan AI"
+            ]
+        },
+        "level_2": {
+            "handled_by": "Sri AI",
+            "conditions": [
+                "high_value_policy",
+                "multiple_product_purchase",
+                "complex_customer_case",
+                "claim_dispute"
+            ]
+        }
+    }
+}

@@ -1,0 +1,40 @@
+{
+    "version": "5.0",
+    "executive_review_policy": {
+        "owner": "Sri AI",
+        "authority_level": "CEO",
+        "review_scope": "enterprise_wide"
+    },
+    "mandatory_review_dimensions": [
+        "customer_profile_completeness",
+        "category_routing_accuracy",
+        "recommendation_accuracy",
+        "risk_alignment",
+        "coverage_suitability",
+        "budget_alignment",
+        "claim_support_quality",
+        "confidence_validation"
+    ],
+    "executive_review_principles": [
+        "customer_first",
+        "protection_before_profit",
+        "long_term_value",
+        "evidence_based_decisions",
+        "full_transparency"
+    ],
+    "automatic_review_triggers": [
+        "high_risk_customer",
+        "recommendation_score_below_threshold",
+        "confidence_score_below_threshold",
+        "customer_complaint",
+        "multi_category_recommendation",
+        "advisor_conflict",
+        "claim_dispute"
+    ],
+    "review_requirements": {
+        "must_validate_layer1_knowledge": true,
+        "must_validate_layer2_routing": true,
+        "must_validate_layer3_profile": true,
+        "must_validate_layer4_recommendation": true
+    }
+}

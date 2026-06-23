@@ -1,0 +1,103 @@
+{
+  "category": "travel",
+  "subcategories": [
+    "Sovereign Global Nomad",
+    "Leisure Safe Passage",
+    "Schengen Approved cover",
+    "Student Mobility Shield"
+  ],
+  "insurance_plans": [
+    {
+      "plan_name": "Aegis Global Nomad",
+      "coverage": "₹2 Crore Cover",
+      "premium": "₹450/month",
+      "eligibility": "Travelers up to 70 years traveling internationally from India.",
+      "waiting_period": "Active instantly upon passing international airport custom gates.",
+      "exclusions": "Traveling against medical advice, non-emergency dental procedures, losses due to local civil war or military action, self-inflicted injuries.",
+      "benefits": [
+        "Worldwide Emergency Evacuation (air medevac coordination)",
+        "Trip Interruption & Cancellation refunds (up to 100%)",
+        "Baggage Loss Coverage (full replacement reimbursement)",
+        "Adventure Sports Cover (skiing, scuba diving, skydiving riders included)"
+      ],
+      "claim_process": "Call 24/7 Global Rescue Hotline for cashless evacuation, or submit flight delay and baggage logs online for 48-hour claim clearance.",
+      "tax_benefits": "Business expense deductions applicable for corporate travel bookings.",
+      "best_for": "Frequent flyers, international business travelers, and nomads seeking worldwide emergency backup.",
+      "risk_level": "High-mobility premium safety cover",
+      "recommendation_priority": 1,
+      "emotional_protection_benefits": "Guarantees complete safety and rescue coordinate access no matter where you are in the world, bringing total relief to your family back home."
+    },
+    {
+      "plan_name": "Aegis Safe Passage Basic",
+      "coverage": "₹50 Lakh Cover",
+      "premium": "₹200/month",
+      "eligibility": "Travelers of all ages, suitable for domestic and short international trips.",
+      "waiting_period": "Active instantly on trip start date.",
+      "exclusions": "Adventure sports, pre-existing diseases, valuables not stored in hotel safe.",
+      "benefits": [
+        "Emergency medical hospitalization costs up to limits",
+        "Baggage delay allowance up to ₹50,000",
+        "Lost passport emergency replacement assistance",
+        "Flight delay compensation (flat payout for delays > 6 hours)"
+      ],
+      "claim_process": "Digital invoice upload on the Aegis App, processed within 5 working days.",
+      "tax_benefits": "Standard corporate write-off options.",
+      "best_for": "Leisure tourists, short-trip vacationers, and budget-focused travelers.",
+      "risk_level": "Standard mobility cover",
+      "recommendation_priority": 2,
+      "emotional_protection_benefits": "Ensures basic emergency backups for travel delays or lost items, allowing you to enjoy your vacation with an active safety net."
+    }
+  ],
+  "faqs": [
+    {
+      "question": "Is adventure sports covered?",
+      "answer": "Yes! The Aegis Global Nomad plan fully covers extreme and adventure sports like scuba diving, snow skiing, and paragliding under our safe passage rider."
+    },
+    {
+      "question": "How does emergency evacuation work?",
+      "answer": "If you experience a critical medical emergency in a remote area, our 24/7 rescue team organizes immediate private air ambulance transport to the highest-quality medical facility available."
+    }
+  ],
+  "recommendation_rules": [
+    "If user budget is ₹300/month or less, recommend Aegis Safe Passage Basic.",
+    "If destination includes remote areas, adventure sports, or budget allows above ₹300/month, recommend Aegis Global Nomad.",
+    "If trip duration is long-term or traveler is a remote nomad, recommend Aegis Global Nomad."
+  ],
+  "emotional_protection_benefits": [
+    "You are never alone in a foreign land; rescue coordinates are active 24/7.",
+    "Protect your travel savings from massive international medical bills.",
+    "Complete assurance for your spouse and parents that you will return home safely."
+  ],
+  "conversational_templates": {
+    "default_recommendation_flow": {
+      "greeting": "Greetings, Traveler! ✈️",
+      "intro_pitch": "For international coordinates, I’d recommend selecting a Schengen-approved Aegis Global Nomad plan since it integrates flight delays, lost baggage, and emergency medical evacuation seamlessly.",
+      "coverage_sizing_guide": "Based on your target destinations and trip length, a medical cover limit of $50,000 to $100,000 locks in absolute safety overseas.",
+      "benefits_checklist": {
+        "title": "✅ Recommended Benefits:",
+        "items": [
+          "Instant emergency cashless medical payouts",
+          "100% trip cancellation and delay recovery",
+          "Baggage loss and passport theft restitution",
+          "Worldwide emergency rescue & repatriation"
+        ]
+      },
+      "suitability_criteria": {
+        "title": "This type of plan is especially suitable for:",
+        "items": [
+          "Frequent flyers and international vacationers",
+          "Digital nomads and corporate business travelers",
+          "Students heading abroad for higher studies"
+        ]
+      },
+      "next_steps_consultation": {
+        "title": "Would you like me to suggest:",
+        "options": [
+          "1. Basic transit-only cover",
+          "2. Premium multi-trip annual shields",
+          "3. Ultimate worldwide rescue plans"
+        ]
+      }
+    }
+  }
+}

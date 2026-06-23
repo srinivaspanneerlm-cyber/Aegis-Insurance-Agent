@@ -1,0 +1,8 @@
+{
+    "sampling_pct": 10.0,
+    "automatic_audit_triggers": [
+        "Recommendation confidence score is below 70%",
+        "Premium variance from baseline calculation is greater than 15%",
+        "Client profile contains high-hazard environmental ratings"
+    ]
+}

@@ -1,0 +1,14 @@
+{
+    "eligibility": {
+        "minimum_age": 1,
+        "maximum_age": 80
+    },
+    "trip_requirements": {
+        "within_india": true
+    },
+    "common_exclusions": [
+        "Self-inflicted injuries",
+        "Illegal activities",
+        "War-related incidents"
+    ]
+}

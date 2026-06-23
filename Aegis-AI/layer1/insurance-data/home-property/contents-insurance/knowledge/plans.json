@@ -1,0 +1,66 @@
+{
+    "category": "Home & Property Insurance",
+    "subcategory": "Contents Insurance",
+    "insured_contents": [
+        "Furniture",
+        "Home Appliances",
+        "Electronics",
+        "Jewelry",
+        "Personal Belongings",
+        "Computers",
+        "Mobile Devices",
+        "Home Office Equipment",
+        "Kitchen Appliances",
+        "Valuable Collections"
+    ],
+    "coverage_tiers": [
+        {
+            "tier": "Basic Contents Protection",
+            "coverages": [
+                "Fire Damage",
+                "Lightning Damage",
+                "Explosion Damage",
+                "Water Damage"
+            ],
+            "best_for": [
+                "Small Apartments",
+                "Budget-Conscious Households"
+            ]
+        },
+        {
+            "tier": "Comprehensive Contents Protection",
+            "coverages": [
+                "Theft Protection",
+                "Burglary Protection",
+                "Accidental Damage",
+                "Electrical Damage",
+                "Natural Disaster Damage"
+            ],
+            "best_for": [
+                "Families",
+                "Homeowners",
+                "Professionals"
+            ]
+        },
+        {
+            "tier": "Premium Asset Protection",
+            "coverages": [
+                "High Value Asset Protection",
+                "Jewelry Coverage",
+                "Portable Device Protection",
+                "Worldwide Coverage",
+                "Identity Theft Assistance"
+            ],
+            "best_for": [
+                "High Net Worth Individuals",
+                "Luxury Households"
+            ]
+        }
+    ],
+    "special_protections": [
+        "Portable Electronics",
+        "Smart Home Devices",
+        "Luxury Assets",
+        "Home Office Equipment"
+    ]
+}

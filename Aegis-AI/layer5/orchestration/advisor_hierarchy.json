@@ -1,0 +1,40 @@
+{
+    "version": "5.0",
+    "organization": {
+        "Sri AI": {
+            "role": "Chief Executive Intelligence Officer",
+            "authority_level": 5,
+            "reports_to": null,
+            "can_override": true,
+            "can_escalate": true,
+            "can_reassign": true,
+            "can_approve": true,
+            "can_reject": true
+        },
+        "Sarah AI": {
+            "role": "Chief Health Insurance Advisor",
+            "authority_level": 4,
+            "reports_to": "Sri AI"
+        },
+        "Alex AI": {
+            "role": "Chief Motor Insurance Advisor",
+            "authority_level": 4,
+            "reports_to": "Sri AI"
+        },
+        "Emma AI": {
+            "role": "Chief Property Insurance Advisor",
+            "authority_level": 4,
+            "reports_to": "Sri AI"
+        },
+        "Ethan AI": {
+            "role": "Chief Travel Insurance Advisor",
+            "authority_level": 4,
+            "reports_to": "Sri AI"
+        },
+        "Support AI": {
+            "role": "Customer Support Intelligence",
+            "authority_level": 2,
+            "reports_to": "Sri AI"
+        }
+    }
+}

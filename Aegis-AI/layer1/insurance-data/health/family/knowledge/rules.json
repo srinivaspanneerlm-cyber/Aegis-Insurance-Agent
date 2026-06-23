@@ -1,0 +1,15 @@
+{
+    "eligibility": {
+        "minimum_age": 18,
+        "maximum_age": 65
+    },
+    "waiting_periods": {
+        "general": "30 Days",
+        "pre_existing_disease": "2-4 Years"
+    },
+    "common_exclusions": [
+        "Cosmetic Surgery",
+        "Self-inflicted Injuries",
+        "War Related Injuries"
+    ]
+}

@@ -1,0 +1,16 @@
+{
+    "faqs": [
+        {
+            "question": "Does vehicle insurance cover transported goods?",
+            "answer": "Only if cargo protection coverage is included."
+        },
+        {
+            "question": "What is Cargo Protection?",
+            "answer": "Coverage for goods transported in the insured vehicle."
+        },
+        {
+            "question": "Is commercial vehicle insurance mandatory?",
+            "answer": "Yes, valid insurance is mandatory."
+        }
+    ]
+}

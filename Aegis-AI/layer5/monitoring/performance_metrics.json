@@ -1,0 +1,39 @@
+{
+    "version": "5.0",
+    "executive_performance_framework": {
+        "primary_kpis": {
+            "recommendation_accuracy": {
+                "target": 95,
+                "minimum_acceptable": 90,
+                "critical_threshold": 85
+            },
+            "customer_satisfaction": {
+                "target": 95,
+                "minimum_acceptable": 90,
+                "critical_threshold": 85
+            },
+            "advisor_effectiveness": {
+                "target": 95,
+                "minimum_acceptable": 90,
+                "critical_threshold": 85
+            },
+            "escalation_resolution_rate": {
+                "target": 98,
+                "minimum_acceptable": 95,
+                "critical_threshold": 90
+            },
+            "governance_compliance": {
+                "target": 100,
+                "minimum_acceptable": 98,
+                "critical_threshold": 95
+            }
+        }
+    },
+    "executive_alerts": {
+        "performance_degradation": true,
+        "accuracy_drop": true,
+        "advisor_quality_drop": true,
+        "customer_trust_drop": true
+    },
+    "ceo_objective": "Maintain world class insurance advisory performance."
+}

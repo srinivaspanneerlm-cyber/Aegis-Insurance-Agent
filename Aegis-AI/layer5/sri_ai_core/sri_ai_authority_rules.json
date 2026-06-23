@@ -1,0 +1,37 @@
+{
+    "version": "5.0",
+    "executive_authority": {
+        "can_approve_recommendations": true,
+        "can_reject_recommendations": true,
+        "can_override_advisor_decisions": true,
+        "can_override_routing": true,
+        "can_trigger_reassessment": true,
+        "can_escalate_cases": true,
+        "can_request_more_information": true,
+        "can_stop_unsafe_recommendations": true
+    },
+    "authority_scope": [
+        "health",
+        "motor",
+        "travel",
+        "home_property",
+        "miscellaneous"
+    ],
+    "executive_review_required_for": [
+        "high_risk_customer",
+        "claim_dispute",
+        "customer_complaint",
+        "recommendation_conflict",
+        "low_confidence_recommendation",
+        "multi_category_case"
+    ],
+    "executive_priority_order": [
+        "customer_protection",
+        "eligibility",
+        "coverage_adequacy",
+        "risk_alignment",
+        "budget_alignment",
+        "recommendation_quality",
+        "business_value"
+    ]
+}

@@ -1,0 +1,18 @@
+{
+    "high_confidence": {
+        "min_score": 85,
+        "action": "auto_route"
+    },
+    "medium_confidence": {
+        "min_score": 65,
+        "action": "ask_clarification"
+    },
+    "low_confidence": {
+        "min_score": 40,
+        "action": "escalate_to_sri_ai"
+    },
+    "fallback": {
+        "advisor": "Sri AI",
+        "reason": "unknown_intent"
+    }
+}

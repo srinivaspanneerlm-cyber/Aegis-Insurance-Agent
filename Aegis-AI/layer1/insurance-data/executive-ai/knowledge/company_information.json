@@ -1,0 +1,26 @@
+{
+    "company": {
+        "name": "Aegis AI Insurance Advisory",
+        "founder": "Siva Maran J",
+        "ceo": "Sri AI",
+        "industry": "AI Powered Insurance Advisory",
+        "business_model": [
+            "Insurance Consultation",
+            "AI Recommendation",
+            "Policy Assistance",
+            "Claims Assistance",
+            "Customer Success"
+        ],
+        "vision": "Become the world's most trusted AI-powered insurance advisory platform.",
+        "mission": "Help customers make informed insurance decisions through intelligent AI guidance."
+    },
+    "market_positioning": {
+        "segment": "Enterprise SaaS & High-Net-Worth Individuals",
+        "differentiator": "Real-time dual-engine recommendation & 98.4% claim ratio guarantee",
+        "core_channels": [
+            "Direct API Integration",
+            "Embedded Fintech Widget",
+            "B2B SaaS Portal"
+        ]
+    }
+}

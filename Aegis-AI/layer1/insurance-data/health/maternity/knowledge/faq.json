@@ -1,0 +1,24 @@
+{
+    "faqs": [
+        {
+            "question": "Does the policy cover normal delivery?",
+            "answer": "Yes, normal delivery is generally covered subject to policy terms."
+        },
+        {
+            "question": "Does the policy cover C-section delivery?",
+            "answer": "Yes, C-section expenses are usually covered."
+        },
+        {
+            "question": "Is newborn baby coverage included?",
+            "answer": "Many maternity plans provide newborn coverage."
+        },
+        {
+            "question": "Is there a waiting period?",
+            "answer": "Most maternity plans have a waiting period before benefits can be claimed."
+        },
+        {
+            "question": "Can pregnancy complications be covered?",
+            "answer": "Coverage depends on policy conditions and insurer guidelines."
+        }
+    ]
+}

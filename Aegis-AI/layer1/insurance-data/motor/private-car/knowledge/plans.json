@@ -1,0 +1,46 @@
+{
+    "category": "Motor Insurance",
+    "subcategory": "Private Car",
+    "coverage_options": [
+        {
+            "coverage_type": "Third Party",
+            "description": "Provides legal liability protection against injuries, death, or property damage caused to third parties.",
+            "best_for": [
+                "Old vehicles",
+                "Budget-focused users"
+            ],
+            "advantages": [
+                "Lower premium",
+                "Legal compliance"
+            ],
+            "limitations": [
+                "No own vehicle damage coverage"
+            ]
+        },
+        {
+            "coverage_type": "Comprehensive",
+            "description": "Provides protection for both third-party liabilities and own vehicle damages.",
+            "best_for": [
+                "New vehicles",
+                "Family vehicles",
+                "Premium cars"
+            ],
+            "advantages": [
+                "Accident protection",
+                "Natural disaster coverage",
+                "Theft coverage",
+                "Fire damage coverage"
+            ]
+        }
+    ],
+    "add_on_covers": [
+        {
+            "name": "Zero Depreciation Cover",
+            "purpose": "Reduces depreciation deductions during claims."
+        },
+        {
+            "name": "Engine Protection",
+            "purpose": "Protects against engine damage caused by water ingress or leakage."
+        }
+    ]
+}

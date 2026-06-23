@@ -1,0 +1,33 @@
+{
+    "version": "5.0",
+    "transparency_policy": {
+        "objective": "Every recommendation must be explainable and understandable."
+    },
+    "mandatory_disclosures": [
+        "coverage_amount",
+        "premium_cost",
+        "waiting_period",
+        "claim_conditions",
+        "policy_exclusions",
+        "renewal_terms"
+    ],
+    "recommendation_transparency": {
+        "show_score": true,
+        "show_confidence": true,
+        "show_risk_level": true,
+        "show_reasoning": true,
+        "show_alternative_options": true
+    },
+    "executive_review_triggers": [
+        "missing_explanation",
+        "missing_risk_reasoning",
+        "missing_disclosure"
+    ],
+    "customer_visibility_requirements": [
+        "why_selected",
+        "why_not_selected",
+        "risk_factors",
+        "budget_fit",
+        "coverage_fit"
+    ]
+}

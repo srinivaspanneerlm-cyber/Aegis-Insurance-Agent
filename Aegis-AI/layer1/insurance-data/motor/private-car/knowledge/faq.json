@@ -1,0 +1,20 @@
+{
+    "faqs": [
+        {
+            "question": "What is Comprehensive Car Insurance?",
+            "answer": "It provides protection against third-party liabilities and damages to your own vehicle."
+        },
+        {
+            "question": "Does insurance cover flood damage?",
+            "answer": "Most comprehensive plans include flood and natural disaster coverage."
+        },
+        {
+            "question": "What is Zero Depreciation Cover?",
+            "answer": "It minimizes depreciation deductions during claim settlement."
+        },
+        {
+            "question": "Can I transfer insurance when selling my vehicle?",
+            "answer": "Yes, ownership and policy transfer procedures are available."
+        }
+    ]
+}

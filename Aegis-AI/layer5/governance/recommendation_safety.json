@@ -1,0 +1,29 @@
+{
+    "version": "5.0",
+    "executive_safety_policy": {
+        "objective": "Prevent unsafe, unsuitable or harmful recommendations."
+    },
+    "minimum_standards": {
+        "recommendation_score": 85,
+        "confidence_score": 80,
+        "profile_completion_score": 80
+    },
+    "unsafe_conditions": [
+        "customer_ineligible",
+        "budget_exceeded",
+        "coverage_gap_detected",
+        "high_risk_without_protection",
+        "insufficient_customer_data"
+    ],
+    "safety_actions": {
+        "warning": "executive_review",
+        "high_risk": "override",
+        "critical_risk": "reject"
+    },
+    "executive_safeguards": [
+        "prevent_underinsurance",
+        "prevent_overinsurance",
+        "prevent_affordability_issues",
+        "prevent_risk_misalignment"
+    ]
+}

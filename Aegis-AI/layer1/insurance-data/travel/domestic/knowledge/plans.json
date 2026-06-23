@@ -1,0 +1,21 @@
+{
+    "category": "Travel Insurance",
+    "subcategory": "Domestic Travel",
+    "coverage_options": [
+        {
+            "coverage_type": "Standard Domestic Travel",
+            "benefits": [
+                "Medical Emergency",
+                "Accidental Death Coverage",
+                "Personal Accident Coverage",
+                "Emergency Evacuation",
+                "Trip Interruption"
+            ]
+        }
+    ],
+    "best_for": [
+        "Vacation Travelers",
+        "Business Travelers",
+        "Family Trips"
+    ]
+}

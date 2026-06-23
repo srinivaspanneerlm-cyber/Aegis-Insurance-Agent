@@ -1,0 +1,9 @@
+{
+  "customer_id": "cust_sri",
+  "calculated_risk_score": 0,
+  "assigned_risk_tier": "Medium",
+  "assigned_segments": [
+    "Family Protector"
+  ],
+  "last_processed": "2026-06-21T00:54:05.091687"
+}

@@ -1,0 +1,32 @@
+{
+    "category": "Motor Insurance",
+    "subcategory": "Goods Carrying Vehicle",
+    "vehicle_types": [
+        "Mini Truck",
+        "Lorry",
+        "Container Truck",
+        "Delivery Vehicle",
+        "Cargo Van"
+    ],
+    "coverage_options": [
+        {
+            "coverage_type": "Commercial Goods Vehicle Coverage",
+            "benefits": [
+                "Vehicle damage protection",
+                "Third-party liability",
+                "Fire damage protection",
+                "Natural disaster coverage"
+            ]
+        }
+    ],
+    "add_on_covers": [
+        {
+            "name": "Cargo Protection",
+            "purpose": "Coverage for transported goods."
+        },
+        {
+            "name": "Roadside Assistance",
+            "purpose": "Emergency breakdown support."
+        }
+    ]
+}

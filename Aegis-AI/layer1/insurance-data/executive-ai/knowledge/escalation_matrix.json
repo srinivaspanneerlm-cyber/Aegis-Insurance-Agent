@@ -1,0 +1,23 @@
+{
+    "matrix_levels": {
+        "L1_Agent_Discrepancy": {
+            "description": "Conflict or mismatch in a specialist AI's recommendation",
+            "resolution_sla_sec": 30,
+            "next_level": "L2_Department_Head"
+        },
+        "L2_Department_Head": {
+            "description": "Premium discrepancy, basic client dissatisfaction, or multi-agent mismatch",
+            "resolution_sla_min": 5,
+            "next_level": "L3_Executive_CEO"
+        },
+        "L3_Executive_CEO": {
+            "description": "High-net-worth client disputes, regulatory flags, or final override requirements",
+            "resolution_sla_min": 15,
+            "next_level": "Board_Legal"
+        }
+    },
+    "routing_rules": {
+        "claim_value_gt_500000": "Direct route to L3_Executive_CEO",
+        "legal_or_regulatory_threat": "Direct route to Legal & L3_Executive_CEO"
+    }
+}

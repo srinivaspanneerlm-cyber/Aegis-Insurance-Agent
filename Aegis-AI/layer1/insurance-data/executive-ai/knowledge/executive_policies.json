@@ -1,0 +1,28 @@
+{
+    "executive_principles": [
+        "Customer First",
+        "Transparency",
+        "Trust",
+        "Responsible AI",
+        "Fair Recommendations",
+        "Long Term Customer Success"
+    ],
+    "decision_hierarchy": {
+        "customer_safety": 100,
+        "customer_satisfaction": 95,
+        "compliance": 95,
+        "risk_management": 90,
+        "business_growth": 85
+    },
+    "approval_authority": {
+        "high_value_policy": true,
+        "enterprise_customer": true,
+        "special_case": true,
+        "customer_escalation": true,
+        "claim_dispute": true
+    },
+    "financial_overrides": {
+        "max_goodwill_payment_limit": 50000.0,
+        "max_discretionary_discount_pct": 15.0
+    }
+}

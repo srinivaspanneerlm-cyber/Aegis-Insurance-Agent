@@ -1,0 +1,24 @@
+{
+    "subcategory": "executive-ai",
+    "claim_intelligence": {
+        "complaint_resolution_workflow": {
+            "Step_1": "Log complaint & auto-acknowledge within 2 seconds.",
+            "Step_2": "Verify agent registry history for Sarah/Alex/Ethan/Emma.",
+            "Step_3": "Compute goodwill compensation limit based on LTV.",
+            "Step_4": "Sri AI issues formal executive resolution notice."
+        },
+        "escalation_workflow": {
+            "L1_to_L2_minutes": 5,
+            "L2_to_L3_minutes": 10,
+            "L3_to_CEO_override_seconds": 30
+        },
+        "dispute_resolution_workflow": {
+            "arbitration_hearing_sla_days": 3,
+            "maximum_settlement_without_board_approval_usd": 50000.0
+        },
+        "executive_review_workflow": {
+            "random_sampling_rate_pct": 5.0,
+            "critical_error_flag_action": "Auto-freeze sub-agent pricing nodes"
+        }
+    }
+}

@@ -1,0 +1,21 @@
+{
+  "version": "1.0",
+  "risk_categories": {
+    "Low Risk": {
+      "code": "LOW",
+      "description": "Stable profile, minimal asset or medical vulnerabilities. Standard coverage pricing."
+    },
+    "Medium Risk": {
+      "code": "MEDIUM",
+      "description": "Standard profile, moderate vulnerabilities. Eligible for standard products with standard premiums."
+    },
+    "High Risk": {
+      "code": "HIGH",
+      "description": "High-exposure profile. Specific exclusion riders or premium loadings may apply."
+    },
+    "Critical Risk": {
+      "code": "CRITICAL",
+      "description": "Severely vulnerable profile. Requires specialized underwriting screening or co-payment requirements."
+    }
+  }
+}

@@ -1,0 +1,11 @@
+{
+    "underwriting_limits": {
+        "maximum_concentration_limit_by_zip": 0.05,
+        "catastrophe_reinsurance_trigger_usd": 100000000.0,
+        "loss_ratio_warning_threshold": 0.65
+    },
+    "dynamic_premium_multipliers": {
+        "excess_claims_inflation_index": 1.08,
+        "reinsurance_hardening_multiplier": 1.05
+    }
+}

@@ -1,0 +1,9 @@
+{
+    "heartbeat_interval_seconds": 15,
+    "system_alert_thresholds": {
+        "consecutive_failed_heartbeats": 3,
+        "max_peak_ram_usage_mb": 2048,
+        "max_temperature_celsius": 75
+    },
+    "recovery_procedure": "Initiate rolling reboot of agent service; route active customer queues to fallback specialist."
+}

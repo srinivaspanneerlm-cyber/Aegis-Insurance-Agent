@@ -1,0 +1,27 @@
+{
+  "version": "1.0",
+  "journey_rules": {
+    "stages": {
+      "Awareness": {
+        "transition_condition": "session_created",
+        "description": "User has initiated chat with Aegis AI."
+      },
+      "Consideration": {
+        "transition_condition": "any_profile_fact_collected",
+        "description": "User is actively sharing profile details and exploring options."
+      },
+      "Intake Complete": {
+        "transition_condition": "ready_for_recommendation",
+        "description": "All core profile requirements (age, budget, family size) are satisfied."
+      },
+      "Recommendation Phase": {
+        "transition_condition": "recommendation_presented",
+        "description": "A customized premium coverage matrix has been shown to the user."
+      },
+      "Conversion Phase": {
+        "transition_condition": "plan_selected",
+        "description": "User has clicked 'Get This Plan' or indicated intent to purchase."
+      }
+    }
+  }
+}

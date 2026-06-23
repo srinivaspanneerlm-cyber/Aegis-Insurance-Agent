@@ -1,0 +1,38 @@
+{
+  "version": "1.0",
+  "rules": {
+    "age": {
+      "min": 18,
+      "max": 120,
+      "error_message": "Age must be between 18 and 120."
+    },
+    "family_size": {
+      "min": 1,
+      "max": 20,
+      "error_message": "Family size must be at least 1."
+    },
+    "budget": {
+      "min": 0,
+      "error_message": "Monthly premium budget cannot be negative."
+    },
+    "annual_income": {
+      "min": 0,
+      "error_message": "Annual income cannot be negative."
+    },
+    "gender": {
+      "enum": ["Male", "Female", "Other", "Non-binary"],
+      "case_sensitive": false,
+      "error_message": "Gender must be Male, Female, Other, or Non-binary."
+    },
+    "marital_status": {
+      "enum": ["Single", "Married", "Divorced", "Widowed"],
+      "case_sensitive": false,
+      "error_message": "Marital status must be Single, Married, Divorced, or Widowed."
+    },
+    "preferred_category": {
+      "enum": ["health", "motor", "travel", "home-property", "miscellaneous"],
+      "case_sensitive": true,
+      "error_message": "Category must be one of the master categories: health, motor, travel, home-property, miscellaneous."
+    }
+  }
+}

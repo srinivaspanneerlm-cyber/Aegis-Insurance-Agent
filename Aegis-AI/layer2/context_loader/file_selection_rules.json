@@ -1,0 +1,76 @@
+{
+    "version": "2.0",
+    "selection_rules": {
+        "recommendation": {
+            "load_files": [
+                "advisor.json",
+                "prompt.txt",
+                "recommendation_rules.json",
+                "premium_logic.json",
+                "rules.json",
+                "plans.json"
+            ],
+            "max_files": 6
+        },
+        "claim": {
+            "load_files": [
+                "advisor.json",
+                "prompt.txt",
+                "claim_intelligence.json",
+                "rules.json",
+                "plans.json"
+            ],
+            "max_files": 5
+        },
+        "premium": {
+            "load_files": [
+                "advisor.json",
+                "prompt.txt",
+                "premium_logic.json",
+                "plans.json",
+                "rules.json"
+            ],
+            "max_files": 5
+        },
+        "faq": {
+            "load_files": [
+                "advisor.json",
+                "prompt.txt",
+                "faq.json",
+                "rules.json"
+            ],
+            "max_files": 4
+        },
+        "comparison": {
+            "load_files": [
+                "advisor.json",
+                "prompt.txt",
+                "plans.json",
+                "premium_logic.json",
+                "recommendation_rules.json"
+            ],
+            "max_files": 5
+        },
+        "executive_review": {
+            "load_files": [
+                "advisor.json",
+                "prompt.txt",
+                "company_info.json",
+                "support_rules.json"
+            ],
+            "max_files": 4
+        }
+    },
+    "global_rules": {
+        "load_only_detected_category": true,
+        "load_only_detected_subcategory": true,
+        "cross_category_loading": false,
+        "allow_executive_escalation": true,
+        "fallback_advisor": "Sri AI",
+        "fallback_context": [
+            "advisor.json",
+            "prompt.txt",
+            "faq.json"
+        ]
+    }
+}

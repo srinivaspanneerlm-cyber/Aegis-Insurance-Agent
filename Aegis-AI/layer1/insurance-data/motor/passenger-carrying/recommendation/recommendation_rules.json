@@ -1,0 +1,21 @@
+{
+    "business_type": {
+        "taxi_service": {
+            "recommended": "Commercial Comprehensive + Passenger Liability"
+        },
+        "school_transport": {
+            "recommended": "Enhanced Passenger Protection"
+        },
+        "tourism": {
+            "recommended": "Premium Fleet Coverage"
+        }
+    },
+    "fleet_size": {
+        "1-5": {
+            "recommended": "Standard Commercial Plan"
+        },
+        "5+": {
+            "recommended": "Fleet Insurance Plan"
+        }
+    }
+}

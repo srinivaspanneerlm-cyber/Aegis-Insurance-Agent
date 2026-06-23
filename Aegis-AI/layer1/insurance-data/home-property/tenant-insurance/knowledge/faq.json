@@ -1,0 +1,28 @@
+{
+    "faqs": [
+        {
+            "question": "What is Tenant Insurance?",
+            "answer": "Tenant Insurance protects a renter's personal belongings and provides liability coverage."
+        },
+        {
+            "question": "Does Tenant Insurance cover the building?",
+            "answer": "No, building protection is usually the landlord's responsibility."
+        },
+        {
+            "question": "Does it cover stolen belongings?",
+            "answer": "Many policies provide theft and burglary protection."
+        },
+        {
+            "question": "Does it cover accidental damage?",
+            "answer": "Comprehensive plans may include accidental damage coverage."
+        },
+        {
+            "question": "Can students purchase Tenant Insurance?",
+            "answer": "Yes, tenant insurance is suitable for students and renters."
+        },
+        {
+            "question": "Does it include liability coverage?",
+            "answer": "Many policies provide personal liability protection."
+        }
+    ]
+}

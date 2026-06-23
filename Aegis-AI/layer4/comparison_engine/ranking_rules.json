@@ -1,0 +1,14 @@
+{
+  "version": "1.0",
+  "ranking_rules": {
+    "primary_sort_key": "customer_fit_score",
+    "secondary_sort_key": "budget_match_score",
+    "tertiary_sort_key": "premium_ascending",
+    "maximum_ranks_returned": 3,
+    "tier_mapping": {
+      "Rank 1": "Top Recommendation",
+      "Rank 2": "Alternative Recommendation",
+      "Rank 3": "Secondary Alternative"
+    }
+  }
+}

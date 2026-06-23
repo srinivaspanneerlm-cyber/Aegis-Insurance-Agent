@@ -1,0 +1,49 @@
+{
+    "asset_value_analysis": {
+        "below_500000": {
+            "recommended_plan": "Basic Contents Protection",
+            "reason": "Suitable for lower-value household contents."
+        },
+        "500000_to_2000000": {
+            "recommended_plan": "Comprehensive Contents Protection",
+            "reason": "Balanced protection for family households."
+        },
+        "above_2000000": {
+            "recommended_plan": "Premium Asset Protection",
+            "reason": "High-value assets require enhanced protection."
+        }
+    },
+    "occupancy_analysis": {
+        "homeowner": {
+            "recommended": "Comprehensive Contents Protection"
+        },
+        "tenant": {
+            "recommended": "Tenant Contents Protection"
+        },
+        "shared_accommodation": {
+            "recommended": "Personal Belongings Coverage"
+        }
+    },
+    "asset_type_analysis": {
+        "electronics_focused": {
+            "recommended": "Electronics Protection Add-on"
+        },
+        "jewelry_focused": {
+            "recommended": "Valuable Items Protection"
+        },
+        "home_office_focused": {
+            "recommended": "Home Office Asset Coverage"
+        }
+    },
+    "risk_analysis": {
+        "high_crime_area": {
+            "recommended": "Theft & Burglary Protection"
+        },
+        "flood_prone_area": {
+            "recommended": "Water Damage Protection"
+        },
+        "premium_home": {
+            "recommended": "Premium Asset Protection"
+        }
+    }
+}

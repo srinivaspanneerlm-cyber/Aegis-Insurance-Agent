@@ -1,0 +1,65 @@
+{
+    "traveler_type": {
+        "executive": {
+            "recommended_plan": "Executive Premium Plan",
+            "reason": "High-value travel requiring maximum protection."
+        },
+        "sales_professional": {
+            "recommended_plan": "Frequent Business Traveler Plan",
+            "reason": "Regular travel with higher disruption exposure."
+        },
+        "entrepreneur": {
+            "recommended_plan": "Business Continuity Plan",
+            "reason": "Protects travel and business operations."
+        }
+    },
+    "travel_frequency": {
+        "1_to_3_trips_per_year": {
+            "recommended": "Single Trip Coverage"
+        },
+        "4_to_10_trips_per_year": {
+            "recommended": "Multi Trip Coverage"
+        },
+        "10_plus_trips_per_year": {
+            "recommended": "Annual Executive Travel Plan"
+        }
+    },
+    "destination_risk": {
+        "low_risk_country": {
+            "recommended": "Standard Business Coverage"
+        },
+        "medium_risk_country": {
+            "recommended": "Enhanced Business Coverage"
+        },
+        "high_risk_country": {
+            "recommended": "Premium Travel Protection"
+        }
+    },
+    "equipment_value": {
+        "basic_equipment": {
+            "recommended": "Standard Equipment Protection"
+        },
+        "high_value_equipment": {
+            "recommended": "Executive Asset Protection"
+        }
+    },
+    "business_dependency": {
+        "critical_business_trip": {
+            "recommended": "Premium Business Continuity Plan"
+        },
+        "routine_business_trip": {
+            "recommended": "Standard Business Travel Plan"
+        }
+    },
+    "budget_analysis": {
+        "low_budget": {
+            "recommended": "Essential Business Plan"
+        },
+        "medium_budget": {
+            "recommended": "Comprehensive Business Plan"
+        },
+        "high_budget": {
+            "recommended": "Executive Elite Plan"
+        }
+    }
+}

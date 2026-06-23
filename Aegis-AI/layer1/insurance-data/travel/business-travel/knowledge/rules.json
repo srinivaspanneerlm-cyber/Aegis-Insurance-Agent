@@ -1,0 +1,36 @@
+{
+    "eligibility": {
+        "minimum_age": 18,
+        "maximum_age": 80,
+        "valid_passport_required": true,
+        "business_travel_purpose_required": true
+    },
+    "trip_requirements": {
+        "single_trip_allowed": true,
+        "multi_trip_allowed": true,
+        "domestic_travel_supported": true,
+        "international_travel_supported": true
+    },
+    "claim_conditions": {
+        "medical_claim_reporting": "Within 24 Hours",
+        "baggage_claim_documents_required": true,
+        "passport_loss_police_report_required": true,
+        "trip_cancellation_proof_required": true
+    },
+    "common_exclusions": [
+        "Self-inflicted injuries",
+        "Criminal activities",
+        "Drug or alcohol abuse",
+        "War zones",
+        "Known pre-existing untreated conditions",
+        "Unauthorized business activities"
+    ],
+    "business_equipment_rules": {
+        "proof_of_ownership_required": true,
+        "damage_assessment_required": true
+    },
+    "renewal_rules": {
+        "annual_multi_trip_available": true,
+        "automatic_renewal_optional": true
+    }
+}

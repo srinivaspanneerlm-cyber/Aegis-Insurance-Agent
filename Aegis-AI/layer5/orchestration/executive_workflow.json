@@ -1,0 +1,43 @@
+{
+    "version": "5.0",
+    "executive_decision_flow": [
+        {
+            "step": 1,
+            "name": "Knowledge Validation",
+            "source": "Layer1"
+        },
+        {
+            "step": 2,
+            "name": "Routing Validation",
+            "source": "Layer2"
+        },
+        {
+            "step": 3,
+            "name": "Profile Validation",
+            "source": "Layer3"
+        },
+        {
+            "step": 4,
+            "name": "Recommendation Validation",
+            "source": "Layer4"
+        },
+        {
+            "step": 5,
+            "name": "Executive Governance Review",
+            "source": "Layer5"
+        },
+        {
+            "step": 6,
+            "name": "Final Executive Approval",
+            "source": "Sri AI"
+        }
+    ],
+    "executive_decisions": [
+        "approve",
+        "approve_with_conditions",
+        "override",
+        "request_more_information",
+        "escalate",
+        "reject"
+    ]
+}

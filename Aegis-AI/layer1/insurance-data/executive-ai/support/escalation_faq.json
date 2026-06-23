@@ -1,0 +1,12 @@
+{
+    "escalation_faqs": [
+        {
+            "question": "What triggers an L3 CEO Escalation?",
+            "answer": "L3 escalations are triggered by claim disputes exceeding $10,000, allegations of compliance breaches, complex multi-insurance portfolios, or Platinum VIP status issues."
+        },
+        {
+            "question": "How long does Sri AI take to resolve an escalation?",
+            "answer": "Under our executive service level rules, Sri AI resolves L3 escalations within 15 minutes of trigger."
+        }
+    ]
+}

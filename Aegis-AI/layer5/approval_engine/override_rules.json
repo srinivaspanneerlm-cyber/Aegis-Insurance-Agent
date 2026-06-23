@@ -1,0 +1,19 @@
+{
+    "executive_override": {
+        "enabled": true,
+        "override_conditions": [
+            "special_customer_requirements",
+            "risk_exception",
+            "executive_policy_change",
+            "customer_protection_needed",
+            "coverage_gap_detected"
+        ],
+        "override_actions": [
+            "change_recommendation",
+            "change_risk_score",
+            "request_additional_information",
+            "recommend_alternative_plan",
+            "escalate_for_manual_review"
+        ]
+    }
+}

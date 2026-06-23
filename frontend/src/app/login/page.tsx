@@ -1,0 +1,288 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { useAuth } from "@/context/AuthContext";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { 
+  Shield, Mail, Lock, ArrowRight, Sparkles, Eye, EyeOff, 
+  Heart, Activity, ShieldCheck, Check, Users, Award, Database, 
+  HelpCircle, ChevronRight
+} from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
+import { useTheme } from "@/context/ThemeContext";
+
+export default function ConsumerLoginPage() {
+  const { login, loading, isAuthenticated, user } = useAuth();
+  const { theme } = useTheme();
+  const router = useRouter();
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+  
+  // Google SSO simulated loading states
+  const [googleLoading, setGoogleLoading] = useState(false);
+
+  // Redirect to consumer dashboard if already authenticated as consumer
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      if (user.role === "admin" || user.role === "superadmin") {
+        router.push("/admin-dashboard");
+      } else {
+        router.push("/consumer-dashboard");
+      }
+    }
+  }, [isAuthenticated, user, router]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg("");
+
+    if (!email.trim() || !password.trim()) {
+      setErrorMsg("Please enter both email and password.");
+      return;
+    }
+
+    try {
+      await login(email, password);
+      // login handles redirect
+    } catch (err: any) {
+      setErrorMsg(err.message || "Invalid credentials. Please verify your passcode vault.");
+    }
+  };
+
+  const handleGoogleLoginSimulate = () => {
+    setGoogleLoading(true);
+    setErrorMsg("");
+    setTimeout(() => {
+      setGoogleLoading(false);
+      // Simulate direct fallback login to showcase workflow
+      setEmail("sri@example.com");
+      setPassword("password123");
+      setErrorMsg("Google SSO Simulated! Press 'Unlock Secure Vault' to proceed with demo credentials.");
+    }, 1200);
+  };
+
+  // Theme styling computed
+  const wrapperClass = theme === "dark" ? "bg-slate-950 text-white" : "bg-slate-50 text-navy-900";
+  
+  const mainCardClass = theme === "dark"
+    ? "bg-slate-900/40 border-white/5 backdrop-blur-xl shadow-[0_30px_60px_rgba(0,0,0,0.4)]"
+    : "bg-white/95 border-slate-200/80 backdrop-blur-xl shadow-[0_20px_50px_rgba(15,23,42,0.08)]";
+
+  const inputClass = theme === "dark"
+    ? "bg-white/[0.03] border-white/10 text-white placeholder-slate-500 focus:bg-slate-900/60 focus:border-purple-400 focus:ring-2 focus:ring-purple-500/10"
+    : "bg-slate-100 border-slate-200 text-slate-800 placeholder-slate-400 focus:bg-white focus:border-purple-650 focus:ring-4 focus:ring-purple-500/5";
+
+  const GoogleIcon = () => (
+    <svg className="w-5 h-5 mr-3 flex-shrink-0" viewBox="0 0 24 24">
+      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
+      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
+    </svg>
+  );
+
+  return (
+    <div className={`min-h-screen relative flex flex-col justify-between overflow-hidden transition-colors duration-300 ${wrapperClass}`}>
+      <Navbar />
+
+      {/* Soft warm gradients and grids */}
+      {theme === "dark" ? (
+        <>
+          <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(168,85,247,0.12),rgba(255,255,255,0))]" />
+          <div className="absolute top-[20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-purple-650/5 blur-[120px] pointer-events-none" />
+          <div className="absolute bottom-[10%] right-[-10%] w-[45%] h-[45%] rounded-full bg-cyan-500/5 blur-[100px] pointer-events-none" />
+        </>
+      ) : (
+        <>
+          <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(99,102,241,0.03),rgba(255,255,255,0))]" />
+          <div className="absolute top-[10%] left-[-15%] w-[40%] h-[40%] rounded-full bg-purple-100/50 blur-[90px] pointer-events-none" />
+        </>
+      )}
+
+      {/* Main Grid Content */}
+      <section className="relative pt-32 pb-20 flex-grow flex items-center justify-center z-10">
+        <div className="max-w-6xl w-full mx-auto px-6 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+          
+          {/* LEFT: EMOTIONAL BRAND INTRO */}
+          <div className="lg:col-span-6 text-left space-y-6">
+            <span className="inline-flex items-center gap-1.5 text-purple-400 bg-purple-950/30 border border-purple-800/40 py-1.5 px-4 rounded-full text-xs font-bold uppercase tracking-widest leading-none">
+              <Heart className="w-3.5 h-3.5" />
+              <span>Human-Centered AI Underwriting</span>
+            </span>
+
+            <h2 className="text-4xl sm:text-5xl font-black tracking-tight leading-tight">
+              Insurance designed to <br/>
+              <span className="bg-gradient-to-r from-purple-500 via-indigo-400 to-cyan-400 bg-clip-text text-transparent">
+                protect what matters.
+              </span>
+            </h2>
+            
+            <p className="text-slate-400 text-sm font-semibold max-w-md leading-relaxed">
+              Log in to access your direct, commission-free insurance vault. Aegis AI helps you coordinate coverage matrices conversationally, protecting your family without dynamic markups.
+            </p>
+
+            {/* Quick Link to Admin Command Center */}
+            <div className={`p-4.5 rounded-[22px] border ${
+              theme === "dark" ? "bg-white/[0.02] border-white/5" : "bg-white border-slate-200/60 shadow-sm"
+            } max-w-md flex items-center justify-between`}>
+              <div className="text-left space-y-0.5">
+                <span className="text-[9px] text-cyan-400 font-extrabold uppercase tracking-widest block">Enterprise Console</span>
+                <p className="text-[11.5px] font-bold text-white">Security Officer Access Portal</p>
+              </div>
+              <Link
+                href="/admin-login"
+                className="py-2 px-4 rounded-xl bg-purple-650 hover:bg-purple-600 text-white font-black text-[10px] uppercase tracking-widest flex items-center gap-1 transition-all"
+              >
+                <span>Command Center</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
+          </div>
+
+          {/* RIGHT: CONSUMER LOGIN CARD */}
+          <div className="lg:col-span-6 flex justify-center items-center">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.98 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className={`w-full max-w-md p-8 sm:p-10 rounded-[36px] border relative overflow-hidden transition-all duration-300 ${mainCardClass}`}
+            >
+              <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-purple-650 via-indigo-500 to-cyan-500" />
+
+              <div className="text-center mb-8">
+                <h3 className="text-xl font-black text-white">Consumer Login</h3>
+                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mt-1">
+                  Access Your Consultation Vault
+                </p>
+              </div>
+
+              {/* Google login */}
+              <motion.button
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.99 }}
+                onClick={handleGoogleLoginSimulate}
+                disabled={googleLoading}
+                className={`w-full py-3.5 px-4 rounded-2xl flex items-center justify-center font-bold text-xs transition-all border shadow-sm cursor-pointer ${
+                  theme === "dark"
+                    ? "bg-white/[0.04] border-white/10 text-white hover:bg-white/[0.08]"
+                    : "bg-white border-slate-200 text-slate-800 hover:bg-slate-50"
+                }`}
+              >
+                {googleLoading ? (
+                  <div className="w-4 h-4 border-2 border-purple-500 border-t-transparent rounded-full animate-spin mr-3" />
+                ) : (
+                  <GoogleIcon />
+                )}
+                <span>{googleLoading ? "Connecting Secure SSO..." : "Continue with Google"}</span>
+              </motion.button>
+
+              <div className="flex items-center my-6">
+                <div className={`flex-grow h-[1px] ${theme === "dark" ? "bg-white/10" : "bg-slate-200"}`} />
+                <span className="px-3.5 text-[8.5px] text-slate-500 font-black uppercase tracking-widest">
+                  Secure Credentials
+                </span>
+                <div className={`flex-grow h-[1px] ${theme === "dark" ? "bg-white/10" : "bg-slate-200"}`} />
+              </div>
+
+              {errorMsg && (
+                <motion.div
+                  initial={{ opacity: 0, y: -8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="p-3.5 rounded-2xl bg-rose-50 border border-rose-100 text-rose-600 font-semibold text-xs mb-6 text-left"
+                >
+                  {errorMsg}
+                </motion.div>
+              )}
+
+              <form onSubmit={handleSubmit} className="space-y-4 text-left">
+                
+                {/* Email Address */}
+                <div className="space-y-1.5">
+                  <label className="text-[9px] font-black uppercase tracking-widest text-slate-500 block">
+                    Registered Email Address:
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="email"
+                      required
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="sri@example.com"
+                      className={`w-full py-3.5 pl-11 pr-4 rounded-xl border outline-none text-xs font-semibold transition-all ${inputClass}`}
+                    />
+                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-slate-500" />
+                  </div>
+                </div>
+
+                {/* Password */}
+                <div className="space-y-1.5">
+                  <label className="text-[9px] font-black uppercase tracking-widest text-slate-500 block">
+                    Vault Passcode:
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      required
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="••••••••"
+                      className={`w-full py-3.5 pl-11 pr-11 rounded-xl border outline-none text-xs font-semibold transition-all ${inputClass}`}
+                    />
+                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-slate-500" />
+                    
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Submit button */}
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full mt-4 py-4 rounded-2xl bg-gradient-to-r from-purple-650 to-indigo-650 hover:from-purple-600 hover:to-indigo-600 text-white font-black text-xs uppercase tracking-widest shadow-lg flex items-center justify-center gap-2 border border-purple-500/20 cursor-pointer"
+                >
+                  {loading ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <span>Opening Vault Room...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Unlock Client Vault</span>
+                      <ArrowRight className="w-4.5 h-4.5" />
+                    </>
+                  )}
+                </button>
+              </form>
+
+              <div className={`mt-8 text-center border-t pt-6 ${
+                theme === "dark" ? "border-white/5" : "border-slate-150"
+              }`}>
+                <p className="text-xs font-semibold text-slate-500">
+                  New to Aegis AI?{" "}
+                  <Link href="/register" className="font-black hover:underline text-purple-400">
+                    Register Securely
+                  </Link>
+                </p>
+              </div>
+
+            </motion.div>
+          </div>
+
+        </div>
+      </section>
+
+      <Footer />
+    </div>
+  );
+}

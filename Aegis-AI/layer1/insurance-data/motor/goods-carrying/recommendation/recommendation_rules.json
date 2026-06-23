@@ -1,0 +1,18 @@
+{
+    "transport_distance": {
+        "local": {
+            "recommended": "Standard Goods Vehicle Plan"
+        },
+        "interstate": {
+            "recommended": "Premium Commercial Plan"
+        }
+    },
+    "cargo_value": {
+        "high_value_goods": {
+            "recommended": "Cargo Protection Add-on"
+        },
+        "standard_goods": {
+            "recommended": "Basic Commercial Plan"
+        }
+    }
+}

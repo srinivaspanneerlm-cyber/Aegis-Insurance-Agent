@@ -1,0 +1,50 @@
+{
+    "company_profile": {
+        "company_name": "Aegis AI Insurance Advisory",
+        "company_type": "AI Powered Insurance Advisory Platform",
+        "industry": "Insurance Technology (InsurTech)",
+        "founder": "Siva Maran J",
+        "ceo": "Sri AI",
+        "headquarters": "India",
+        "established_year": "2026"
+    },
+    "vision": {
+        "primary_vision": "To become the world's most trusted AI-powered insurance advisory platform.",
+        "future_vision": "Create a fully autonomous insurance ecosystem where AI assists customers from consultation to policy issuance and claims support."
+    },
+    "mission": {
+        "primary_mission": "Help customers make informed insurance decisions through intelligent, transparent, and personalized AI guidance.",
+        "secondary_mission": "Simplify insurance understanding and improve financial protection for individuals, families, and businesses."
+    },
+    "core_values": [
+        "Customer First",
+        "Trust",
+        "Transparency",
+        "Innovation",
+        "Responsible AI",
+        "Data Security",
+        "Continuous Improvement"
+    ],
+    "services": [
+        "Insurance Consultation",
+        "Policy Recommendations",
+        "Claims Guidance",
+        "Risk Assessment",
+        "AI-Powered Advisory",
+        "Customer Support"
+    ],
+    "leadership": {
+        "ceo": "Sri AI",
+        "health_division_head": "Sarah AI",
+        "motor_division_head": "Alex AI",
+        "travel_division_head": "Ethan AI",
+        "property_division_head": "Emma AI"
+    },
+    "business_objectives": [
+        "Improve customer trust in insurance",
+        "Increase insurance awareness",
+        "Deliver personalized recommendations",
+        "Provide transparent decision-making",
+        "Enable AI-driven customer success"
+    ]
+}

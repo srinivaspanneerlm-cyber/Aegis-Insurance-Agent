@@ -1,0 +1,28 @@
+{
+    "faqs": [
+        {
+            "question": "What is Landlord Insurance?",
+            "answer": "Landlord Insurance protects rental property owners against property damage, liability risks, and rental income losses."
+        },
+        {
+            "question": "Does it cover tenant-caused damage?",
+            "answer": "Coverage depends on policy terms and selected protection options."
+        },
+        {
+            "question": "Does it cover loss of rent?",
+            "answer": "Many landlord policies provide rental income protection when covered events make the property uninhabitable."
+        },
+        {
+            "question": "Are legal expenses covered?",
+            "answer": "Certain policies include legal expense protection."
+        },
+        {
+            "question": "Can multiple properties be insured?",
+            "answer": "Yes, portfolio and multi-property coverage options are commonly available."
+        },
+        {
+            "question": "Does it cover natural disasters?",
+            "answer": "Most comprehensive plans provide protection against covered natural disasters."
+        }
+    ]
+}

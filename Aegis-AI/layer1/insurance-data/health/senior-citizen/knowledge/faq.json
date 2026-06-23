@@ -1,0 +1,24 @@
+{
+    "faqs": [
+        {
+            "question": "Who can buy Senior Citizen Health Insurance?",
+            "answer": "Individuals aged 60 years and above are generally eligible."
+        },
+        {
+            "question": "Does it cover pre-existing diseases?",
+            "answer": "Coverage is usually available after the specified waiting period."
+        },
+        {
+            "question": "Is medical screening required?",
+            "answer": "Some insurers may require health checkups before policy issuance."
+        },
+        {
+            "question": "Does it cover hospitalization?",
+            "answer": "Yes, hospitalization expenses are covered according to policy terms."
+        },
+        {
+            "question": "Can the policy be renewed for life?",
+            "answer": "Many plans offer lifelong renewability."
+        }
+    ]
+}

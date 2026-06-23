@@ -1,0 +1,103 @@
+{
+  "category": "property",
+  "subcategories": [
+    "Residential Structure Protection",
+    "Renter Contents Shield",
+    "Landlord Liability Cover",
+    "Commercial Facility Safeguard"
+  ],
+  "insurance_plans": [
+    {
+      "plan_name": "Aegis Home Fortress",
+      "coverage": "₹1 Crore Cover",
+      "premium": "₹550/month",
+      "eligibility": "Residential properties (apartments, villas, houses) in India with standard structural clearances.",
+      "waiting_period": "Active instantly upon digital self-video structural submission and approval.",
+      "exclusions": "Pre-existing structural cracking, building collapse due to faulty materials, losses from war or nuclear hazards, damage to unregistered structural extensions.",
+      "benefits": [
+        "Complete Structure Cover (covers full reconstruction cost due to fire/storm)",
+        "Valuable Contents Protection (furniture, luxury electronics, appliances covered)",
+        "Natural Calamity Safeguard (earthquake, flood, landslide protection)",
+        "Temporary Relocation Allowance (covers alternate luxury rent for up to 6 months)"
+      ],
+      "claim_process": "Digital surveyor assessment within 24 hours of fire/calamity logging; structural reconstruction fund pre-disbursed within 3 days.",
+      "tax_benefits": "Home premium write-off options under commercial real estate standards or standard housing allowances.",
+      "best_for": "Apartment and villa owners looking for complete structural replacement and high contents protection covers.",
+      "risk_level": "High-value asset safety shield",
+      "recommendation_priority": 1,
+      "emotional_protection_benefits": "Safeguards your physical legacy and home sanctuary, ensuring your family always has a secure roof over their heads no matter what happens."
+    },
+    {
+      "plan_name": "Aegis Basic Tenant Shield",
+      "coverage": "₹25 Lakh Cover",
+      "premium": "₹250/month",
+      "eligibility": "Rented apartment tenants with valid rent agreements.",
+      "waiting_period": "Active instantly on receipt of payment.",
+      "exclusions": "Damage to building's load-bearing walls (landlord's liability), willful damage by tenant.",
+      "benefits": [
+        "Valuable internal contents coverage (appliances, gadgets, clothes)",
+        "Tenant third-party liability coverage",
+        "Emergency temporary lodging payout (up to ₹50,000)",
+        "Electrical short-circuit appliance burn protection"
+      ],
+      "claim_process": "Upload gadget invoices and photo evidence online; cashless electronics replacement coordinated within 48 hours.",
+      "tax_benefits": "Premium can be claimed under standard HRA tax savings rules for renters.",
+      "best_for": "Tenants and renters looking to safeguard their expensive home appliances, electronics, and rental liabilities.",
+      "risk_level": "Standard content protection",
+      "recommendation_priority": 2,
+      "emotional_protection_benefits": "Protects your heavy investments in gadgets and home lifestyle setups, providing total peace of mind for renters."
+    }
+  ],
+  "faqs": [
+    {
+      "question": "Is damage to furniture covered?",
+      "answer": "Yes! Both plans cover your valuable internal contents, including furniture, electronics, and kitchen appliances, against damage from short-circuits, leaks, or fire."
+    },
+    {
+      "question": "I am a renter. Do I need structural cover?",
+      "answer": "No, if you rent, the building structure is the landlord's responsibility. You only need the Aegis Basic Tenant Shield to protect your personal items and liability."
+    }
+  ],
+  "recommendation_rules": [
+    "If user budget is ₹350/month or less or user is a renter, recommend Aegis Basic Tenant Shield.",
+    "If user owns the property (villas or apartment structures) or budget is above ₹350/month, recommend Aegis Home Fortress.",
+    "If natural calamity, storm, or fire relocation safety is a priority, recommend Aegis Home Fortress."
+  ],
+  "emotional_protection_benefits": [
+    "Guarantees that your primary sanctuary remains financially bulletproof.",
+    "Brings comfort that your personal belongings and family legacy items are safe.",
+    "Ensures you are never left homeless, providing a temporary luxury home budget if needed."
+  ],
+  "conversational_templates": {
+    "default_recommendation_flow": {
+      "greeting": "Welcome home! 🏡",
+      "intro_pitch": "For securing residential setups, I highly recommend our Aegis Home Fortress cover because it guards internal electronics, structural walls, and personal liabilities under one policy.",
+      "coverage_sizing_guide": "Based on your property size and interior assets valuation, a coverage bracket of ₹25–75 Lakhs guarantees complete restoration in case of fire or water damage.",
+      "benefits_checklist": {
+        "title": "✅ Recommended Benefits:",
+        "items": [
+          "Full content coverage (appliances, laptops, luxury assets)",
+          "Tenant third-party liability shield",
+          "Emergency temporary lodging allowance",
+          "Short-circuit appliance burn protection"
+        ]
+      },
+      "suitability_criteria": {
+        "title": "This type of cover is especially suitable for:",
+        "items": [
+          "Renting tenants safeguarding personal electronics",
+          "Apartment owners looking for structural reinforcement",
+          "High-value household asset collectors"
+        ]
+      },
+      "next_steps_consultation": {
+        "title": "Would you like me to suggest:",
+        "options": [
+          "1. Budget-friendly basic tenant shield",
+          "2. Structural building fortress coverage",
+          "3. All-inclusive luxury home portfolios"
+        ]
+      }
+    }
+  }
+}

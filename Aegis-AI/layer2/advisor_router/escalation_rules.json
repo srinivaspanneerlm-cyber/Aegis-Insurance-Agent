@@ -1,0 +1,10 @@
+{
+    "conditions": [
+        "customer_complaint",
+        "claim_dispute",
+        "high_value_customer",
+        "multi_product_case",
+        "recommendation_conflict"
+    ],
+    "escalate_to": "Sri AI"
+}

@@ -1,0 +1,39 @@
+{
+    "version": "5.0",
+    "recommendation_thresholds": {
+        "executive_excellence": {
+            "score": 95,
+            "action": "auto_approve"
+        },
+        "enterprise_standard": {
+            "score": 90,
+            "action": "approve"
+        },
+        "acceptable": {
+            "score": 85,
+            "action": "review_required"
+        },
+        "below_standard": {
+            "score": 75,
+            "action": "executive_intervention"
+        },
+        "unacceptable": {
+            "score": 74,
+            "action": "reject"
+        }
+    },
+    "confidence_thresholds": {
+        "excellent": 95,
+        "good": 90,
+        "acceptable": 85,
+        "minimum": 80
+    },
+    "customer_profile_thresholds": {
+        "minimum_completion_percentage": 80,
+        "minimum_required_fields": [
+            "age",
+            "family_size",
+            "budget"
+        ]
+    }
+}

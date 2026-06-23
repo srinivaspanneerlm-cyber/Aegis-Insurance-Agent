@@ -1,0 +1,9 @@
+{
+    "eligibility": {
+        "minimum_age": 21,
+        "maximum_age": 45
+    },
+    "waiting_period": {
+        "maternity": "9-24 Months"
+    }
+}

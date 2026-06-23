@@ -1,0 +1,20 @@
+{
+    "customer_risk_levels": {
+        "low": {
+            "score": "0-30"
+        },
+        "medium": {
+            "score": "31-70"
+        },
+        "high": {
+            "score": "71-100"
+        }
+    },
+    "business_risks": [
+        "Fraud Risk",
+        "Claim Risk",
+        "Compliance Risk",
+        "Financial Risk",
+        "Reputation Risk"
+    ]
+}

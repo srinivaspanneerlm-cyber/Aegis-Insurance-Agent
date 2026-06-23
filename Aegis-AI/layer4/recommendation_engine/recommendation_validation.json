@@ -1,0 +1,9 @@
+{
+  "version": "1.0",
+  "validation_constraints": {
+    "block_ineligible": true,
+    "top_score_must_exceed_alternative": true,
+    "require_justification": true,
+    "min_confidence_score": 0.5
+  }
+}

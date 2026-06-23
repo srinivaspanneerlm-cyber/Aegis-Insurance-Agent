@@ -1,0 +1,21 @@
+{
+    "eligibility": {
+        "property_ownership_required": true,
+        "residential_property_allowed": true
+    },
+    "claim_conditions": {
+        "damage_reporting": "Within 24-72 Hours",
+        "property_inspection_required": true,
+        "proof_of_ownership_required": true
+    },
+    "common_exclusions": [
+        "Intentional Damage",
+        "Normal Wear and Tear",
+        "Illegal Activities",
+        "Negligence"
+    ],
+    "renewal_rules": {
+        "annual_renewal": true,
+        "property_revaluation_recommended": true
+    }
+}

@@ -1,0 +1,15 @@
+{
+    "eligibility": {
+        "commercial_registration_required": true,
+        "fitness_certificate_required": true
+    },
+    "claim_conditions": {
+        "cargo_details_required": true,
+        "accident_reporting": "Within 24 Hours"
+    },
+    "common_exclusions": [
+        "Illegal Goods",
+        "Overloading",
+        "Unauthorized Drivers"
+    ]
+}

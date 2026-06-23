@@ -1,0 +1,21 @@
+{
+  "version": "1.0",
+  "template": {
+    "customer_summary": {
+      "format": "Customer {name} (ID: {customer_id}) is a {age}-year-old {occupation} with a family size of {family_size} based in {location}.",
+      "dependencies": ["name", "customer_id", "age", "occupation", "family_size", "location"]
+    },
+    "risk_summary": {
+      "format": "Underwriting Risk classified as {risk_profile}. Primary focus: {preferred_category} protection rules.",
+      "dependencies": ["risk_profile", "preferred_category"]
+    },
+    "coverage_summary": {
+      "format": "Targeting coverage options matching family floater or individual limits for family size of {family_size}. Active policies: {existing_policies}.",
+      "dependencies": ["family_size", "existing_policies"]
+    },
+    "budget_summary": {
+      "format": "Affordability tier established around ₹{budget} per month based on annual income of ₹{annual_income}.",
+      "dependencies": ["budget", "annual_income"]
+    }
+  }
+}

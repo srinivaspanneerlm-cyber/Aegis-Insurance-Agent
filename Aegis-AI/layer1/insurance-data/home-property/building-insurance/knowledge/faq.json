@@ -1,0 +1,32 @@
+{
+    "faqs": [
+        {
+            "question": "What is Building Insurance?",
+            "answer": "Building Insurance protects the physical structure of a building against covered risks."
+        },
+        {
+            "question": "Does it cover earthquake damage?",
+            "answer": "Coverage depends on the selected policy and endorsements."
+        },
+        {
+            "question": "Does it cover flood damage?",
+            "answer": "Many comprehensive plans include flood protection."
+        },
+        {
+            "question": "What is not covered?",
+            "answer": "Normal wear and tear, intentional damage, and unauthorized modifications are usually excluded."
+        },
+        {
+            "question": "Can commercial buildings be insured?",
+            "answer": "Yes, commercial and residential buildings can be insured."
+        },
+        {
+            "question": "How is claim value calculated?",
+            "answer": "Claim settlement is generally based on policy terms, building value, and damage assessment."
+        },
+        {
+            "question": "Can old buildings be insured?",
+            "answer": "Yes, subject to underwriting rules and property inspection."
+        }
+    ]
+}

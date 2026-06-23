@@ -1,0 +1,28 @@
+{
+    "version": "5.0",
+    "anomaly_detection_framework": {
+        "monitor": [
+            "unusual_recommendations",
+            "advisor_behavior_changes",
+            "confidence_score_drop",
+            "accuracy_drop",
+            "customer_complaint_spike",
+            "escalation_spike"
+        ]
+    },
+    "risk_levels": {
+        "low": {
+            "action": "monitor"
+        },
+        "medium": {
+            "action": "review"
+        },
+        "high": {
+            "action": "executive_intervention"
+        },
+        "critical": {
+            "action": "immediate_escalation_to_sri_ai"
+        }
+    },
+    "executive_objective": "Detect and resolve issues before customer impact occurs."
+}

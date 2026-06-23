@@ -1,0 +1,34 @@
+{
+    "category": "Motor Insurance",
+    "subcategory": "Passenger Carrying Vehicle",
+    "vehicle_types": [
+        "Taxi",
+        "Cab",
+        "Auto Rickshaw",
+        "School Bus",
+        "Tourist Bus",
+        "Passenger Van"
+    ],
+    "coverage_options": [
+        {
+            "coverage_type": "Commercial Comprehensive",
+            "description": "Protects passenger vehicles against accidents, liabilities, and damages.",
+            "benefits": [
+                "Passenger liability coverage",
+                "Vehicle damage coverage",
+                "Third-party liability",
+                "Driver coverage"
+            ]
+        }
+    ],
+    "special_protections": [
+        {
+            "name": "Passenger Legal Liability",
+            "purpose": "Protection against passenger injury claims."
+        },
+        {
+            "name": "Fleet Protection",
+            "purpose": "Coverage for multiple passenger vehicles."
+        }
+    ]
+}

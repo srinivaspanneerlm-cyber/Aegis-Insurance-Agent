@@ -1,0 +1,36 @@
+{
+    "faqs": [
+        {
+            "question": "What is Business Travel Insurance?",
+            "answer": "Business Travel Insurance provides protection against travel-related risks faced during official business trips."
+        },
+        {
+            "question": "Does it cover international business travel?",
+            "answer": "Yes, international business travel can be covered based on policy terms and destination."
+        },
+        {
+            "question": "Does it cover business equipment?",
+            "answer": "Many policies provide coverage for laptops, business documents, and essential equipment."
+        },
+        {
+            "question": "Does it cover trip cancellation?",
+            "answer": "Yes, eligible trip cancellations and interruptions may be covered."
+        },
+        {
+            "question": "What happens if I lose my passport during a business trip?",
+            "answer": "Most comprehensive plans provide assistance and reimbursement for passport loss."
+        },
+        {
+            "question": "Are emergency medical expenses covered?",
+            "answer": "Yes, emergency medical treatment and hospitalization are commonly covered."
+        },
+        {
+            "question": "Does it cover delayed flights?",
+            "answer": "Many policies provide compensation for covered flight delays."
+        },
+        {
+            "question": "Can frequent travelers purchase annual coverage?",
+            "answer": "Yes, annual multi-trip plans are commonly available."
+        }
+    ]
+}

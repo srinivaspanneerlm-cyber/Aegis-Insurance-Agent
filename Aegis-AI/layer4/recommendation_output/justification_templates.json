@@ -1,0 +1,10 @@
+{
+  "version": "1.0",
+  "templates": {
+    "why_selected": "Recommended {plan_name} because it achieves the highest compatibility score of {score}/100 and perfectly satisfies your {preference_label} preferences.",
+    "why_not_selected": "Plan {plan_name} was not selected as top choice because {reason_rejected}.",
+    "budget_compatibility": "Plan premium of ₹{premium}/mo fits perfectly with your target budget of ₹{budget}/mo (Budget Match Score: {budget_match}%).",
+    "risk_compatibility": "Coverage matches underwriting risk profile '{risk_tier}' (Risk Match Score: {risk_match}%).",
+    "coverage_compatibility": "Offers coverage limits of ₹{coverage_limit} which matches your requirement for family floater sizing of family size {family_size} (Coverage Match Score: {coverage_match}%)."
+  }
+}

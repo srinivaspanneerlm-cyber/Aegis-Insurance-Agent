@@ -1,0 +1,18 @@
+{
+    "product_bundling": {
+        "health_and_motor": {
+            "package_name": "Active Living Protector",
+            "discount_pct": 7.5,
+            "eligibility": "Annual policy premium exceeds $1,500 total."
+        },
+        "home_and_family": {
+            "package_name": "Generational Estate Safe",
+            "discount_pct": 10.0,
+            "eligibility": "Property must be owner-occupied."
+        }
+    },
+    "upsell_thresholds": {
+        "annual_income_gt_150000": "Premium Tier Protection",
+        "has_dependents_gt_3": "High Limit Family Floater"
+    }
+}

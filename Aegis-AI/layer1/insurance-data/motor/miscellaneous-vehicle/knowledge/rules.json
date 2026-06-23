@@ -1,0 +1,13 @@
+{
+    "eligibility": {
+        "special_vehicle_registration_required": true
+    },
+    "claim_conditions": {
+        "equipment_details_required": true
+    },
+    "common_exclusions": [
+        "Unauthorized Modification",
+        "Mechanical Wear and Tear",
+        "Intentional Damage"
+    ]
+}

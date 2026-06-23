@@ -1,0 +1,30 @@
+{
+    "category": "Health Insurance",
+    "subcategory": "Individual",
+    "plans": [
+        {
+            "plan_id": "IH001",
+            "plan_name": "Personal Health Shield",
+            "coverage": [
+                "300000",
+                "500000",
+                "1000000"
+            ],
+            "premium_range": {
+                "monthly": "500-2000",
+                "yearly": "6000-24000"
+            },
+            "best_for": [
+                "Working professionals",
+                "Young adults",
+                "Self-employed individuals"
+            ],
+            "benefits": [
+                "Cashless hospitalization",
+                "Emergency treatment",
+                "Critical illness coverage",
+                "Day care procedures"
+            ]
+        }
+    ]
+}

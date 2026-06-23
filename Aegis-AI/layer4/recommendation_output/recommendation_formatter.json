@@ -1,0 +1,25 @@
+{
+  "version": "1.0",
+  "output_format": {
+    "required_keys": [
+      "recommendation_score",
+      "risk_level",
+      "coverage_match_percentage",
+      "budget_match_percentage",
+      "top_recommendation",
+      "alternative_recommendation",
+      "recommendation_reason",
+      "confidence_score"
+    ],
+    "types": {
+      "recommendation_score": "number",
+      "risk_level": "string",
+      "coverage_match_percentage": "number",
+      "budget_match_percentage": "number",
+      "top_recommendation": "object",
+      "alternative_recommendation": "object",
+      "recommendation_reason": "string",
+      "confidence_score": "number"
+    }
+  }
+}
