@@ -17,7 +17,7 @@ interface AuthContextType {
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
   isAuthenticated: boolean;
   isAdmin: boolean;
 }
@@ -29,21 +29,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState<boolean>(true);
   const router = useRouter();
 
-  // 1) Verify existing token on initial load
+  // 1) Verify the session on initial load. Auth now lives in an httpOnly cookie
+  //    (not readable by JS), so we simply ask the server who we are.
   useEffect(() => {
     async function loadUser() {
-      const token = localStorage.getItem("aegis_token");
-      if (!token) {
-        setLoading(false);
-        return;
-      }
-
       try {
         const userData = await authService.getMe();
         setUser(userData.user);
       } catch (err) {
-        console.error("Failed to load user session:", err);
-        localStorage.removeItem("aegis_token");
+        // No valid session cookie — treat as logged out.
         setUser(null);
       } finally {
         setLoading(false);
@@ -67,9 +61,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setLoading(true);
     try {
       const res = await authService.login({ email, password });
-      if (res.token) {
-        localStorage.setItem("aegis_token", res.token);
-      }
+      // Token is delivered as an httpOnly cookie by the server; nothing to store.
       const userData = res.data.user;
       setUser(userData);
       
@@ -86,7 +78,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // 3) Register method (automatically seeds with administrative privileges for stats inspection)
+  // 3) Register method — public signup always creates a standard customer.
+  // Admin/superadmin roles are assigned server-side only (never requested here).
   const register = async (name: string, email: string, password: string) => {
     setLoading(true);
     try {
@@ -94,11 +87,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         name,
         email,
         password,
-        role: "admin", // Admin role is granted to check dashboard statistics
       });
-      if (res.token) {
-        localStorage.setItem("aegis_token", res.token);
-      }
+      // Token is delivered as an httpOnly cookie by the server; nothing to store.
       const userData = res.data.user;
       setUser(userData);
       
@@ -115,9 +105,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // 4) Log out method
-  const logout = () => {
-    localStorage.removeItem("aegis_token");
+  // 4) Log out method — ask the server to clear the httpOnly auth cookie.
+  const logout = async () => {
+    try {
+      await authService.logout();
+    } catch (err) {
+      // Even if the request fails, drop the local session state.
+    }
     setUser(null);
     router.push("/");
   };

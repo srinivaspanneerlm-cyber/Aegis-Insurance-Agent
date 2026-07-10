@@ -1,13 +1,18 @@
 const jwt = require("jsonwebtoken");
 const prisma = require("../config/db");
+const env = require("../config/env");
 const AppError = require("../utils/appError");
 const catchAsync = require("../utils/catchAsync");
+const { readTokenFromCookies } = require("../utils/cookies");
 
 const protect = catchAsync(async (req, res, next) => {
   let token;
 
-  // 1) Obtain token from Authorization header
+  // 1) Prefer the httpOnly cookie (XSS-safe); fall back to the Bearer header
+  //    so non-browser API clients keep working.
+  token = readTokenFromCookies(req);
   if (
+    !token &&
     req.headers.authorization &&
     req.headers.authorization.startsWith("Bearer")
   ) {
@@ -23,7 +28,7 @@ const protect = catchAsync(async (req, res, next) => {
   // 2) Validate token signature
   let decoded;
   try {
-    decoded = jwt.verify(token, process.env.JWT_SECRET);
+    decoded = jwt.verify(token, env.JWT_SECRET);
   } catch (err) {
     return next(new AppError("Invalid security token. Please log in again.", 401));
   }

@@ -13,6 +13,10 @@ const registerSchema = (data) => {
   }
   if (!data.password || typeof data.password !== "string" || data.password.length < 6) {
     errors.push("Password must be at least 6 characters long.");
+  } else if (Buffer.byteLength(data.password, "utf8") > 72) {
+    // bcrypt silently truncates input beyond 72 bytes, so anything longer is
+    // both a correctness hazard and a hashing-DoS vector. Reject it explicitly.
+    errors.push("Password must not exceed 72 bytes.");
   }
   if (data.role && !["customer", "admin", "superadmin"].includes(data.role)) {
     errors.push("Role must be one of: customer, admin, superadmin.");

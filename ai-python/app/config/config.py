@@ -13,31 +13,67 @@ class Settings:
     # Service Network Settings
     PORT: int = int(os.getenv("PORT", 8000))
     HOST: str = os.getenv("HOST", "0.0.0.0")
-    
+
     # API Credentials
-    GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
-    OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
-    
+    GEMINI_API_KEY: str  = os.getenv("GEMINI_API_KEY", "")
+    OPENAI_API_KEY: str  = os.getenv("OPENAI_API_KEY", "")
+
+    # Ollama settings — local or cloud-hosted
+    OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+    OLLAMA_MODEL: str    = os.getenv("OLLAMA_MODEL", "llama3.2")
+    OLLAMA_API_KEY: str  = os.getenv("OLLAMA_API_KEY", "ollama")
+
     # Provider Selection
     DEFAULT_PROVIDER: str = os.getenv("DEFAULT_PROVIDER", "gemini").lower()
+
+    # Deployment environment — controls docs exposure and CORS strictness.
+    ENVIRONMENT: str = os.getenv("ENVIRONMENT", "development").lower()
+
+    # Shared secret used to authenticate calls from the Node backend.
+    # When empty, internal-key enforcement is disabled (backward compatible).
+    AI_INTERNAL_API_KEY: str = os.getenv("AI_INTERNAL_API_KEY", "")
+
+    @property
+    def is_production(self) -> bool:
+        return self.ENVIRONMENT == "production"
+
+    @property
+    def allowed_origins(self) -> list:
+        """CORS allowlist parsed from ALLOWED_ORIGINS (comma-separated)."""
+        raw = os.getenv("ALLOWED_ORIGINS", "").strip()
+        if raw:
+            return [o.strip() for o in raw.split(",") if o.strip()]
+        # Safe local-dev default.
+        return [
+            "http://localhost:3000",
+            "http://localhost:5000",
+            "http://127.0.0.1:3000",
+            "http://127.0.0.1:5000",
+        ]
 
     @property
     def active_provider(self) -> str:
         """
-        Dynamically determine the active provider based on configured API keys.
+        Dynamically determine the active provider based on .env configuration.
+        Priority: DEFAULT_PROVIDER env var → key availability fallback.
         """
-        if self.GEMINI_API_KEY and self.DEFAULT_PROVIDER == "gemini":
+        p = self.DEFAULT_PROVIDER
+
+        if p == "ollama":
+            return "ollama"
+        if p == "gemini" and self.GEMINI_API_KEY:
             return "gemini"
-        elif self.OPENAI_API_KEY and self.DEFAULT_PROVIDER == "openai":
+        if p == "openai" and self.OPENAI_API_KEY:
             return "openai"
-        elif self.GEMINI_API_KEY:
+
+        # Fallback by available key
+        if self.GEMINI_API_KEY:
             return "gemini"
-        elif self.OPENAI_API_KEY:
+        if self.OPENAI_API_KEY:
             return "openai"
-        else:
-            # Fallback if no keys are provided
-            return "gemini"
+
+        # Default to ollama if nothing else is configured
+        return "ollama"
 
 # Instantiated single settings object for global import
 settings = Settings()
-

@@ -2,23 +2,27 @@ require("dotenv").config();
 const http = require("http");
 const { Server } = require("socket.io");
 const { execSync } = require("child_process");
+const env = require("./config/env");
 const app = require("./app");
-const { initSockets } = require("./sockets/index");
+const { initSockets, socketAuthMiddleware } = require("./sockets/index");
 
-// Permanently resolve "EADDRINUSE" port conflict by releasing port 5000 if occupied
-const port = process.env.PORT || 5000;
-try {
-  if (process.platform === "linux") {
+const port = env.PORT;
+
+// Optional dev-only convenience: force-release the port if occupied. Disabled
+// by default because it issues `kill -9` against whatever PID holds the port,
+// which is unsafe on shared machines. Enable with AUTO_RELEASE_PORT=true.
+if (env.AUTO_RELEASE_PORT && !env.isProd && process.platform === "linux") {
+  try {
     const pids = execSync(`lsof -t -i:${port}`, { stdio: ["pipe", "pipe", "ignore"] }).toString().trim();
     if (pids) {
-      console.log(`🧹 Port ${port} is occupied by PID(s): ${pids.split("\n").join(", ")}. Releasing port permanently...`);
+      console.log(`🧹 Port ${port} occupied by PID(s): ${pids.split("\n").join(", ")}. Releasing (AUTO_RELEASE_PORT enabled)...`);
       execSync(`kill -9 ${pids}`);
       execSync("sleep 1");
-      console.log(`✅ Port ${port} successfully released!`);
+      console.log(`✅ Port ${port} released.`);
     }
+  } catch (err) {
+    // Silent fallback if port is already free or lsof is unavailable.
   }
-} catch (err) {
-  // Silent fallback if port is already free or lsof is not available
 }
 
 // Capture uncaught exceptions
@@ -31,13 +35,17 @@ process.on("uncaughtException", (err) => {
 // Boot HTTP Server
 const server = http.createServer(app);
 
-// Integrate Socket.io with secure CORS
+// Integrate Socket.io with a strict CORS allowlist (no wildcard).
 const io = new Server(server, {
   cors: {
-    origin: process.env.CLIENT_URL || "*",
+    origin: env.allowedOrigins,
     methods: ["GET", "POST"],
+    credentials: true,
   },
 });
+
+// Require a valid JWT on the socket handshake before any events are processed.
+io.use(socketAuthMiddleware);
 
 // Attach socket event listeners
 initSockets(io);

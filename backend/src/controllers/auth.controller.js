@@ -1,17 +1,23 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const prisma = require("../config/db");
+const env = require("../config/env");
 const AppError = require("../utils/appError");
 const catchAsync = require("../utils/catchAsync");
+const { setAuthCookie, clearAuthCookie } = require("../utils/cookies");
 
 const signToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRES_IN || "30d",
+  return jwt.sign({ id }, env.JWT_SECRET, {
+    expiresIn: env.JWT_EXPIRES_IN,
   });
 };
 
 const register = catchAsync(async (req, res, next) => {
-  const { name, email, password, role } = req.body;
+  // NOTE: `role` is intentionally NOT read from the request body. Public
+  // self-service registration always creates a "customer"; the client cannot
+  // elevate its own privileges (prevents mass-assignment / privilege escalation).
+  // Elevated roles are granted only by an admin flow or DB seeding.
+  const { name, email, password } = req.body;
 
   // 1) Verify email uniqueness
   const existingUser = await prisma.user.findUnique({
@@ -32,7 +38,7 @@ const register = catchAsync(async (req, res, next) => {
       name,
       email,
       password: hashedPassword,
-      role: role || "customer",
+      role: "customer",
     },
     select: {
       id: true,
@@ -43,8 +49,10 @@ const register = catchAsync(async (req, res, next) => {
     },
   });
 
-  // 4) Generate token
+  // 4) Generate token — delivered as an httpOnly cookie (XSS-safe). Still
+  //    returned in the body for backward compatibility with API clients.
   const token = signToken(newUser.id);
+  setAuthCookie(res, token);
 
   res.status(201).json({
     status: "success",
@@ -67,8 +75,9 @@ const login = catchAsync(async (req, res, next) => {
     return next(new AppError("Incorrect email address or password.", 401));
   }
 
-  // 2) Generate token
+  // 2) Generate token — set as httpOnly cookie and also return in the body.
   const token = signToken(user.id);
+  setAuthCookie(res, token);
 
   // Remove password from payload
   const { password: _, ...userWithoutPassword } = user;
@@ -80,6 +89,12 @@ const login = catchAsync(async (req, res, next) => {
       user: userWithoutPassword,
     },
   });
+});
+
+const logout = catchAsync(async (req, res, next) => {
+  // Clear the auth cookie so the session cannot be reused from the browser.
+  clearAuthCookie(res);
+  res.status(200).json({ status: "success", message: "Logged out." });
 });
 
 const getMe = catchAsync(async (req, res, next) => {
@@ -97,5 +112,6 @@ const getMe = catchAsync(async (req, res, next) => {
 module.exports = {
   register,
   login,
+  logout,
   getMe,
 };

@@ -5,6 +5,7 @@ const morgan = require("morgan");
 const path = require("path");
 
 const { corsOptions, apiLimiter } = require("./config/security");
+const { protect } = require("./middleware/auth.middleware");
 const AppError = require("./utils/appError");
 const globalErrorHandler = require("./middleware/error.middleware");
 
@@ -16,11 +17,22 @@ const chatRoutes = require("./routes/chat.routes");
 const uploadRoutes = require("./routes/upload.routes");
 const companyRoutes = require("./routes/company.routes");
 const adminRoutes = require("./routes/admin.routes");
+const uiActionRoutes = require("./routes/ui_action.routes");
 
 const app = express();
 
 // 1) GLOBAL SECURITY & LOGGING MIDDLEWARES
-app.use(helmet());
+app.use(
+  helmet({
+    // Enforce HTTPS for one year (browsers only honour this over TLS).
+    hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
+    // Do not leak full URLs to third-party origins in the Referer header.
+    referrerPolicy: { policy: "no-referrer" },
+    // Prevent other origins from hot-linking served resources (e.g. uploads).
+    crossOriginResourcePolicy: { policy: "same-site" },
+  })
+);
+app.disable("x-powered-by");
 app.use(cors(corsOptions));
 
 // HTTP Request Logger
@@ -45,9 +57,18 @@ app.use("/api/chat", chatRoutes);
 app.use("/api/upload", uploadRoutes);
 app.use("/api/company", companyRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/ui-action", uiActionRoutes);
 
-// Static uploads serving path
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+// Static uploads serving path — these are private customer documents, so the
+// directory is gated behind authentication instead of being world-readable.
+app.use(
+  "/uploads",
+  protect,
+  express.static(path.join(__dirname, "uploads"), {
+    dotfiles: "deny",
+    index: false,
+  })
+);
 
 // 3) UNHANDLED ROUTE HANDLERS
 app.all("*", (req, res, next) => {

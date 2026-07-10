@@ -1,5 +1,37 @@
+const jwt = require("jsonwebtoken");
 const prisma = require("../config/db");
+const env = require("../config/env");
 const aiService = require("../services/ai.service");
+
+/**
+ * Socket.io handshake authentication.
+ * Rejects any connection that does not present a valid JWT, so realtime chat
+ * (which can write DB rows and invoke the paid AI service) can no longer be
+ * driven by anonymous clients. The verified user is attached to socket.data.
+ *
+ * Token is read from `socket.handshake.auth.token` (preferred) or the
+ * `Authorization: Bearer <token>` handshake header.
+ */
+const socketAuthMiddleware = async (socket, next) => {
+  try {
+    let token = socket.handshake?.auth?.token || null;
+    if (!token) {
+      const header = socket.handshake?.headers?.authorization || "";
+      if (header.startsWith("Bearer ")) token = header.split(" ")[1];
+    }
+    if (!token) return next(new Error("Unauthorized: authentication token required."));
+
+    const decoded = jwt.verify(token, env.JWT_SECRET);
+    const user = await prisma.user.findUnique({ where: { id: decoded.id } });
+    if (!user) return next(new Error("Unauthorized: user no longer exists."));
+
+    // Trusted identity — never rely on client-supplied sender/name after this.
+    socket.data.user = { id: user.id, name: user.name, role: user.role };
+    return next();
+  } catch (err) {
+    return next(new Error("Unauthorized: invalid or expired token."));
+  }
+};
 
 const initSockets = (io) => {
   io.on("connection", (socket) => {
@@ -12,16 +44,33 @@ const initSockets = (io) => {
       console.log(`👥 Socket ${socket.id} joined room: ${roomId}`);
     });
 
+    // Simple sliding-window throttle: cap AI-backed socket messages per client.
+    const RATE_WINDOW_MS = 60 * 1000;
+    const RATE_MAX = 20;
+    let msgTimestamps = [];
+
     // Real-time chat messaging event
     socket.on("send_message", async (data) => {
       const { roomId, message, sender } = data;
+      const authUser = socket.data.user; // trusted identity from handshake
+
+      // Rate limit — drop bursts that would fan out to the paid AI engine.
+      const now = Date.now();
+      msgTimestamps = msgTimestamps.filter((t) => now - t < RATE_WINDOW_MS);
+      if (msgTimestamps.length >= RATE_MAX) {
+        socket.emit("error", { message: "Rate limit exceeded. Please slow down." });
+        return;
+      }
+      msgTimestamps.push(now);
 
       try {
-        // Save message to database
+        // Save message to database — bound to the authenticated user so the
+        // sender cannot be spoofed to write rows as someone else.
         const savedMsg = await prisma.chat.create({
           data: {
             message,
             sender: sender || "customer",
+            userId: authUser.id,
           },
         });
 
@@ -34,13 +83,14 @@ const initSockets = (io) => {
           socket.to(roomId).emit("typing_state", { isTyping: true });
 
           // Fetch AI response
-          const aiReplyText = await aiService.getResponseFromAIService(message);
+          const aiReplyText = await aiService.getResponseFromAIService(message, authUser.name);
 
           // Save AI response to database
           const savedAiMsg = await prisma.chat.create({
             data: {
               message: aiReplyText,
               sender: "advisor",
+              userId: authUser.id,
             },
           });
 
@@ -81,5 +131,6 @@ const notifyUnderwritingStatus = (io, leadId, status) => {
 
 module.exports = {
   initSockets,
+  socketAuthMiddleware,
   notifyUnderwritingStatus,
 };

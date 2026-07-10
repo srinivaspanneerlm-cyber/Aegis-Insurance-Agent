@@ -5,6 +5,7 @@ import { Sparkles, Shield, Heart, Car, Globe, Send, User, ChevronRight, Check } 
 import { motion, AnimatePresence } from "framer-motion";
 
 import { chatService } from "@/services/api";
+import { useAuth } from "@/context/AuthContext";
 
 interface Message {
   id: string;
@@ -27,6 +28,7 @@ interface AIAdvisorProps {
 }
 
 export default function AIAdvisor({ onSelectPlan, onScrollToForm }: AIAdvisorProps) {
+  const { isAuthenticated } = useAuth();
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",
@@ -44,12 +46,8 @@ export default function AIAdvisor({ onSelectPlan, onScrollToForm }: AIAdvisorPro
   // 1) Load Chat History from backend if logged in
   useEffect(() => {
     async function loadChatHistory() {
-      const token = typeof window !== "undefined" ? localStorage.getItem("aegis_token") : null;
-      if (!token) {
-        setIsPreviewMode(true);
-        return;
-      }
-
+      // Auth is a cookie now; just try to load history. If we're not logged in
+      // the request returns 401 and we fall back to preview mode below.
       try {
         const history = await chatService.getHistory();
         if (history && history.length > 0) {
@@ -204,9 +202,7 @@ export default function AIAdvisor({ onSelectPlan, onScrollToForm }: AIAdvisorPro
       }
     }, 1200);
 
-    const token = typeof window !== "undefined" ? localStorage.getItem("aegis_token") : null;
-
-    if (!token) {
+    if (!isAuthenticated) {
       // 1) Enforce Authentication Rules for unauthenticated users
       setTimeout(() => {
         clearInterval(intervalId);
@@ -237,7 +233,7 @@ export default function AIAdvisor({ onSelectPlan, onScrollToForm }: AIAdvisorPro
               id: data.advisorMessage.id,
               sender: "ai",
               text,
-              timestamp: new Date(data.advisorMessage.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              timestamp: new Date(data.advisorMessage.createdAt ?? Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
               recommendation: getRecommendationForText(text),
             },
           ]);
