@@ -24,7 +24,7 @@ class Settings:
     OLLAMA_API_KEY: str  = os.getenv("OLLAMA_API_KEY", "ollama")
 
     # Provider Selection
-    DEFAULT_PROVIDER: str = os.getenv("DEFAULT_PROVIDER", "gemini").lower()
+    DEFAULT_PROVIDER: str = os.getenv("DEFAULT_PROVIDER", "ollama").lower()
 
     # Deployment environment — controls docs exposure and CORS strictness.
     ENVIRONMENT: str = os.getenv("ENVIRONMENT", "development").lower()
