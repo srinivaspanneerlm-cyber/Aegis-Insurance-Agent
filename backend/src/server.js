@@ -4,9 +4,15 @@ const { Server } = require("socket.io");
 const { execSync } = require("child_process");
 const env = require("./config/env");
 const app = require("./app");
+const prisma = require("./config/db");
 const { initSockets, socketAuthMiddleware } = require("./sockets/index");
+const { registerJobs } = require("./jobs");
 
 const port = env.PORT;
+
+// Register background job handlers once at boot (lead auto-qualify, and future
+// notification/email/analytics jobs).
+registerJobs();
 
 // Optional dev-only convenience: force-release the port if occupied. Disabled
 // by default because it issues `kill -9` against whatever PID holds the port,
@@ -64,3 +70,35 @@ process.on("unhandledRejection", (err) => {
     process.exit(1);
   });
 });
+
+// ── Graceful shutdown ────────────────────────────────────────────────────────
+// On SIGTERM/SIGINT (container stop, rolling deploy, scale-in) stop accepting
+// new connections, close sockets, and disconnect the DB pool before exiting so
+// in-flight requests finish cleanly. Essential for horizontal scale-out.
+let shuttingDown = false;
+const gracefulShutdown = (signal) => {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  console.log(`\n${signal} received — shutting down gracefully...`);
+
+  const forceExit = setTimeout(() => {
+    console.error("Graceful shutdown timed out — forcing exit.");
+    process.exit(1);
+  }, 15000);
+  if (forceExit.unref) forceExit.unref();
+
+  io.close(() => {
+    runningServer.close(async () => {
+      try {
+        await prisma.$disconnect();
+      } catch (_) {
+        /* best-effort */
+      }
+      clearTimeout(forceExit);
+      console.log("✅ Clean shutdown complete.");
+      process.exit(0);
+    });
+  });
+};
+
+["SIGTERM", "SIGINT"].forEach((sig) => process.on(sig, () => gracefulShutdown(sig)));

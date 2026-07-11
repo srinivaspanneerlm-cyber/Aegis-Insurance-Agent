@@ -1,12 +1,19 @@
-const axios = require("axios");
 const { chatRepository } = require("../repositories");
 const env = require("../config/env");
+const { createHttpClient } = require("../utils/httpClient");
+const { AI_CLIENT, HISTORY } = require("../config/constants");
 
 // Shared secret sent on every backend -> AI microservice call. When set, the
 // AI service rejects requests that do not present a matching key.
 const internalHeaders = env.AI_INTERNAL_API_KEY
   ? { "X-Internal-Api-Key": env.AI_INTERNAL_API_KEY }
   : {};
+
+// Dedicated client with a centralised timeout. Retries are intentionally 0: the
+// AI dispatch is non-idempotent (it mutates conversation memory), so a retry
+// could double-process. Transient failures fall through to the resilient
+// fallback reply below instead.
+const aiHttp = createHttpClient({ timeout: AI_CLIENT.TIMEOUT_MS, retries: 0 });
 
 /**
  * Aegis AI — Multi-Agent Service Bridge
@@ -29,7 +36,7 @@ const getResponseFromAIService = async (
   let history = [];
   try {
     const recentChats = userId
-      ? await chatRepository.findRecentByUser(userId, 8)
+      ? await chatRepository.findRecentByUser(userId, HISTORY.AI_CONTEXT_TURNS)
       : [];
     recentChats.reverse();
     history = recentChats.map((c) => ({
@@ -49,8 +56,7 @@ const getResponseFromAIService = async (
       session_id: sessionId || undefined,
     };
 
-    const response = await axios.post(aiServiceUrl, payload, {
-      timeout: 45000,
+    const response = await aiHttp.post(aiServiceUrl, payload, {
       headers: internalHeaders,
     });
     const data = response.data;

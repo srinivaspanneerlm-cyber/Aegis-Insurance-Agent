@@ -2,6 +2,7 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const { userRepository } = require("../repositories");
 const env = require("../config/env");
+const { AUTH } = require("../config/constants");
 const AppError = require("../utils/appError");
 const catchAsync = require("../utils/catchAsync");
 const { setAuthCookie, clearAuthCookie } = require("../utils/cookies");
@@ -36,7 +37,7 @@ const register = catchAsync(async (req, res, next) => {
   // 2) Hash the password. Cost factor 12 raises the per-guess cost for an
   //    offline cracker; bcrypt stores the cost in the hash, so previously
   //    hashed (cost-10) passwords still verify unchanged.
-  const saltRounds = 12;
+  const saltRounds = AUTH.BCRYPT_ROUNDS;
   const hashedPassword = await bcrypt.hash(password, saltRounds);
 
   // 3) Create user

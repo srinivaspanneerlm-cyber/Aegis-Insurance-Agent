@@ -6,6 +6,7 @@ const path = require("path");
 
 const { corsOptions, apiLimiter } = require("./config/security");
 const { protect } = require("./middleware/auth.middleware");
+const { FEATURES } = require("./config/constants");
 const AppError = require("./utils/appError");
 const globalErrorHandler = require("./middleware/error.middleware");
 
@@ -42,6 +43,20 @@ app.use(
 app.disable("x-powered-by");
 app.use(cors(corsOptions));
 
+// Response compression (gzip/deflate) for large JSON/text payloads — a major
+// bandwidth win at scale. Loaded defensively so the app runs with or without
+// the optional dependency installed; toggle via FEATURE_COMPRESSION.
+if (FEATURES.COMPRESSION) {
+  try {
+    // eslint-disable-next-line global-require
+    const compression = require("compression");
+    app.use(compression());
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.warn("[app] 'compression' not installed — running uncompressed. Run `npm install` to enable.");
+  }
+}
+
 // HTTP Request Logger
 if (process.env.NODE_ENV === "development") {
   app.use(morgan("dev"));
@@ -52,6 +67,10 @@ if (process.env.NODE_ENV === "development") {
 // Request parsers
 app.use(express.json({ limit: "10kb" }));
 app.use(express.urlencoded({ extended: true, limit: "10kb" }));
+
+// Liveness/readiness probe for load balancers & orchestrators. Kept outside
+// `/api` so it is unthrottled, and intentionally minimal (no info disclosure).
+app.get("/health", (req, res) => res.status(200).json({ status: "healthy" }));
 
 // Rate Limiter
 app.use("/api", apiLimiter);

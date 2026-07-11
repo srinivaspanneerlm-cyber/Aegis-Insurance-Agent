@@ -1,4 +1,5 @@
 const { chatRepository } = require("../repositories");
+const { HISTORY } = require("../config/constants");
 const aiService = require("../services/ai.service");
 const catchAsync = require("../utils/catchAsync");
 const AppError = require("../utils/appError");
@@ -62,7 +63,7 @@ const getChatHistory = catchAsync(async (req, res, next) => {
   const where = { userId };
   if (session_id) where.sessionId = session_id;
 
-  const history = await chatRepository.findHistory(where, 200);
+  const history = await chatRepository.findHistory(where, HISTORY.CHAT_PAGE_MAX);
 
   res.status(200).json({
     status: "success",

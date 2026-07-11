@@ -1,5 +1,6 @@
 const rateLimit = require("express-rate-limit");
 const env = require("./env");
+const { RATE_LIMITS } = require("./constants");
 
 // Strict CORS: only browser origins on the validated allowlist may send
 // credentialed requests. A wildcard origin is never combined with
@@ -18,8 +19,8 @@ const corsOptions = {
 };
 
 const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per windowMs
+  windowMs: RATE_LIMITS.API.windowMs, // 15 minutes
+  max: RATE_LIMITS.API.max, // Limit each IP to N requests per window
   message: {
     status: "fail",
     message: "Too many requests from this IP, please try again after 15 minutes.",
@@ -29,8 +30,8 @@ const apiLimiter = rateLimit({
 });
 
 const authLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour
-  max: 20, // Limit each IP to 20 login/register requests per hour
+  windowMs: RATE_LIMITS.AUTH.windowMs, // 1 hour
+  max: RATE_LIMITS.AUTH.max, // Limit each IP to N login/register requests per hour
   message: {
     status: "fail",
     message: "Too many authentication attempts, please try again after an hour.",
@@ -42,8 +43,8 @@ const authLimiter = rateLimit({
 // Tighter limiter for endpoints that fan out to the paid LLM engine
 // (chat + UI actions). Protects against cost-abuse / scraping bursts.
 const aiLimiter = rateLimit({
-  windowMs: 60 * 1000, // 1 minute
-  max: 20, // 20 AI-backed calls per IP per minute
+  windowMs: RATE_LIMITS.AI.windowMs, // 1 minute
+  max: RATE_LIMITS.AI.max, // N AI-backed calls per IP per minute
   message: {
     status: "fail",
     message: "Too many AI requests. Please slow down and try again shortly.",

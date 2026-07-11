@@ -4,6 +4,7 @@ const path = require("path");
 const fs = require("fs");
 const uploadController = require("../controllers/upload.controller");
 const { protect } = require("../middleware/auth.middleware");
+const { UPLOADS } = require("../config/constants");
 const AppError = require("../utils/appError");
 
 const router = express.Router();
@@ -50,8 +51,8 @@ const upload = multer({
   storage,
   fileFilter,
   limits: {
-    fileSize: 10 * 1024 * 1024, // 10MB per file
-    files: 1, // never accept more than one file per request
+    fileSize: UPLOADS.MAX_BYTES, // per-file size cap
+    files: UPLOADS.MAX_FILES, // never accept more than one file per request
   },
 });
 

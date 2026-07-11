@@ -1,4 +1,7 @@
 const { leadRepository } = require("../repositories");
+const jobQueue = require("../services/jobQueue.service");
+const { JOB_TYPES } = require("../jobs");
+const { LEADS } = require("../config/constants");
 const AppError = require("../utils/appError");
 const catchAsync = require("../utils/catchAsync");
 
@@ -14,15 +17,14 @@ const createLead = catchAsync(async (req, res, next) => {
     status: "pending",
   });
 
-  // Simulate machine-learning risk evaluation and update status to approved
-  setTimeout(async () => {
-    try {
-      await leadRepository.update(newLead.id, { status: "approved" });
-      console.log(`Lead ${newLead.id} status successfully qualified & approved.`);
-    } catch (err) {
-      console.error("Async underwriting update failed", err);
-    }
-  }, 5000);
+  // Simulate machine-learning risk evaluation and move the lead to "approved".
+  // Deferred to the background job queue (durable-ready) instead of an
+  // in-request setTimeout — same effect and delay, but survives scale-out.
+  jobQueue.schedule(
+    JOB_TYPES.LEAD_AUTO_QUALIFY,
+    { leadId: newLead.id },
+    LEADS.AUTO_QUALIFY_DELAY_MS
+  );
 
   res.status(201).json({
     status: "success",

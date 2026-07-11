@@ -10,6 +10,8 @@
  * any existing query semantics. Soft-delete filtering is opt-in via
  * `includeDeleted`, so current callers keep identical results.
  */
+const { PAGINATION } = require("../config/constants");
+
 class BaseRepository {
   /**
    * @param {import('@prisma/client').PrismaClient} prisma
@@ -52,8 +54,11 @@ class BaseRepository {
    * Offset pagination with a consistent envelope. Always bounded — never runs
    * an unbounded scan.
    */
-  async paginate(where = {}, { page = 1, limit = 20, orderBy, ...rest } = {}) {
-    const take = Math.min(Math.max(parseInt(limit, 10) || 20, 1), 100);
+  async paginate(where = {}, { page = 1, limit = PAGINATION.DEFAULT_LIMIT, orderBy, ...rest } = {}) {
+    const take = Math.min(
+      Math.max(parseInt(limit, 10) || PAGINATION.DEFAULT_LIMIT, 1),
+      PAGINATION.MAX_LIMIT
+    );
     const current = Math.max(parseInt(page, 10) || 1, 1);
     const skip = (current - 1) * take;
     const [items, total] = await Promise.all([

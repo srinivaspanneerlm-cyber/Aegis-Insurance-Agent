@@ -1,6 +1,10 @@
 const { policyRepository, companyRepository } = require("../repositories");
+const cache = require("../services/cache.service");
+const { CACHE_TTL } = require("../config/constants");
 const AppError = require("../utils/appError");
 const catchAsync = require("../utils/catchAsync");
+
+const POLICIES_CACHE_PREFIX = "policies:";
 
 const createPolicy = catchAsync(async (req, res, next) => {
   const { policyName, premium, coverage, companyId } = req.body;
@@ -20,6 +24,9 @@ const createPolicy = catchAsync(async (req, res, next) => {
     companyId,
   });
 
+  // Invalidate the cached catalogue so the new product is visible immediately.
+  cache.delByPrefix(POLICIES_CACHE_PREFIX);
+
   res.status(201).json({
     status: "success",
     data: {
@@ -29,18 +36,22 @@ const createPolicy = catchAsync(async (req, res, next) => {
 });
 
 const getPolicies = catchAsync(async (req, res, next) => {
-  const policies = await policyRepository.findMany(
-    {},
-    {
-      include: {
-        company: {
-          select: {
-            companyName: true,
-            logo: true,
+  // Cache-aside: the public catalogue is read-heavy and changes only on create
+  // (which invalidates the key), so serve it from cache to avoid repeated joins.
+  const policies = await cache.wrap(`${POLICIES_CACHE_PREFIX}all`, CACHE_TTL.POLICIES, () =>
+    policyRepository.findMany(
+      {},
+      {
+        include: {
+          company: {
+            select: {
+              companyName: true,
+              logo: true,
+            },
           },
         },
-      },
-    }
+      }
+    )
   );
 
   res.status(200).json({
