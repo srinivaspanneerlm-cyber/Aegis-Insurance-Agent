@@ -12,6 +12,13 @@ const signToken = (id) => {
   });
 };
 
+// A pre-computed bcrypt hash of a random string. When a login is attempted for
+// an email that does not exist, we still run a comparison against this dummy so
+// the response time is indistinguishable from a wrong-password attempt. This
+// removes the timing side channel that would otherwise let an attacker
+// enumerate which email addresses are registered.
+const DUMMY_HASH = "$2b$12$C6UzMDM.H6dfI/f/IKcEeO.Vp9m9m4Zr1lJj0m2v0mQ9mE8xZ8yQK";
+
 const register = catchAsync(async (req, res, next) => {
   // NOTE: `role` is intentionally NOT read from the request body. Public
   // self-service registration always creates a "customer"; the client cannot
@@ -28,8 +35,10 @@ const register = catchAsync(async (req, res, next) => {
     return next(new AppError("Email address already registered.", 400));
   }
 
-  // 2) Hash security password
-  const saltRounds = 10;
+  // 2) Hash the password. Cost factor 12 raises the per-guess cost for an
+  //    offline cracker; bcrypt stores the cost in the hash, so previously
+  //    hashed (cost-10) passwords still verify unchanged.
+  const saltRounds = 12;
   const hashedPassword = await bcrypt.hash(password, saltRounds);
 
   // 3) Create user
@@ -71,7 +80,15 @@ const login = catchAsync(async (req, res, next) => {
     where: { email },
   });
 
-  if (!user || !(await bcrypt.compare(password, user.password))) {
+  // Always perform a bcrypt comparison (against a dummy hash when the user is
+  // absent) so success and failure paths take the same time — no user
+  // enumeration via timing.
+  const passwordOk = await bcrypt.compare(
+    password,
+    user ? user.password : DUMMY_HASH
+  );
+
+  if (!user || !passwordOk) {
     return next(new AppError("Incorrect email address or password.", 401));
   }
 

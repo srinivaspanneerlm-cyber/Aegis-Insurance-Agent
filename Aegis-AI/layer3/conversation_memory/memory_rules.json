@@ -7,11 +7,18 @@
     },
     "long_term": {
       "purpose": "Archive verified profile attributes, preferences, and calculated indicators.",
-      "triggers": ["profile_update", "insurance_preference_locked"]
+      "triggers": [
+        "profile_update",
+        "insurance_preference_locked"
+      ]
     },
     "important": {
       "purpose": "Store high-priority indicators like medical history, claims, asset types, and high budgets.",
-      "indicators": ["pre_existing_conditions", "prior_claims", "high_budget_threshold"]
+      "indicators": [
+        "pre_existing_conditions",
+        "prior_claims",
+        "high_budget_threshold"
+      ]
     },
     "temporary": {
       "purpose": "Store temporary calculation variables, raw search queries, and transient options.",
@@ -85,15 +92,13 @@
       },
       "property": {
         "patterns": [
-          "own\\s+a\\s+(?:house|apartment|villa|building|property)",
+          "own\\s+a\\s+(house|apartment|villa|building|flat)",
           "tenant\\s+in\\s+a\\s+([a-zA-Z0-9\\s]+)",
-          "rent\\s+an\\s+([a-zA-Z0-9\\s]+)",
-          "property\\s+size\\s+is\\s+(\\d+)",
-          "house\\s+is\\s+([a-zA-Z0-9\\s]+)",
-          "live\\s+in\\s+a\\s+([a-zA-Z0-9\\s]+)",
-          "need\\s+insurance\\s+for\\s+my\\s+([a-zA-Z0-9\\s]+)",
-          "insurance\\s+for\\s+my\\s+([a-zA-Z0-9\\s]+)",
-          "live\\s+in\\s+a\\s+rented\\s+apartment"
+          "rent\\s+an?\\s+(apartment|flat|house|villa)",
+          "property\\s+(?:type|size)\\s+is\\s+([a-zA-Z0-9\\s]+)",
+          "my\\s+house\\s+is\\s+([a-zA-Z0-9\\s]+)",
+          "live\\s+in\\s+(?:a\\s+)?(apartment|flat|villa|house|bungalow)",
+          "insurance\\s+for\\s+my\\s+(house|flat|apartment|villa|property|building)"
         ],
         "type": "string"
       },

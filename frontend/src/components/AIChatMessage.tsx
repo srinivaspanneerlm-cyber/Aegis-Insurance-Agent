@@ -50,6 +50,7 @@ interface AIChatMessageProps {
   theme: "dark" | "light";
   onApplyPlan?: (planName: string) => void;
   onOptionClick?: (optionText: string) => void;
+  onUIAction?: (action: string, planData: RecommendationData) => void;
 }
 
 function parseRecommendation(text: string): { data: RecommendationData; cleanedText: string } | null {
@@ -205,22 +206,53 @@ const FormattedText = memo(function FormattedText({
 const RecommendationCard = memo(function RecommendationCard({
   data,
   onApply,
+  onUIAction,
 }: {
   data: RecommendationData;
   onApply?: (planName: string) => void;
+  onUIAction?: (action: string, planData: RecommendationData) => void;
 }) {
   const handleViewDetails = () => {
     localStorage.setItem("selectedPlanDetails", JSON.stringify(data));
-    window.location.href = "/policies/details";
+    if (onUIAction) {
+      onUIAction("view_details", data);
+    } else {
+      window.location.href = "/policies/details";
+    }
   };
 
   const handleCompare = () => {
     localStorage.setItem("selectedPlanDetails", JSON.stringify(data));
-    window.location.href = "/policies/details?compare=true";
+    if (onUIAction) {
+      onUIAction("compare_plans", data);
+    } else {
+      window.location.href = "/policies/details?compare=true";
+    }
   };
 
-  // Determine category variables
-  const cat = (data.category || "health").toLowerCase();
+  const handleSelectPlan = () => {
+    if (onUIAction) {
+      onUIAction("select_plan", data);
+    } else {
+      onApply?.(data.planName);
+    }
+  };
+
+  // Determine and normalize category variables (support 'home-property', 'home_property', etc.)
+  const rawCat = (data.category || "health").toLowerCase();
+  let cat = rawCat;
+  // Normalize common variants to UI categories
+  if (rawCat.includes("property") || rawCat.includes("home-property") || rawCat.includes("home_property")) {
+    cat = "property";
+  } else if (rawCat.includes("motor") || rawCat.includes("vehicle") || rawCat.includes("car") || rawCat.includes("bike") || rawCat.includes("two-wheeler")) {
+    cat = "motor";
+  } else if (rawCat.includes("travel") || rawCat.includes("destination") || rawCat.includes("international") || rawCat.includes("domestic")) {
+    cat = "travel";
+  } else if (rawCat.includes("misc") || rawCat.includes("miscellaneous") || rawCat.includes("general")) {
+    cat = "miscellaneous";
+  } else {
+    cat = rawCat;
+  }
   let CategoryIcon = Activity;
   let categoryLabel = "HOLOGRAPHIC MATCH DETECTED";
   let themeGradient = "from-cyan-400 to-purple-400";
@@ -422,7 +454,7 @@ const RecommendationCard = memo(function RecommendationCard({
             </button>
           </div>
           <button
-            onClick={() => onApply?.(data.planName)}
+            onClick={handleSelectPlan}
             className={`w-full py-3 rounded-2xl font-black text-xs uppercase tracking-widest bg-gradient-to-r ${themeGradient} text-slate-950 flex items-center justify-center gap-2 transition-all duration-200 shadow-[0_8px_25px_rgba(6,182,212,0.15)] hover:scale-[1.01] active:scale-95 active:shadow-[0_0_15px_rgba(6,182,212,0.3)] touch-manipulation select-none cursor-pointer border border-white/10`}
           >
             <ShieldCheck className="w-4 h-4" />
@@ -444,6 +476,7 @@ const AIChatMessage = memo(function AIChatMessage({
   theme,
   onApplyPlan,
   onOptionClick,
+  onUIAction,
 }: AIChatMessageProps) {
   const isDark = theme === "dark";
   const parsed = parseRecommendation(text);
@@ -478,7 +511,7 @@ const AIChatMessage = memo(function AIChatMessage({
 
         {/* Recommendation Card */}
         {parsed && (
-          <RecommendationCard data={parsed.data} onApply={onApplyPlan} />
+          <RecommendationCard data={parsed.data} onApply={onApplyPlan} onUIAction={onUIAction} />
         )}
 
         {/* Timestamp */}

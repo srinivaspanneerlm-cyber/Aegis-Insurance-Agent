@@ -1,0 +1,297 @@
+"""
+Aegis AI — Conversation State Middleware
+
+Reusable pre-flight middleware shared by ALL specialist agents.
+Runs before every LLM call to:
+
+  1. Determine conversation STATE (9-state machine)
+  2. Detect customer INTENT (explain / compare / purchase / general)
+  3. Manage RECOMMENDATION LOCK (never regenerate card unless profile changed)
+  4. Build STRUCTURED PROFILE VIEW (coverageType, memberCount, eldestAge, ...)
+  5. Produce MIDDLEWARE CONTEXT consumed by _build_workflow_context()
+
+States:
+  Greeting → Qualification → Data Collection → Recommendation Analysis →
+  Recommendation Presented → Comparison → Purchase →
+  Transfer Pending → Transfer Completed
+"""
+
+import re
+from dataclasses import dataclass, field
+from enum import Enum
+from typing import Dict, List, Optional, Any
+
+
+# ── States ─────────────────────────────────────────────────────────────────────
+
+class ConversationState(str, Enum):
+    GREETING                 = "Greeting"
+    QUALIFICATION            = "Qualification"
+    DATA_COLLECTION          = "Data Collection"
+    RECOMMENDATION_ANALYSIS  = "Recommendation Analysis"
+    RECOMMENDATION_PRESENTED = "Recommendation Presented"
+    COMPARISON               = "Comparison"
+    PURCHASE                 = "Purchase"
+    TRANSFER_PENDING         = "Transfer Pending"
+    TRANSFER_COMPLETED       = "Transfer Completed"
+
+
+# ── Intents ────────────────────────────────────────────────────────────────────
+
+class ConversationIntent(str, Enum):
+    EXPLAIN   = "explain"    # "Why this plan?" / "Explain the recommendation"
+    COMPARE   = "compare"    # "Cheaper?" / "Compare plans" / "Alternative?"
+    PURCHASE  = "purchase"   # "Buy this" / "Proceed" / "Apply now"
+    GENERAL   = "general"    # Profile data or unclassified message
+
+
+_EXPLAIN_KW = [
+    "why this", "why did you", "why select", "why recommend", "why choose",
+    "explain", "reasoning", "what makes", "how did you", "basis of",
+    "why this plan", "justify", "rationale", "tell me why", "reason for",
+    "why did you pick", "why not", "how is this", "what is the reasoning",
+]
+_COMPARE_KW = [
+    "cheaper", "less expensive", "lower premium", "compare", "alternative",
+    "better option", "other plan", "different plan", "something cheaper",
+    "anything else", "other options", "show me more", "compare plans",
+    "premium difference", "better coverage", "upgrade", "downgrade",
+    "something better", "is there a better", "can you suggest",
+    "more affordable", "budget friendly", "better value",
+]
+_PURCHASE_KW = [
+    "buy", "purchase", "proceed", "take this", "select this", "want this",
+    "apply", "sign up", "enroll", "get started", "finalize", "confirm",
+    "go ahead", "let's do it", "i'll take it", "proceed with",
+    "move forward", "yes, this one", "sounds good", "let me buy",
+]
+
+
+# ── Customer profile view ──────────────────────────────────────────────────────
+
+@dataclass
+class CustomerProfileView:
+    """
+    Structured view of customer data for the conversation state machine.
+    Maps the flat profile dict to the schema required by the spec:
+      { coverageType, memberCount, eldestAge, city, medicalConditions,
+        monthlyBudget, recommendationCompleted }
+    """
+    coverageType:           Optional[str]   = None  # "individual" | "family"
+    memberCount:            Optional[int]   = None
+    eldestAge:              Optional[int]   = None
+    city:                   Optional[str]   = None
+    medicalConditions:      Optional[str]   = None  # "none" or description
+    monthlyBudget:          Optional[float] = None
+    recommendationCompleted: bool           = False
+
+    @classmethod
+    def from_profile(
+        cls,
+        profile: dict,
+        has_recommendation: bool = False,
+    ) -> "CustomerProfileView":
+        fs = profile.get("family_size")
+        if fs == 1:
+            coverage = "individual"
+        elif fs and int(fs) > 1:
+            coverage = "family"
+        else:
+            coverage = None
+        return cls(
+            coverageType            = coverage,
+            memberCount             = fs,
+            eldestAge               = profile.get("age"),
+            city                    = profile.get("location"),
+            medicalConditions       = profile.get("medical_history"),
+            monthlyBudget           = profile.get("budget"),
+            recommendationCompleted = has_recommendation,
+        )
+
+    def missing_field_labels(self) -> List[str]:
+        """Human-readable labels for fields still needed (for structured display)."""
+        fields = []
+        if not self.memberCount:        fields.append("Who to cover / how many members")
+        if not self.eldestAge:          fields.append("Age of eldest member")
+        if not self.city:               fields.append("City")
+        if not self.monthlyBudget:      fields.append("Monthly budget")
+        if not self.medicalConditions:  fields.append("Medical conditions (if any)")
+        return fields
+
+    def as_summary(self) -> str:
+        """One-line structured summary for LLM prompt context."""
+        parts = []
+        if self.coverageType:   parts.append(f"Coverage: {self.coverageType}")
+        if self.memberCount:    parts.append(f"{self.memberCount} members")
+        if self.eldestAge:      parts.append(f"eldest age {self.eldestAge}")
+        if self.city:           parts.append(f"city {self.city}")
+        if self.monthlyBudget:  parts.append(f"₹{self.monthlyBudget}/month budget")
+        if self.medicalConditions: parts.append(f"medical: {self.medicalConditions}")
+        return ", ".join(parts) if parts else "(no profile data yet)"
+
+
+# ── Middleware result ──────────────────────────────────────────────────────────
+
+@dataclass
+class MiddlewareContext:
+    """Result of ConversationMiddleware.analyze() — consumed by _build_workflow_context()."""
+    state:             ConversationState
+    intent:            ConversationIntent
+    profile_view:      CustomerProfileView
+    locked:            bool              # Rec is locked — DO NOT regenerate card
+    force_compare:     bool              # Generate alternative plan (skip cache)
+    existing_rec_summary: Optional[str]  # Brief summary of cached rec (for EXPLAIN mode)
+
+
+# ── Middleware ─────────────────────────────────────────────────────────────────
+
+class ConversationMiddleware:
+    """
+    Reusable pre-flight conversation middleware for all Aegis AI specialist agents.
+
+    Usage (in BaseInsuranceAgent.generate_response):
+        existing_rec = ...  # cached rec result or None
+        pipeline_complete = not bool(missing)
+        ctx = self._middleware.analyze(
+            message, profile, history, existing_rec, pipeline_complete
+        )
+        # use ctx.state, ctx.intent, ctx.locked, ctx.force_compare in _build_workflow_context
+    """
+
+    def analyze(
+        self,
+        message: str,
+        profile: dict,
+        history: List[Dict],
+        existing_recommendation: Optional[dict],
+        pipeline_complete: bool = False,
+        is_pure_router: bool = False,  # True for Executive AI
+    ) -> MiddlewareContext:
+        """
+        Run the full pre-flight analysis for one conversation turn.
+
+        Parameters:
+            message:                Current user message
+            profile:                Current merged customer profile dict
+            history:                Full conversation history [{role, content}, ...]
+            existing_recommendation: Cached rec_result from recommendation cache (or None)
+            pipeline_complete:      True when _check_missing_details() returns [] (no missing)
+            is_pure_router:         True for Executive AI (skip most analysis)
+        """
+        has_rec = existing_recommendation is not None
+
+        # Build structured profile view
+        pv = CustomerProfileView.from_profile(profile, has_recommendation=has_rec)
+
+        # Pure router (Executive AI) — always in qualification/routing mode
+        if is_pure_router:
+            return MiddlewareContext(
+                state=ConversationState.QUALIFICATION,
+                intent=ConversationIntent.GENERAL,
+                profile_view=pv,
+                locked=False,
+                force_compare=False,
+                existing_rec_summary=None,
+            )
+
+        # 1. Detect intent
+        intent = self._detect_intent(message)
+
+        # 2. Determine state
+        state = self._determine_state(
+            profile_view=pv,
+            history=history,
+            has_recommendation=has_rec,
+            pipeline_complete=pipeline_complete,
+            intent=intent,
+        )
+
+        # 3. Recommendation lock:
+        #    Lock when rec exists AND state is RECOMMENDATION_PRESENTED
+        #    AND intent is NOT compare/purchase (which require fresh rec)
+        locked = (
+            has_rec
+            and state == ConversationState.RECOMMENDATION_PRESENTED
+            and intent not in (ConversationIntent.COMPARE, ConversationIntent.PURCHASE)
+        )
+
+        # 4. Force compare: generate an alternative (skip cache)
+        force_compare = (intent == ConversationIntent.COMPARE)
+
+        # 5. Build rec summary for EXPLAIN mode
+        rec_summary = self._build_rec_summary(existing_recommendation) if has_rec else None
+
+        return MiddlewareContext(
+            state=state,
+            intent=intent,
+            profile_view=pv,
+            locked=locked,
+            force_compare=force_compare,
+            existing_rec_summary=rec_summary,
+        )
+
+    # ── Intent detection ──────────────────────────────────────────────────────
+
+    def _detect_intent(self, message: str) -> ConversationIntent:
+        msg = message.lower()
+        if any(kw in msg for kw in _EXPLAIN_KW):
+            return ConversationIntent.EXPLAIN
+        if any(kw in msg for kw in _COMPARE_KW):
+            return ConversationIntent.COMPARE
+        if any(kw in msg for kw in _PURCHASE_KW):
+            return ConversationIntent.PURCHASE
+        return ConversationIntent.GENERAL
+
+    # ── State determination ───────────────────────────────────────────────────
+
+    def _determine_state(
+        self,
+        profile_view: CustomerProfileView,
+        history: List[Dict],
+        has_recommendation: bool,
+        pipeline_complete: bool,
+        intent: ConversationIntent,
+    ) -> ConversationState:
+
+        # Purchase / Compare override any other state
+        if intent == ConversationIntent.PURCHASE:
+            return ConversationState.PURCHASE
+
+        if intent == ConversationIntent.COMPARE:
+            return ConversationState.COMPARISON
+
+        # Recommendation already presented
+        if has_recommendation:
+            return ConversationState.RECOMMENDATION_PRESENTED
+
+        # Profile complete → ready to generate recommendation
+        if pipeline_complete:
+            return ConversationState.RECOMMENDATION_ANALYSIS
+
+        # Profile incomplete → determine where in collection we are
+        if not history:
+            return ConversationState.GREETING
+
+        # Early turns without coverage type → qualification
+        if not profile_view.memberCount and len(history) <= 2:
+            return ConversationState.QUALIFICATION
+
+        return ConversationState.DATA_COLLECTION
+
+    # ── Rec summary builder ───────────────────────────────────────────────────
+
+    def _build_rec_summary(self, rec: Optional[dict]) -> Optional[str]:
+        if not rec or not isinstance(rec, dict):
+            return None
+        primary = rec.get("primary_recommendation", {})
+        if not primary:
+            # Try flat structure
+            name    = rec.get("planName", rec.get("plan_name", "Selected Plan"))
+            premium = rec.get("premium", rec.get("premium_monthly", "?"))
+            cover   = rec.get("coverage", rec.get("coverage_limit", "?"))
+        else:
+            name    = primary.get("plan_name", "Selected Plan")
+            premium = primary.get("premium_monthly", "?")
+            cover   = primary.get("coverage_limit", "?")
+
+        return f"{name} | ₹{premium}/month | Coverage: {cover}"

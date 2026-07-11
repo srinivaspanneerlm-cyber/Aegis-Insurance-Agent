@@ -17,17 +17,24 @@ const getResponseFromAIService = async (
   userMessage,
   userName = "Sri",
   productType = null,
-  sessionId = null
+  sessionId = null,
+  userId = null
 ) => {
   const aiServiceUrl = env.AI_SERVICE_URL;
 
-  // Fetch recent conversation history for context
+  // Fetch recent conversation history for context. Scope strictly to the
+  // authenticated user so one customer's messages can never leak into another
+  // customer's AI prompt (cross-tenant data isolation). Without a userId we
+  // send no history rather than a global feed.
   let history = [];
   try {
-    const recentChats = await prisma.chat.findMany({
-      orderBy: { createdAt: "desc" },
-      take: 8,
-    });
+    const recentChats = userId
+      ? await prisma.chat.findMany({
+          where: { userId },
+          orderBy: { createdAt: "desc" },
+          take: 8,
+        })
+      : [];
     recentChats.reverse();
     history = recentChats.map((c) => ({
       sender: c.sender,

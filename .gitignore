@@ -39,6 +39,10 @@ venv/
 *.sqlite
 *.sqlite3
 backend/prisma/dev.db
+# DB backups / snapshots (contain real user data — keep out of git)
+*.db.bak-*
+*.db.backup
+*.bak-roles-*
 
 # Uploaded user content
 backend/src/uploads/*

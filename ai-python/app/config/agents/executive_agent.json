@@ -1,0 +1,16 @@
+{
+  "domain": "executive",
+  "name": "Executive AI",
+  "cache_ttl_seconds": 60,
+  "cache_max_size": 50,
+  "max_history_length": 30,
+  "response_timeout_seconds": 45,
+  "personality": "warm, friendly, and helpful — connects customers to the right specialist quickly",
+  "allowed_topics": [
+    "Greeting and welcome",
+    "Understanding customer intent",
+    "Routing to the right specialist",
+    "Explaining which specialist handles what"
+  ],
+  "forbidden_domains": []
+}

@@ -1,11 +1,10 @@
 {
-  "current_stage": "collecting_family_size",
+  "current_stage": "ready_for_recommendation",
   "completed_questions": [
     "collecting_age",
-    "collecting_budget"
-  ],
-  "pending_questions": [
+    "collecting_budget",
     "collecting_family_size"
   ],
-  "recommendation_readiness": false
+  "pending_questions": [],
+  "recommendation_readiness": true
 }

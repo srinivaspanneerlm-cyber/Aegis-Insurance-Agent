@@ -117,7 +117,7 @@ export default function ConsumerDashboard() {
             id: data.advisorMessage.id,
             sender: "ai",
             text: data.advisorMessage.message,
-            timestamp: new Date(data.advisorMessage.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+            timestamp: new Date(data.advisorMessage.createdAt ?? Date.now()).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
           }
         ]);
       }

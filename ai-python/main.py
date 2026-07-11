@@ -76,8 +76,11 @@ async def root_chat_endpoint(request: ChatRequest):
         )
         return _result_to_response(result)
     except Exception as e:
-        logger.error(f"Root endpoint error: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        # Log the full error server-side, but never echo internal exception
+        # details (stack traces, file paths, provider errors) back to the
+        # caller — that would leak implementation details to clients.
+        logger.error(f"Root endpoint error: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error.")
 
 
 # ---------------------------------------------------------------------------
@@ -132,13 +135,12 @@ async def root():
 
 @app.get("/health", tags=["Health"])
 async def health_check():
-    """Detailed health check for monitoring."""
-    return {
-        "status": "healthy",
-        "llm_provider": settings.active_provider,
-        "gemini_configured": bool(settings.GEMINI_API_KEY),
-        "openai_configured": bool(settings.OPENAI_API_KEY),
-    }
+    """Liveness probe for monitoring / load balancers.
+
+    Intentionally minimal: it must not disclose which LLM providers or API
+    keys are configured, since this endpoint is publicly reachable.
+    """
+    return {"status": "healthy"}
 
 
 # ---------------------------------------------------------------------------

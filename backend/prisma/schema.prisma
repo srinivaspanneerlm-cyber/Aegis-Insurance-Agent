@@ -37,10 +37,14 @@ model Lead {
 }
 
 model Chat {
-  id        String   @id @default(uuid())
-  message   String
-  sender    String
-  createdAt DateTime @default(now())
+  id          String   @id @default(uuid())
+  message     String
+  sender      String
+  sessionId   String?
+  userId      String?
+  agentName   String?
+  agentDomain String?
+  createdAt   DateTime @default(now())
 }
 
 model Policy {

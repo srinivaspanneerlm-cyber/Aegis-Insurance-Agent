@@ -82,8 +82,14 @@ const initSockets = (io) => {
           // Emit typing status in room
           socket.to(roomId).emit("typing_state", { isTyping: true });
 
-          // Fetch AI response
-          const aiReplyText = await aiService.getResponseFromAIService(message, authUser.name);
+          // Fetch AI response — scope history to the authenticated user.
+          const aiReplyText = await aiService.getResponseFromAIService(
+            message,
+            authUser.name,
+            null,
+            null,
+            authUser.id
+          );
 
           // Save AI response to database
           const savedAiMsg = await prisma.chat.create({

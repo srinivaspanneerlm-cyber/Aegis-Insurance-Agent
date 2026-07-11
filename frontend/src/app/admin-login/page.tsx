@@ -51,7 +51,9 @@ export default function AdminLoginPage() {
     }
 
     try {
-      await login(finalEmail, password);
+      // adminOnly: reject (and clear the session of) any non-admin account that
+      // authenticates through the administrator portal.
+      await login(finalEmail, password, { adminOnly: true });
       // login handles redirect
     } catch (err: any) {
       setErrorMsg(err.message || "Access Denied: Invalid Security Officer credentials.");

@@ -1,0 +1,17 @@
+{
+  "customer_id": "executive_cust_sri",
+  "name": "Sri",
+  "age": null,
+  "gender": null,
+  "marital_status": null,
+  "occupation": null,
+  "annual_income": null,
+  "family_size": null,
+  "budget": null,
+  "location": null,
+  "existing_policies": [],
+  "preferred_category": null,
+  "risk_profile": null,
+  "conversation_history_count": 1,
+  "last_interaction": "2026-07-11T07:44:55.205216"
+}

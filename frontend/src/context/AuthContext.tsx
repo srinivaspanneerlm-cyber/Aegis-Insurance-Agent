@@ -12,10 +12,17 @@ interface User {
   createdAt: string;
 }
 
+interface LoginOptions {
+  // When true, only admin/superadmin accounts are accepted. A customer who
+  // authenticates through an admin-only portal is denied and their session is
+  // cleared (used by the /admin-login page).
+  adminOnly?: boolean;
+}
+
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, options?: LoginOptions) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   isAuthenticated: boolean;
@@ -57,16 +64,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [router]);
 
   // 2) Log in method
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string, options: LoginOptions = {}) => {
     setLoading(true);
     try {
       const res = await authService.login({ email, password });
       // Token is delivered as an httpOnly cookie by the server; nothing to store.
       const userData = res.data.user;
+      const isAdminRole =
+        userData.role === "admin" || userData.role === "superadmin";
+
+      // Admin-only portal: a non-admin who authenticates here is denied. We tear
+      // down the session that was just established (clear the httpOnly cookie)
+      // so a customer can never hold a session obtained via the admin portal.
+      if (options.adminOnly && !isAdminRole) {
+        try {
+          await authService.logout();
+        } catch {
+          // ignore — we still drop local state below
+        }
+        setUser(null);
+        throw new Error("Access denied: this portal is for administrators only.");
+      }
+
       setUser(userData);
-      
+
       // Intelligent role-based redirection
-      if (userData.role === "admin" || userData.role === "superadmin") {
+      if (isAdminRole) {
         router.push("/admin-dashboard");
       } else {
         router.push("/consumer-dashboard");

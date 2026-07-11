@@ -1,0 +1,24 @@
+{
+  "customer_id": "cust_sri",
+  "domain": "executive",
+  "profile_hash": "9fd180a6940b82f4",
+  "key_field_snapshot": {
+    "budget": null,
+    "annual_income": null
+  },
+  "rec_result": {
+    "recommendation_score": 0.0,
+    "risk_level": "Low Risk",
+    "coverage_match_percentage": 0.0,
+    "budget_match_percentage": 0.0,
+    "top_recommendation": null,
+    "alternative_recommendation": null,
+    "recommendation_reason": "No plans matching your budget and pre-qualification constraints were found.",
+    "confidence_score": 0.0
+  },
+  "exec_approval": {
+    "status": "Approved",
+    "notes": "Reviewed and approved. Underwritten by Executive AI. Coverage parameters and eligibility verified. Aegis AI Advisory Team."
+  },
+  "generated_at": "2026-07-11T07:44:55.205696"
+}

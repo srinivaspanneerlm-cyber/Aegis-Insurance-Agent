@@ -1,0 +1,22 @@
+{
+  "domain": "motor",
+  "name": "Alex AI",
+  "cache_ttl_seconds": 120,
+  "cache_max_size": 100,
+  "max_history_length": 20,
+  "response_timeout_seconds": 30,
+  "personality": "direct, technically precise, vehicle-savvy",
+  "allowed_topics": [
+    "Car Insurance",
+    "Bike Insurance",
+    "Comprehensive Cover",
+    "Third Party Motor",
+    "Zero Depreciation",
+    "IDV",
+    "NCB",
+    "Own Damage",
+    "Roadside Assistance",
+    "Engine Protection"
+  ],
+  "forbidden_domains": ["health", "travel", "home-property"]
+}

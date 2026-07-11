@@ -1,0 +1,18 @@
+{
+  "domain": "health",
+  "name": "Sarah AI",
+  "cache_ttl_seconds": 180,
+  "cache_max_size": 100,
+  "max_history_length": 20,
+  "response_timeout_seconds": 30,
+  "personality": "empathetic, patient, medically fluent",
+  "allowed_topics": [
+    "Health Insurance",
+    "Family Floater",
+    "Critical Illness",
+    "Cashless Hospitals",
+    "Health Claims",
+    "Medical Riders"
+  ],
+  "forbidden_domains": ["motor", "travel", "home-property"]
+}

@@ -19,7 +19,14 @@ const companyRoutes = require("./routes/company.routes");
 const adminRoutes = require("./routes/admin.routes");
 const uiActionRoutes = require("./routes/ui_action.routes");
 
+const env = require("./config/env");
+
 const app = express();
+
+// Trust only the configured number of front proxies so req.ip (and therefore
+// the rate limiter's per-client key) reflects the real client address without
+// letting arbitrary clients spoof X-Forwarded-For. Defaults to false.
+app.set("trust proxy", env.TRUST_PROXY);
 
 // 1) GLOBAL SECURITY & LOGGING MIDDLEWARES
 app.use(

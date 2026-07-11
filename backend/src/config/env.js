@@ -93,6 +93,19 @@ const env = {
 
   // Startup convenience flag (kill -9 on occupied port). Disabled by default.
   AUTO_RELEASE_PORT: (process.env.AUTO_RELEASE_PORT || "false").toLowerCase() === "true",
+
+  // Express `trust proxy` setting. Controls how req.ip (used by the rate
+  // limiter) is derived from X-Forwarded-For. Keep "false" when the app is
+  // directly exposed; set to the NUMBER OF TRUSTED PROXIES (e.g. "1" behind a
+  // single load balancer) in production. Never set "true" blindly — that lets
+  // clients spoof their IP and evade rate limiting.
+  TRUST_PROXY: (() => {
+    const raw = (process.env.TRUST_PROXY || "false").trim().toLowerCase();
+    if (raw === "false" || raw === "") return false;
+    if (raw === "true") return true;
+    const n = parseInt(raw, 10);
+    return Number.isNaN(n) ? false : n;
+  })(),
 };
 
 module.exports = env;

@@ -1,0 +1,23 @@
+{
+  "domain": "home-property",
+  "name": "Emma AI",
+  "cache_ttl_seconds": 120,
+  "cache_max_size": 100,
+  "max_history_length": 20,
+  "response_timeout_seconds": 30,
+  "personality": "warm, thorough, real-estate-aware",
+  "allowed_topics": [
+    "Home Insurance",
+    "Property Insurance",
+    "Fire Cover",
+    "Flood Cover",
+    "Earthquake Cover",
+    "Theft Cover",
+    "Contents Insurance",
+    "Structural Cover",
+    "Landlord Insurance",
+    "Tenant Insurance",
+    "Relocation Cover"
+  ],
+  "forbidden_domains": ["health", "motor", "travel"]
+}

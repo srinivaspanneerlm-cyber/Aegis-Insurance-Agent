@@ -21,7 +21,8 @@ const createChatMessage = catchAsync(async (req, res, next) => {
     message,
     userName,
     product_type,
-    session_id
+    session_id,
+    userId
   );
 
   const replyText = typeof aiResult === "string" ? aiResult : aiResult.reply || "";
