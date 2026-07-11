@@ -1,5 +1,5 @@
 const jwt = require("jsonwebtoken");
-const prisma = require("../config/db");
+const { userRepository } = require("../repositories");
 const env = require("../config/env");
 const AppError = require("../utils/appError");
 const catchAsync = require("../utils/catchAsync");
@@ -34,9 +34,7 @@ const protect = catchAsync(async (req, res, next) => {
   }
 
   // 3) Check if user still exists
-  const user = await prisma.user.findUnique({
-    where: { id: decoded.id },
-  });
+  const user = await userRepository.findById(decoded.id);
 
   if (!user) {
     return next(

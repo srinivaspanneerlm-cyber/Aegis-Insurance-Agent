@@ -1,4 +1,4 @@
-const prisma = require("../config/db");
+const { policyRepository, companyRepository } = require("../repositories");
 const AppError = require("../utils/appError");
 const catchAsync = require("../utils/catchAsync");
 
@@ -6,22 +6,18 @@ const createPolicy = catchAsync(async (req, res, next) => {
   const { policyName, premium, coverage, companyId } = req.body;
 
   // 1) Verify that the company exists
-  const company = await prisma.company.findUnique({
-    where: { id: companyId },
-  });
+  const company = await companyRepository.findById(companyId);
 
   if (!company) {
     return next(new AppError("Associated Company identifier not found.", 404));
   }
 
   // 2) Save policy
-  const newPolicy = await prisma.policy.create({
-    data: {
-      policyName,
-      premium,
-      coverage,
-      companyId,
-    },
+  const newPolicy = await policyRepository.create({
+    policyName,
+    premium,
+    coverage,
+    companyId,
   });
 
   res.status(201).json({
@@ -33,16 +29,19 @@ const createPolicy = catchAsync(async (req, res, next) => {
 });
 
 const getPolicies = catchAsync(async (req, res, next) => {
-  const policies = await prisma.policy.findMany({
-    include: {
-      company: {
-        select: {
-          companyName: true,
-          logo: true,
+  const policies = await policyRepository.findMany(
+    {},
+    {
+      include: {
+        company: {
+          select: {
+            companyName: true,
+            logo: true,
+          },
         },
       },
-    },
-  });
+    }
+  );
 
   res.status(200).json({
     status: "success",
@@ -56,8 +55,7 @@ const getPolicies = catchAsync(async (req, res, next) => {
 const getPolicyById = catchAsync(async (req, res, next) => {
   const { id } = req.params;
 
-  const policy = await prisma.policy.findUnique({
-    where: { id },
+  const policy = await policyRepository.findById(id, {
     include: {
       company: {
         select: {

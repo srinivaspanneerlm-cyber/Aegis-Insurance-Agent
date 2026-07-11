@@ -1,15 +1,13 @@
-const prisma = require("../config/db");
+const { companyRepository } = require("../repositories");
 const catchAsync = require("../utils/catchAsync");
 
 const createCompany = catchAsync(async (req, res, next) => {
   const { companyName, logo, description } = req.body;
 
-  const newCompany = await prisma.company.create({
-    data: {
-      companyName,
-      logo,
-      description,
-    },
+  const newCompany = await companyRepository.create({
+    companyName,
+    logo,
+    description,
   });
 
   res.status(201).json({
@@ -21,9 +19,7 @@ const createCompany = catchAsync(async (req, res, next) => {
 });
 
 const getCompanies = catchAsync(async (req, res, next) => {
-  const companies = await prisma.company.findMany({
-    orderBy: { createdAt: "desc" },
-  });
+  const companies = await companyRepository.findMany({}, { orderBy: { createdAt: "desc" } });
 
   res.status(200).json({
     status: "success",

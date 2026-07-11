@@ -1,16 +1,18 @@
 # DATABASE.md — Data Model & Persistence
 
 > The authoritative reference for Aegis AI's relational data: models,
-> relationships, indexes, migrations, performance, and the scaling path from
-> SQLite (development) to PostgreSQL (production).
+> relationships, indexes, the repository layer, migrations, performance, and the
+> scaling path from SQLite (development) to PostgreSQL (production).
 >
 > **See also:** [ARCHITECTURE.md](ARCHITECTURE.md) ·
-> [API_REFERENCE.md](API_REFERENCE.md) · [SECURITY.md](SECURITY.md)
+> [API_REFERENCE.md](API_REFERENCE.md) · [SECURITY.md](SECURITY.md) ·
+> [PROJECT_RULES.md](PROJECT_RULES.md)
 
 Aegis AI has **two persistence systems**:
-1. **Relational DB** (Prisma) — users, companies, leads, policies, chats,
-   documents. *This document.*
-2. **File-backed AI memory** (`Aegis-AI/layer3/`) — conversation history and
+1. **Relational DB** (Prisma) — users, catalogue, leads, chats, documents, plus
+   the AI-platform tables (sessions, recommendations, transfers, notifications,
+   audit). *This document.*
+2. **File-backed AI memory** (`Aegis-AI/layer3/`) — live conversation history &
    customer profiles managed by `MemoryOrchestrator`. See
    [ARCHITECTURE.md §6](ARCHITECTURE.md).
 
@@ -20,196 +22,219 @@ Aegis AI has **two persistence systems**:
 
 | Aspect | Development | Production (target) |
 |---|---|---|
-| Engine | SQLite (`file:./dev.db`) | PostgreSQL |
+| Engine | SQLite (`env DATABASE_URL`) | PostgreSQL (same schema) |
 | ORM | Prisma Client | Prisma Client |
 | IDs | `uuid` (string) | `uuid` |
-| Access | **Prisma only** — no raw SQL | Prisma only |
+| Access | **Repository layer only** | Repository layer only |
+| Migrations | `prisma migrate` (versioned) | `prisma migrate deploy` |
 
-All data access goes through Prisma (`backend/src/config/db.js`). Schema lives in
-`backend/prisma/schema.prisma`; seed logic in `prisma/seed.js`.
+The datasource URL is read from `env("DATABASE_URL")`, so the **same schema**
+runs on SQLite or PostgreSQL — the production switch is a connection-string +
+`prisma migrate deploy`, no model changes.
 
 ---
 
-## 2. Entity-Relationship Model
+## 2. Enterprise Field Conventions
+
+Every core model carries a consistent set of operational fields:
+
+| Field | Type | Purpose |
+|---|---|---|
+| `id` | `uuid` PK | stable identifier |
+| `createdAt` / `uploadedAt` / `startedAt` | `DateTime @default(now())` | creation time |
+| `updatedAt` / `lastActive` | `DateTime @updatedAt` | last-modified time |
+| `deletedAt` | `DateTime?` | **soft delete** marker (present, not yet enforced — see §6) |
+| `version` | `Int @default(1)` | **optimistic-locking** token |
+| `isActive` | `Boolean @default(true)` | lifecycle flag (identity/catalogue) |
+
+> Soft-delete columns exist on all core models but are **not yet filtered in
+> queries** — enabling that would change response behaviour, so it is a
+> deliberate, separately-reviewed follow-up. The schema is ready for it today.
+
+---
+
+## 3. Entity-Relationship Model
 
 ```mermaid
 erDiagram
-    USER {
-        string id PK
-        string name
-        string email UK
-        string password
-        string role
-        datetime createdAt
-    }
-    COMPANY {
-        string id PK
-        string companyName
-        string logo
-        string description
-        datetime createdAt
-    }
-    POLICY {
-        string id PK
-        string policyName
-        float premium
-        string coverage
-        string companyId FK
-    }
-    LEAD {
-        string id PK
-        string customerName
-        string email
-        string phone
-        string insuranceType
-        string budget
-        string status
-        datetime createdAt
-    }
-    CHAT {
-        string id PK
-        string message
-        string sender
-        string sessionId
-        string userId
-        string agentName
-        string agentDomain
-        datetime createdAt
-    }
-    UPLOADEDDOCUMENT {
-        string id PK
-        string filename
-        string filepath
-        datetime uploadedAt
-    }
-
-    COMPANY ||--o{ POLICY : "has"
+    USER ||--o{ CHAT : "owns"
+    USER ||--o{ UPLOADEDDOCUMENT : "owns"
+    USER ||--o{ LEAD : "assigned"
+    USER ||--o{ SESSION : "has"
+    USER ||--o{ RECOMMENDATIONHISTORY : "has"
+    USER ||--o{ NOTIFICATION : "receives"
+    USER ||--o{ AUDITLOG : "acts"
+    COMPANY ||--o{ POLICY : "offers"
+    SESSION ||--o{ CHAT : "groups"
+    SESSION ||--o{ RECOMMENDATIONHISTORY : "produces"
+    SESSION ||--o{ AGENTTRANSFER : "records"
 ```
 
-**Enforced relationship:** `Company (1) → (N) Policy` with
-`onDelete: Cascade` — deleting a company removes its policies.
+**Enforced relationships (FKs):**
 
-**Logical (not yet FK-enforced) links:** `Chat.userId → User.id` and
-`Chat.sessionId` group a conversation. These are stored as nullable strings
-today; promoting them to real relations is a scaling recommendation (§7).
-
----
-
-## 3. Models in Detail
-
-### 3.1 User
-| Field | Type | Notes |
+| Relation | On delete | Notes |
 |---|---|---|
-| `id` | uuid PK | |
-| `name` | string | required |
-| `email` | string **unique** | login identifier |
-| `password` | string | **bcrypt-12 hash** — never plaintext |
-| `role` | string | `customer` \| `admin` \| `superadmin`; default `customer` |
-| `createdAt` | datetime | default now |
+| `Policy.companyId → Company.id` | Cascade | remove a company → its policies go |
+| `Chat.userId → User.id` | SetNull | keep the message, drop the owner link |
+| `Chat.sessionId → Session.sessionId` | SetNull | conversation grouping |
+| `UploadedDocument.ownerId → User.id` | SetNull | document ownership (closes IDOR) |
+| `Lead.assignedToId → User.id` | SetNull | staff assignment |
+| `Session.userId → User.id` | SetNull | session owner |
+| `Notification.userId → User.id` | Cascade | notifications die with the user |
+| `AuditLog.actorId → User.id` | SetNull | preserve the audit trail |
 
-Security-critical: public registration forces `role = customer`
-(see [SECURITY.md §3](SECURITY.md)).
-
-### 3.2 Company → Policy
-- `Company` holds branding + a `Policy[]` collection.
-- `Policy` has `premium` (Float), `coverage`, and a cascading FK to `Company`.
-
-### 3.3 Lead
-Prospect capture (name, email, phone, `insuranceType`, `budget`, `status`
-default `pending`). Managed by admins/superadmins.
-
-### 3.4 Chat
-Conversation log. `sender` distinguishes `customer` vs `advisor`; `userId`
-scopes ownership; `sessionId` groups a session; `agentName`/`agentDomain`
-capture which specialist replied.
-
-> **Tenant isolation:** all reads of `Chat` filter by `userId`
-> (see [SECURITY.md §8](SECURITY.md)).
-
-### 3.5 UploadedDocument
-File metadata (`filename`, `filepath`, `uploadedAt`). **Known gap:** no
-`ownerId` yet — tracked as an IDOR fix in [SECURITY.md §12](SECURITY.md).
+All owner-side links are **nullable** so legacy rows (e.g. the 246 pre-existing
+chats with `NULL userId`) remain valid — the migration was fully additive.
 
 ---
 
-## 4. Indexes
+## 4. Models
 
-| Model | Index | Type | Status |
-|---|---|---|---|
-| User | `email` | unique | ✅ present |
-| Company | `id` | primary | ✅ |
-| Policy | `companyId` | FK | ✅ (relation) |
-| Chat | `userId`, `sessionId` | secondary | ⚠️ recommended (§7) |
-| Lead | `status`, `createdAt` | secondary | ⚠️ recommended (§7) |
+### 4.1 Core business models
+| Model | Purpose | Key fields |
+|---|---|---|
+| **User** | Identity & auth | `email` (unique), `password` (bcrypt-12), `role`, `isActive` |
+| **Company** | Insurer catalogue | `companyName`, `policies[]` |
+| **Policy** | Insurance product | `premium`, `coverage`, `companyId` (cascade) |
+| **Lead** | Sales pipeline | `status`, `assignedToId` |
+| **Chat** | Conversation log | `userId`, `sessionId`, `agentName`, `agentDomain` |
+| **UploadedDocument** | File metadata | `ownerId`, `mimeType`, `sizeBytes` |
 
-**Recommendation:** add composite indexes on `Chat(userId, createdAt)` and
-`Chat(sessionId, createdAt)` — history is always read filtered by owner/session
-and ordered by time — and on `Lead(status, createdAt)` for admin listing.
+### 4.2 AI-platform models (prepared, additive)
+These support the multi-agent engine, recommendation lifecycle, and governance.
+They are **not yet wired** into the (file-backed) AI memory, so no AI workflow
+changes — they are ready for the future agents in [AI_AGENTS.md §9](AI_AGENTS.md).
+
+| Model | Purpose |
+|---|---|
+| **Session** | Session storage (external `sessionId`, active agent, status) |
+| **RecommendationHistory** | Every recommendation (domain, plan, score, `profileHash`, payload) |
+| **AgentTransfer** | Transfer history (from/to domain+agent, reason, approved) |
+| **Notification** | User notifications (type, read state) |
+| **AuditLog** | Security/audit trail (actor, action, entity, IP, metadata) |
+
+> Security note: `AuditLog.metadata` stores contextual JSON — **never** plaintext
+> secrets or sensitive PII. See [SECURITY.md](SECURITY.md).
 
 ---
 
-## 5. Migrations
+## 5. Indexes (all implemented)
 
-- **Dev workflow:** `npm run db:push` (`prisma db push`) syncs the schema to
-  SQLite; `prisma/seed.js` seeds companies/policies.
-- **Prod workflow (target):** switch to versioned `prisma migrate` migrations
-  under source control so schema changes are auditable and reversible.
-- **Rule:** every schema change updates this document and includes a migration;
-  never hand-edit the database.
+| Model | Index | Query it serves |
+|---|---|---|
+| User | `email` unique · `role` · `isActive` · `createdAt` · `deletedAt` | login, RBAC listing |
+| Company | `companyName` · `deletedAt` | catalogue |
+| Policy | `companyId` · `policyName` · `deletedAt` | product lookup |
+| Lead | `(status, createdAt)` · `email` · `assignedToId` · `deletedAt` | admin pipeline |
+| Chat | `(userId, createdAt)` · `(sessionId, createdAt)` · `agentDomain` · `deletedAt` | history reads |
+| UploadedDocument | `ownerId` · `deletedAt` | owner-scoped listing |
+| Session | `(userId, lastActive)` · `status` · `agentDomain` | session lookup |
+| RecommendationHistory | `(userId, createdAt)` · `sessionId` · `domain` · `profileHash` | rec history |
+| AgentTransfer | `(sessionId, createdAt)` · `toDomain` | transfer audit |
+| Notification | `(userId, isRead, createdAt)` · `type` | inbox |
+| AuditLog | `(actorId, createdAt)` · `(action, createdAt)` · `(entity, entityId)` | audit search |
+
+Composite indexes match the real access patterns — history is always read
+**owner-first, time-ordered**; leads/notifications **status/state-first**.
+
+---
+
+## 6. Repository Layer (data-access abstraction)
+
+Controllers and services depend on **repositories**, never on the Prisma client
+directly (Repository Pattern, [PROJECT_RULES.md §5](PROJECT_RULES.md)).
+
+```
+backend/src/repositories/
+├── base.repository.js   # generic CRUD + pagination + soft-delete + optimistic lock
+└── index.js             # singletons: user, chat, lead, policy, company, document
+```
+
+`BaseRepository` provides `findById`, `findUnique`, `findFirst`, `findMany`,
+`count`, `paginate` (bounded, max 100/page), `create`, `update`, `updateWhere`,
+`delete`, and `softDelete`. Specialised repositories add domain reads such as
+`userRepository.findByEmail`, `chatRepository.findRecentByUser`, and
+`documentRepository.findByOwner`.
+
+**Benefits:** one place to add caching, soft-delete enforcement, or a datastore
+swap; consistent pagination; no scattered Prisma calls.
+
+---
+
+## 7. Migrations
+
+The database uses **versioned Prisma migrations** (not ad-hoc `db push`).
+
+```
+backend/prisma/migrations/
+├── migration_lock.toml
+└── 00000000000000_init/
+    └── migration.sql        # baseline (all tables + indexes + FKs)
+```
 
 ```bash
-# Development
-npm run db:push          # apply schema.prisma to dev.db
-node prisma/seed.js      # seed reference data
-npm run db:studio        # inspect data (Prisma Studio)
+# Development — create & apply a new migration after editing schema.prisma
+npm run db:migrate            # prisma migrate dev
 
-# Production (target)
-npx prisma migrate deploy
+# Production — apply pending migrations non-interactively
+npm run db:migrate:deploy     # prisma migrate deploy
+
+# Utilities
+npm run db:migrate:status     # show migration state
+npm run db:generate           # regenerate the Prisma client
+npm run db:seed               # seed reference data
+npm run db:studio             # inspect data
 ```
+
+**Rule:** every schema change is a migration under source control, updates this
+document, and is verified against a data-populated database.
 
 ---
 
-## 6. Backups & Data Safety
+## 8. Backups & Data Safety
 
-- `dev.db` and any `*.db.bak-*` snapshots are **gitignored** (never committed —
-  they contain real user data).
+- `dev.db` and any `*.db.bak-*` snapshots are **gitignored** (real user data).
 - Take a snapshot before destructive operations:
   `cp backend/prisma/dev.db backend/prisma/dev.db.bak-<timestamp>`.
 - Production: automated, encrypted, point-in-time backups (managed Postgres).
+- Schema changes are always preceded by a backup and verified (row-count checks)
+  afterward.
 
 ---
 
-## 7. Performance & Scaling Path
+## 9. Performance & Scalability Path
 
-**Now (SQLite):** fine for development and low concurrency.
+**Done in this layer**
+- ✅ Composite indexes on every real query path (§5)
+- ✅ Repository layer with bounded pagination (no unbounded scans)
+- ✅ FK relations + cascade/set-null rules for referential integrity
+- ✅ Parallelised aggregate reads (e.g. admin dashboard uses `Promise.all`)
+- ✅ Provider-portable schema (SQLite → Postgres via env)
 
-**Scaling recommendations (production):**
-1. **Migrate to PostgreSQL** — concurrency, real indexing, and managed backups.
-2. **Add the indexes in §4** — especially `Chat(userId, createdAt)`.
-3. **Promote logical links to real relations** — `Chat.userId → User`,
-   `Lead`/`Policy` ownership — for referential integrity and cascade control.
-4. **Add `ownerId` to `UploadedDocument`** and scope queries (closes the IDOR).
-5. **Always paginate** — every list query uses `take`/cursor; the chat history
-   read is already capped (`take: 200`).
-6. **Connection pooling** (e.g. PgBouncer / Prisma Data Proxy) under load.
-7. **Separate hot vs archival chat data** if volume grows (partition/rollup).
-8. Consider a **vector store** for the knowledge layer as retrieval scales
-   (see [ARCHITECTURE.md §11](ARCHITECTURE.md)).
+**Production scaling (next)**
+1. **Migrate to PostgreSQL** — concurrency, native indexing, managed backups.
+2. **Connection pooling** (PgBouncer / Prisma Data Proxy).
+3. **Read replicas** for read-heavy dashboards & history.
+4. **Partition-ready** high-volume tables (Chat, AuditLog) by time.
+5. **Vector store** for the knowledge layer as retrieval scales.
+6. **Enforce soft delete** in a reviewed pass (schema already supports it).
 
-> None of the above changes business behaviour — they are integrity and
-> performance improvements to schedule in the Database hardening phase.
+None of these change business behaviour — they are integrity & performance
+improvements.
 
 ---
 
-## 8. Data Classification
+## 10. Data Classification
 
 | Data | Sensitivity | Handling |
 |---|---|---|
 | Passwords | Critical | bcrypt-12, never returned in responses |
-| Chat content (health/financial) | High | tenant-scoped, access-controlled |
+| Chat content (health/financial) | High | tenant-scoped by `userId` |
 | Customer profiles (Layer 3) | High | namespaced per customer |
+| Uploaded documents | High | owner-scoped (`ownerId`); admins may list all |
 | Leads (PII) | High | admin-only access |
-| Policies/Companies | Public-ish | readable to authenticated users |
+| Audit logs | Medium | no secrets/plaintext PII stored |
+| Policies / Companies | Public-ish | readable to authenticated users |
 
-Retention, deletion (right-to-erasure), and consent flows should be formalised
-before production launch.
+Retention, right-to-erasure, and consent flows should be formalised before
+production launch (they pair naturally with the soft-delete columns).

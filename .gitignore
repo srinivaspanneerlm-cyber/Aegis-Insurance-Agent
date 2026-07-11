@@ -39,6 +39,10 @@ venv/
 *.sqlite
 *.sqlite3
 backend/prisma/dev.db
+# SQLite sidecar/transient files (contain uncommitted DB data)
+*.db-journal
+*.db-wal
+*.db-shm
 # DB backups / snapshots (contain real user data — keep out of git)
 *.db.bak-*
 *.db.backup

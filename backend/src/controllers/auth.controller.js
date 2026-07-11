@@ -1,6 +1,6 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-const prisma = require("../config/db");
+const { userRepository } = require("../repositories");
 const env = require("../config/env");
 const AppError = require("../utils/appError");
 const catchAsync = require("../utils/catchAsync");
@@ -27,9 +27,7 @@ const register = catchAsync(async (req, res, next) => {
   const { name, email, password } = req.body;
 
   // 1) Verify email uniqueness
-  const existingUser = await prisma.user.findUnique({
-    where: { email },
-  });
+  const existingUser = await userRepository.findByEmail(email);
 
   if (existingUser) {
     return next(new AppError("Email address already registered.", 400));
@@ -42,21 +40,23 @@ const register = catchAsync(async (req, res, next) => {
   const hashedPassword = await bcrypt.hash(password, saltRounds);
 
   // 3) Create user
-  const newUser = await prisma.user.create({
-    data: {
+  const newUser = await userRepository.create(
+    {
       name,
       email,
       password: hashedPassword,
       role: "customer",
     },
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      role: true,
-      createdAt: true,
-    },
-  });
+    {
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        createdAt: true,
+      },
+    }
+  );
 
   // 4) Generate token — delivered as an httpOnly cookie (XSS-safe). Still
   //    returned in the body for backward compatibility with API clients.
@@ -76,9 +76,7 @@ const login = catchAsync(async (req, res, next) => {
   const { email, password } = req.body;
 
   // 1) Fetch user including password
-  const user = await prisma.user.findUnique({
-    where: { email },
-  });
+  const user = await userRepository.findByEmail(email);
 
   // Always perform a bcrypt comparison (against a dummy hash when the user is
   // absent) so success and failure paths take the same time — no user

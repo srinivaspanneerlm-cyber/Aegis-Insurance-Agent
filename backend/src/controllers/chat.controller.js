@@ -1,4 +1,4 @@
-const prisma = require("../config/db");
+const { chatRepository } = require("../repositories");
 const aiService = require("../services/ai.service");
 const catchAsync = require("../utils/catchAsync");
 const AppError = require("../utils/appError");
@@ -11,8 +11,8 @@ const createChatMessage = catchAsync(async (req, res, next) => {
   const sessionIdToStore = session_id || null;
 
   // 1) Save customer message
-  const customerMsg = await prisma.chat.create({
-    data: { message, sender: "customer", sessionId: sessionIdToStore, userId, agentDomain: product_type || null },
+  const customerMsg = await chatRepository.create({
+    message, sender: "customer", sessionId: sessionIdToStore, userId, agentDomain: product_type || null,
   });
 
   // 2) Query AI Microservice (multi-agent orchestrator)
@@ -32,8 +32,8 @@ const createChatMessage = catchAsync(async (req, res, next) => {
   const newSessionId = typeof aiResult === "object" ? aiResult.session_id : session_id;
 
   // 3) Save AI message
-  const aiMsg = await prisma.chat.create({
-    data: { message: replyText, sender: "advisor", sessionId: sessionIdToStore, userId, agentName, agentDomain },
+  const aiMsg = await chatRepository.create({
+    message: replyText, sender: "advisor", sessionId: sessionIdToStore, userId, agentName, agentDomain,
   });
 
   res.status(201).json({
@@ -62,11 +62,7 @@ const getChatHistory = catchAsync(async (req, res, next) => {
   const where = { userId };
   if (session_id) where.sessionId = session_id;
 
-  const history = await prisma.chat.findMany({
-    where,
-    orderBy: { createdAt: "asc" },
-    take: 200,
-  });
+  const history = await chatRepository.findHistory(where, 200);
 
   res.status(200).json({
     status: "success",

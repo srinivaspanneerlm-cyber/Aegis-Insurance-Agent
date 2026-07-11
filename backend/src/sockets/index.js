@@ -1,5 +1,5 @@
 const jwt = require("jsonwebtoken");
-const prisma = require("../config/db");
+const { userRepository, chatRepository } = require("../repositories");
 const env = require("../config/env");
 const aiService = require("../services/ai.service");
 
@@ -22,7 +22,7 @@ const socketAuthMiddleware = async (socket, next) => {
     if (!token) return next(new Error("Unauthorized: authentication token required."));
 
     const decoded = jwt.verify(token, env.JWT_SECRET);
-    const user = await prisma.user.findUnique({ where: { id: decoded.id } });
+    const user = await userRepository.findById(decoded.id);
     if (!user) return next(new Error("Unauthorized: user no longer exists."));
 
     // Trusted identity — never rely on client-supplied sender/name after this.
@@ -66,12 +66,10 @@ const initSockets = (io) => {
       try {
         // Save message to database — bound to the authenticated user so the
         // sender cannot be spoofed to write rows as someone else.
-        const savedMsg = await prisma.chat.create({
-          data: {
-            message,
-            sender: sender || "customer",
-            userId: authUser.id,
-          },
+        const savedMsg = await chatRepository.create({
+          message,
+          sender: sender || "customer",
+          userId: authUser.id,
         });
 
         // Broadcast user's message to everyone in the room
@@ -92,12 +90,10 @@ const initSockets = (io) => {
           );
 
           // Save AI response to database
-          const savedAiMsg = await prisma.chat.create({
-            data: {
-              message: aiReplyText,
-              sender: "advisor",
-              userId: authUser.id,
-            },
+          const savedAiMsg = await chatRepository.create({
+            message: aiReplyText,
+            sender: "advisor",
+            userId: authUser.id,
           });
 
           // Stop typing indicator and broadcast AI's response

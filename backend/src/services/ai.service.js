@@ -1,5 +1,5 @@
 const axios = require("axios");
-const prisma = require("../config/db");
+const { chatRepository } = require("../repositories");
 const env = require("../config/env");
 
 // Shared secret sent on every backend -> AI microservice call. When set, the
@@ -29,11 +29,7 @@ const getResponseFromAIService = async (
   let history = [];
   try {
     const recentChats = userId
-      ? await prisma.chat.findMany({
-          where: { userId },
-          orderBy: { createdAt: "desc" },
-          take: 8,
-        })
+      ? await chatRepository.findRecentByUser(userId, 8)
       : [];
     recentChats.reverse();
     history = recentChats.map((c) => ({

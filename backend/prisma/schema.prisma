@@ -1,64 +1,258 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// Aegis AI — Enterprise Insurance Platform : Prisma schema
+//
+// Design rules (enforced):
+//   • Additive & backward-compatible — no existing field is renamed or dropped,
+//     so the Prisma Client API used across the backend keeps working unchanged.
+//   • Every model carries audit + soft-delete + optimistic-locking fields.
+//   • Indexes cover every real query path (owner + time, status + time, FKs).
+//   • Provider-portable: `datasource.url` comes from env so the same schema runs
+//     on SQLite (dev) or PostgreSQL (prod) — see DATABASE.md for the migration.
+//   • SQLite has no native enums; string fields document their allowed values.
+//
+// NOTE on soft delete: `deletedAt` is present on all core models but is NOT yet
+// enforced in queries (that would change response behaviour). Enforcement is a
+// deliberate, separately-reviewed follow-up so this change stays behaviour-safe.
+// ─────────────────────────────────────────────────────────────────────────────
+
 datasource db {
   provider = "sqlite"
-  url      = "file:./dev.db"
+  url      = env("DATABASE_URL")
 }
 
 generator client {
   provider = "prisma-client-js"
 }
 
+// ── Core identity ────────────────────────────────────────────────────────────
+
 model User {
-  id        String   @id @default(uuid())
+  id        String    @id @default(uuid())
   name      String
-  email     String   @unique
+  email     String    @unique
   password  String
-  role      String   @default("customer")
-  createdAt DateTime @default(now())
+  role      String    @default("customer") // customer | admin | superadmin
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now()) @updatedAt
+  deletedAt DateTime?
+  version   Int       @default(1) // optimistic-locking token
+
+  // Relations (all nullable on the owned side to preserve legacy rows)
+  chats             Chat[]
+  uploadedDocuments UploadedDocument[]
+  leads             Lead[]                  @relation("AssignedLeads")
+  sessions          Session[]
+  recommendations   RecommendationHistory[]
+  notifications     Notification[]
+  auditLogs         AuditLog[]              @relation("ActorAuditLogs")
+
+  @@index([role])
+  @@index([isActive])
+  @@index([deletedAt])
+  @@index([createdAt])
 }
 
+// ── Catalogue: companies & policies ──────────────────────────────────────────
+
 model Company {
-  id          String   @id @default(uuid())
+  id          String    @id @default(uuid())
   companyName String
   logo        String?
   description String?
-  createdAt   DateTime @default(now())
-  policies    Policy[]
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @default(now()) @updatedAt
+  deletedAt   DateTime?
+  version     Int       @default(1)
+
+  policies Policy[]
+
+  @@index([companyName])
+  @@index([deletedAt])
 }
 
+model Policy {
+  id         String    @id @default(uuid())
+  policyName String
+  premium    Float
+  coverage   String
+  companyId  String
+  isActive   Boolean   @default(true)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @default(now()) @updatedAt
+  deletedAt  DateTime?
+  version    Int       @default(1)
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+  @@index([policyName])
+  @@index([deletedAt])
+}
+
+// ── Sales pipeline: leads ────────────────────────────────────────────────────
+
 model Lead {
-  id            String   @id @default(uuid())
+  id            String    @id @default(uuid())
   customerName  String
   email         String
   phone         String
   insuranceType String
   budget        String
-  status        String   @default("pending")
-  createdAt     DateTime @default(now())
+  status        String    @default("pending") // pending | contacted | qualified | won | lost
+  assignedToId  String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @default(now()) @updatedAt
+  deletedAt     DateTime?
+  version       Int       @default(1)
+
+  assignedTo User? @relation("AssignedLeads", fields: [assignedToId], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([email])
+  @@index([assignedToId])
+  @@index([deletedAt])
 }
 
+// ── Conversations ────────────────────────────────────────────────────────────
+
 model Chat {
-  id          String   @id @default(uuid())
+  id          String    @id @default(uuid())
   message     String
-  sender      String
+  sender      String // customer | advisor
   sessionId   String?
   userId      String?
   agentName   String?
   agentDomain String?
-  createdAt   DateTime @default(now())
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @default(now()) @updatedAt
+  deletedAt   DateTime?
+
+  user    User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  session Session? @relation(fields: [sessionId], references: [sessionId], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([sessionId, createdAt])
+  @@index([agentDomain])
+  @@index([deletedAt])
 }
 
-model Policy {
-  id         String  @id @default(uuid())
-  policyName String
-  premium    Float
-  coverage   String
-  companyId  String
-  company    Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
-}
+// ── Documents ────────────────────────────────────────────────────────────────
 
 model UploadedDocument {
-  id         String   @id @default(uuid())
+  id         String    @id @default(uuid())
   filename   String
   filepath   String
-  uploadedAt DateTime @default(now())
+  ownerId    String? // scopes documents to their uploader (closes the upload IDOR)
+  mimeType   String?
+  sizeBytes  Int?
+  uploadedAt DateTime  @default(now())
+  updatedAt  DateTime  @default(now()) @updatedAt
+  deletedAt  DateTime?
+
+  owner User? @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+
+  @@index([ownerId])
+  @@index([deletedAt])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AI-platform tables — PREPARED for the multi-agent engine, recommendation
+// history, transfers, notifications and audit. These are additive and not yet
+// wired into the (currently file-backed) AI memory, so no AI workflow changes.
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Session {
+  id          String    @id @default(uuid())
+  sessionId   String    @unique // external session id used by the AI engine
+  userId      String?
+  agentDomain String? // health | motor | travel | home-property | executive
+  agentName   String?
+  status      String    @default("active") // active | transferred | closed
+  startedAt   DateTime  @default(now())
+  lastActive  DateTime  @default(now()) @updatedAt
+  deletedAt   DateTime?
+
+  user            User?                   @relation(fields: [userId], references: [id], onDelete: SetNull)
+  chats           Chat[]
+  recommendations RecommendationHistory[]
+  transfers       AgentTransfer[]
+
+  @@index([userId, lastActive])
+  @@index([status])
+  @@index([agentDomain])
+}
+
+model RecommendationHistory {
+  id          String   @id @default(uuid())
+  userId      String?
+  sessionId   String?
+  domain      String // health | motor | travel | home-property
+  planName    String?
+  score       Float?
+  confidence  Float?
+  approval    String? // Approved | Pending | Rejected
+  profileHash String? // ties a recommendation to the profile snapshot it was built from
+  payload     String? // JSON blob of the full recommendation
+  createdAt   DateTime @default(now())
+
+  user    User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  session Session? @relation(fields: [sessionId], references: [sessionId], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([sessionId])
+  @@index([domain])
+  @@index([profileHash])
+}
+
+model AgentTransfer {
+  id         String   @id @default(uuid())
+  sessionId  String?
+  fromDomain String?
+  toDomain   String?
+  fromAgent  String?
+  toAgent    String?
+  reason     String?
+  approved   Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  session Session? @relation(fields: [sessionId], references: [sessionId], onDelete: SetNull)
+
+  @@index([sessionId, createdAt])
+  @@index([toDomain])
+}
+
+model Notification {
+  id        String    @id @default(uuid())
+  userId    String
+  type      String // system | underwriting | claim | renewal | payment
+  title     String
+  body      String?
+  isRead    Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  readAt    DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead, createdAt])
+  @@index([type])
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  actorId   String? // the user who performed the action (null = system)
+  action    String // e.g. auth.login, lead.update, policy.create
+  entity    String? // model name
+  entityId  String? // affected row id
+  metadata  String? // JSON blob of contextual detail (never store secrets/PII in clear)
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  actor User? @relation("ActorAuditLogs", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([actorId, createdAt])
+  @@index([action, createdAt])
+  @@index([entity, entityId])
 }

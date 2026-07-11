@@ -1,28 +1,23 @@
-const prisma = require("../config/db");
+const { leadRepository } = require("../repositories");
 const AppError = require("../utils/appError");
 const catchAsync = require("../utils/catchAsync");
 
 const createLead = catchAsync(async (req, res, next) => {
   const { customerName, email, phone, insuranceType, budget } = req.body;
 
-  const newLead = await prisma.lead.create({
-    data: {
-      customerName,
-      email,
-      phone,
-      insuranceType,
-      budget,
-      status: "pending",
-    },
+  const newLead = await leadRepository.create({
+    customerName,
+    email,
+    phone,
+    insuranceType,
+    budget,
+    status: "pending",
   });
 
   // Simulate machine-learning risk evaluation and update status to approved
   setTimeout(async () => {
     try {
-      await prisma.lead.update({
-        where: { id: newLead.id },
-        data: { status: "approved" },
-      });
+      await leadRepository.update(newLead.id, { status: "approved" });
       console.log(`Lead ${newLead.id} status successfully qualified & approved.`);
     } catch (err) {
       console.error("Async underwriting update failed", err);
@@ -38,9 +33,7 @@ const createLead = catchAsync(async (req, res, next) => {
 });
 
 const getLeads = catchAsync(async (req, res, next) => {
-  const leads = await prisma.lead.findMany({
-    orderBy: { createdAt: "desc" },
-  });
+  const leads = await leadRepository.findMany({}, { orderBy: { createdAt: "desc" } });
 
   res.status(200).json({
     status: "success",
@@ -54,9 +47,7 @@ const getLeads = catchAsync(async (req, res, next) => {
 const getLeadById = catchAsync(async (req, res, next) => {
   const { id } = req.params;
 
-  const lead = await prisma.lead.findUnique({
-    where: { id },
-  });
+  const lead = await leadRepository.findById(id);
 
   if (!lead) {
     return next(new AppError("No qualified lead found with that ID.", 404));
@@ -74,16 +65,13 @@ const updateLead = catchAsync(async (req, res, next) => {
   const { id } = req.params;
   const { customerName, email, phone, insuranceType, budget, status } = req.body;
 
-  const updatedLead = await prisma.lead.update({
-    where: { id },
-    data: {
-      customerName,
-      email,
-      phone,
-      insuranceType,
-      budget,
-      status,
-    },
+  const updatedLead = await leadRepository.update(id, {
+    customerName,
+    email,
+    phone,
+    insuranceType,
+    budget,
+    status,
   });
 
   res.status(200).json({
@@ -97,9 +85,7 @@ const updateLead = catchAsync(async (req, res, next) => {
 const deleteLead = catchAsync(async (req, res, next) => {
   const { id } = req.params;
 
-  await prisma.lead.delete({
-    where: { id },
-  });
+  await leadRepository.delete(id);
 
   res.status(204).json({
     status: "success",

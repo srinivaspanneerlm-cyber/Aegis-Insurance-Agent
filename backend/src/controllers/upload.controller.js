@@ -1,4 +1,4 @@
-const prisma = require("../config/db");
+const { documentRepository } = require("../repositories");
 const AppError = require("../utils/appError");
 const catchAsync = require("../utils/catchAsync");
 
@@ -7,12 +7,15 @@ const uploadDocument = catchAsync(async (req, res, next) => {
     return next(new AppError("Please attach a valid file payload.", 400));
   }
 
-  // Save document details to database
-  const doc = await prisma.uploadedDocument.create({
-    data: {
-      filename: req.file.originalname,
-      filepath: req.file.path,
-    },
+  // Attribute the document to its uploader (ownerId) plus content metadata.
+  // Ownership is what lets reads be access-scoped below, closing the previous
+  // "any authenticated user could list everyone's documents" IDOR.
+  const doc = await documentRepository.create({
+    filename: req.file.originalname,
+    filepath: req.file.path,
+    ownerId: req.user?.id || null,
+    mimeType: req.file.mimetype || null,
+    sizeBytes: typeof req.file.size === "number" ? req.file.size : null,
   });
 
   res.status(201).json({
@@ -24,9 +27,13 @@ const uploadDocument = catchAsync(async (req, res, next) => {
 });
 
 const getUploadedDocuments = catchAsync(async (req, res, next) => {
-  const docs = await prisma.uploadedDocument.findMany({
-    orderBy: { createdAt: "desc" },
-  });
+  // Customers see only their own documents; admins/superadmins see all.
+  const isAdmin =
+    req.user?.role === "admin" || req.user?.role === "superadmin";
+
+  const docs = isAdmin
+    ? await documentRepository.findMany({}, { orderBy: { uploadedAt: "desc" } })
+    : await documentRepository.findByOwner(req.user.id);
 
   res.status(200).json({
     status: "success",

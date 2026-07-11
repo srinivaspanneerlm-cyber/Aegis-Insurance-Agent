@@ -1,12 +1,19 @@
-const prisma = require("../config/db");
+const {
+  leadRepository,
+  chatRepository,
+  documentRepository,
+  userRepository,
+} = require("../repositories");
 const catchAsync = require("../utils/catchAsync");
 
 const getDashboardStats = catchAsync(async (req, res, next) => {
-  // Aggregate real-time statistics across all our models
-  const totalLeads = await prisma.lead.count();
-  const totalChats = await prisma.chat.count();
-  const uploadedDocuments = await prisma.uploadedDocument.count();
-  const activeUsers = await prisma.user.count();
+  // Aggregate real-time statistics across all our models (parallelised).
+  const [totalLeads, totalChats, uploadedDocuments, activeUsers] = await Promise.all([
+    leadRepository.count(),
+    chatRepository.count(),
+    documentRepository.count(),
+    userRepository.count(),
+  ]);
 
   // Return the dynamic statistical payload to the frontend
   res.status(200).json({
