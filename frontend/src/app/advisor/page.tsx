@@ -2,11 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import Link from "next/link";
-import {
-  Send, Shield, Heart, Car, Plane, Home as HomeIcon, X,
-  Cpu, Lock, Activity, ChevronLeft, RefreshCw,
-} from "lucide-react";
+import { Send, Shield, Heart, Car, Plane, Home as HomeIcon, X, ChevronLeft } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
@@ -18,144 +14,23 @@ import TransferDialog, { type TransferRequest } from "@/components/TransferDialo
 import InterruptDialog, { type InterruptRequest } from "@/components/InterruptDialog";
 import { useStreaming, type ChatHistoryItem } from "@/hooks/useStreaming";
 import { chatService, uiActionService } from "@/services/api";
-import EnvironmentBadge from "@/components/EnvironmentBadge";
 
-// ── Advisor configuration ──────────────────────────────────────────────────────
-
-const ADVISORS = {
-  motor: {
-    name: "Alex AI",
-    title: "Vehicle Protection Advisor",
-    avatar: "A",
-    emoji: "🚗",
-    theme: "from-blue-600 to-cyan-500",
-    glowColor: "rgba(6, 182, 212, 0.22)",
-    borderGlow: "shadow-[0_0_25px_rgba(6,182,212,0.12)] border-cyan-500/20",
-    activeTab: "bg-cyan-500/10 border-cyan-400/35 text-cyan-300",
-    accentBg: "bg-cyan-500/10",
-    accentText: "text-cyan-400",
-    pythonDomain: "motor",
-    intro: "Hey! 👋\n\nI'm Alex, your vehicle insurance advisor.\n\nCar or bike insurance pathi help venuma? Correct place-la vandhutenga! 😊\n\nEverything will be simple — no confusing language, no pressure.\n\nEna vehicle insure pannanum? Make and model sollunga!",
-    placeholder: "Tell Alex about your vehicle...",
-  },
-  health: {
-    name: "Sarah AI",
-    title: "Family Health Advisor",
-    avatar: "S",
-    emoji: "❤️",
-    theme: "from-emerald-600 to-teal-500",
-    glowColor: "rgba(16, 185, 129, 0.22)",
-    borderGlow: "shadow-[0_0_25px_rgba(16,185,129,0.12)] border-emerald-500/20",
-    activeTab: "bg-emerald-500/10 border-emerald-400/35 text-emerald-300",
-    accentBg: "bg-emerald-500/10",
-    accentText: "text-emerald-400",
-    pythonDomain: "health",
-    intro: "Hello! 👋\n\nI'm Sarah, your health insurance advisor.\n\nநான் Sarah — உங்களுக்கு best health insurance plan கண்டுபிடிக்க இங்க இருக்கேன்.\n\nHealth insurance confusing-ah irukku? Don't worry — I'll explain everything step by step.\n\nWho are we looking to protect — just yourself, or your family too?",
-    placeholder: "Ask Sarah about health plans for your family...",
-  },
-  travel: {
-    name: "Ethan AI",
-    title: "Travel Protection Advisor",
-    avatar: "E",
-    emoji: "✈️",
-    theme: "from-violet-600 to-purple-500",
-    glowColor: "rgba(139, 92, 246, 0.22)",
-    borderGlow: "shadow-[0_0_25px_rgba(139,92,246,0.12)] border-purple-500/20",
-    activeTab: "bg-purple-500/10 border-purple-400/35 text-purple-300",
-    accentBg: "bg-purple-500/10",
-    accentText: "text-purple-400",
-    pythonDomain: "travel",
-    intro: "Hey, welcome! ✈️\n\nI'm Ethan, your travel insurance advisor.\n\nTrip plan panreengala? Perfect timing — right cover edutha, worry-free-ah travel panna mudiyum.\n\nWhere are you planning to travel?",
-    placeholder: "Tell Ethan about your travel plans...",
-  },
-  property: {
-    name: "Emma AI",
-    title: "Home Protection Advisor",
-    avatar: "E",
-    emoji: "🏡",
-    theme: "from-amber-600 to-orange-500",
-    glowColor: "rgba(245, 158, 11, 0.22)",
-    borderGlow: "shadow-[0_0_25px_rgba(245,158,11,0.12)] border-amber-500/20",
-    activeTab: "bg-amber-500/10 border-amber-400/35 text-amber-300",
-    accentBg: "bg-amber-500/10",
-    accentText: "text-amber-400",
-    pythonDomain: "home-property",
-    intro: "Welcome! 🏡\n\nI'm Emma, your home insurance advisor.\n\nUngal home — life-la most important investment. Sari ah protect pannum plan kandupidipom.\n\nDo you own your home or are you renting?",
-    placeholder: "Ask Emma about protecting your home...",
-  },
-  miscellaneous: {
-    name: "Sri AI",
-    title: "Executive Risk Advisor",
-    avatar: "SR",
-    emoji: "💼",
-    theme: "from-rose-600 to-pink-500",
-    glowColor: "rgba(244, 63, 94, 0.35)",
-    borderGlow: "shadow-[0_0_35px_rgba(244,63,94,0.18)] border-rose-500/35",
-    activeTab: "bg-rose-500/10 border-rose-400/35 text-rose-300",
-    accentBg: "bg-rose-500/10",
-    accentText: "text-rose-400",
-    pythonDomain: "executive",
-    intro: "Good to connect. 💼\n\nI'm Sri, your guide at Aegis AI.\n\nHealth, Motor, Travel, or Home insurance — ungalukku ena help venum sollunga. Correct specialist kitta connect panniduven! 😊\n\nWhat brings you here today?",
-    placeholder: "Tell Sri about your risk protection needs...",
-  },
-};
-
-type AdvisorKey = keyof typeof ADVISORS;
-
-const AGENT_NAME_TO_CATEGORY: Record<string, AdvisorKey> = {
-  "Sarah AI": "health",
-  "Alex AI": "motor",
-  "Ethan AI": "travel",
-  "Emma AI": "property",
-  "Sri AI": "miscellaneous",
-};
-
-const PYTHON_DOMAIN_TO_CATEGORY: Record<string, AdvisorKey> = {
-  "health":        "health",
-  "motor":         "motor",
-  "travel":        "travel",
-  "home-property": "property",
-  "executive":     "miscellaneous",
-};
-
-function now() {
-  return new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-}
-
-function makeId(): string {
-  return typeof crypto !== "undefined" && crypto.randomUUID
-    ? crypto.randomUUID()
-    : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-}
-
-// ── Per-agent localStorage history helpers ────────────────────────────────────
-const getHistoryKey = (domain: string) => `aegis_hist_${domain}`;
-
-const loadAgentHistory = (domain: string): ChatMsg[] | null => {
-  if (typeof window === "undefined") return null;
-  try {
-    const raw = localStorage.getItem(getHistoryKey(domain));
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as ChatMsg[];
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : null;
-  } catch {
-    return null;
-  }
-};
-
-const saveAgentHistory = (domain: string, msgs: ChatMsg[]) => {
-  if (typeof window === "undefined" || msgs.length === 0) return;
-  try {
-    // Don't save if it's just the intro message
-    if (msgs.length === 1 && msgs[0].id === "intro") return;
-    localStorage.setItem(getHistoryKey(domain), JSON.stringify(msgs.slice(-200)));
-  } catch {}
-};
-
-const clearAgentHistory = (domain: string) => {
-  if (typeof window === "undefined") return;
-  try { localStorage.removeItem(getHistoryKey(domain)); } catch {}
-};
+// ── Advisor configuration & helpers now live alongside this page ──────────────
+import {
+  ADVISORS,
+  AGENT_NAME_TO_CATEGORY,
+  PYTHON_DOMAIN_TO_CATEGORY,
+  type AdvisorKey,
+} from "./advisors";
+import {
+  now,
+  makeId,
+  loadAgentHistory,
+  saveAgentHistory,
+  clearAgentHistory,
+} from "./history";
+import AdvisorHeader from "@/components/advisor/AdvisorHeader";
+import AdvisorSidebar from "@/components/advisor/AdvisorSidebar";
 
 // ── Component ──────────────────────────────────────────────────────────────────
 
@@ -616,133 +491,27 @@ function AdvisorChat() {
       />
       <div className="absolute bottom-[10%] right-[-5%] w-[350px] h-[350px] rounded-full bg-cyan-500/5 blur-[100px] pointer-events-none z-0" />
 
-      {/* ── HEADER ─────────────────────────────────────────────────────────── */}
-      <header className="h-16 border-b border-white/5 bg-slate-900/40 backdrop-blur-2xl px-6 flex items-center justify-between z-40 relative pointer-events-auto flex-shrink-0">
-        <div className="flex items-center gap-4">
-          <Link
-            href="/consumer-dashboard"
-            className="p-2.5 rounded-xl border border-white/10 bg-white/5 text-slate-400 hover:text-white hover:bg-white/10 active:scale-95 touch-manipulation select-none transition-all flex items-center justify-center cursor-pointer"
-          >
-            <ChevronLeft className="w-4 h-4" />
-            <span className="text-[10px] font-black uppercase tracking-wider pl-1 pr-1.5 hidden sm:inline">Portal</span>
-          </Link>
-
-          <div className="flex items-center gap-3">
-            <div className={`w-9 h-9 rounded-xl bg-gradient-to-tr ${advisor.theme} text-white font-black text-xs flex items-center justify-center shadow-lg`}>
-              {advisor.avatar}
-            </div>
-            <div className="text-left">
-              <div className="flex items-center gap-2 leading-none flex-wrap">
-                <h2 className="text-xs sm:text-sm font-black text-white">{advisor.name}</h2>
-                <span className={`w-1.5 h-1.5 rounded-full ${isStreaming ? "bg-amber-400 animate-pulse" : "bg-emerald-400"}`} />
-                <div className="hidden sm:block">
-                  <EnvironmentBadge
-                    agentName={streamState.agentName || advisor.name}
-                    agentDomain={streamState.agentDomain || advisor.pythonDomain}
-                    isActive={!isStreaming}
-                    responseTimeMs={envResponseTimeMs}
-                  />
-                </div>
-              </div>
-              <p className="text-[9.5px] font-bold text-slate-500 mt-1 uppercase tracking-wider">
-                {streamState.phase === "thinking"
-                  ? "Reasoning..."
-                  : streamState.phase === "streaming"
-                  ? `${streamState.agentName || advisor.name} is responding...`
-                  : "System Connected & Clear"}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Telemetry HUD */}
-        <div className="hidden md:flex items-center gap-4 text-[9px] font-mono font-bold text-slate-500 uppercase tracking-widest">
-          <div className="flex items-center gap-1.5">
-            <Cpu className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
-            <span>NODE: {pingSpeed}</span>
-          </div>
-          <span className="w-[1px] h-3 bg-white/10" />
-          <div className="flex items-center gap-1.5">
-            <Lock className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
-            <span>TELEMETRY SECURE</span>
-          </div>
-        </div>
-
-        <Link
-          href="/"
-          className="p-2.5 rounded-xl border border-white/10 bg-white/5 text-slate-400 hover:text-white hover:bg-rose-500/10 hover:border-rose-500/20 active:scale-95 touch-manipulation select-none transition-all flex items-center justify-center cursor-pointer"
-        >
-          <X className="w-4 h-4" />
-        </Link>
-      </header>
+      <AdvisorHeader
+        advisor={advisor}
+        isStreaming={isStreaming}
+        streamAgentName={streamState.agentName}
+        streamAgentDomain={streamState.agentDomain}
+        streamPhase={streamState.phase}
+        envResponseTimeMs={envResponseTimeMs}
+        pingSpeed={pingSpeed}
+      />
 
       {/* ── WORKSPACE ──────────────────────────────────────────────────────── */}
       <div className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 py-6 flex gap-6 overflow-hidden z-30 relative pointer-events-auto">
 
-        {/* ── LEFT SIDEBAR ─────────────────────────────────────────────────── */}
-        <div className="w-[260px] flex-shrink-0 h-full overflow-hidden hidden lg:flex flex-col gap-4 select-none">
-          <div className="p-4 rounded-3xl border border-white/5 bg-slate-900/60 backdrop-blur-2xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.05),0_10px_30px_rgba(0,0,0,0.3)] flex flex-col h-full overflow-hidden">
-
-            <div className="flex items-center justify-between mb-4">
-              <p className="text-[9.5px] font-black uppercase tracking-widest text-slate-500">ACTIVE CHANNELS</p>
-              <span className="text-[8px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">STABLE</span>
-            </div>
-
-            <div className="flex flex-col gap-1.5 overflow-y-auto pr-1 flex-grow" style={{ scrollbarWidth: "none" }}>
-              {sidebarAdvisors.map((a) => {
-                const isActive = activeCategory === a.id;
-                const adv = ADVISORS[a.id];
-                return (
-                  <button
-                    key={a.id}
-                    onClick={() => setActiveCategory(a.id)}
-                    className={`flex items-center gap-3 px-3.5 py-3 rounded-2xl border text-left transition-all duration-200 cursor-pointer group active:scale-95 touch-manipulation select-none relative overflow-hidden ${
-                      isActive
-                        ? adv.activeTab + " shadow-[0_0_20px_rgba(244,63,94,0.06)]"
-                        : "bg-transparent border-transparent hover:bg-white/[0.03] text-slate-400 hover:text-white"
-                    }`}
-                  >
-                    <span className="absolute inset-0 bg-gradient-to-r from-white/[0.01] to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                    <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-slate-900 to-slate-800 text-white text-xs font-black flex items-center justify-center flex-shrink-0 border border-white/10 group-hover:scale-105 transition-transform">
-                      {a.icon}
-                    </div>
-                    <div className="min-w-0 flex-grow">
-                      <p className="text-[12px] font-black leading-none">{a.label}</p>
-                      <p className="text-[9px] font-medium mt-1 leading-none text-slate-500">{a.sub}</p>
-                    </div>
-                    {isActive && (
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 flex-shrink-0 relative">
-                        <span className="animate-ping absolute inset-0 rounded-full bg-emerald-400 opacity-75 scale-150" />
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className="mt-4 pt-4 border-t border-white/5 space-y-3.5">
-              {/* New Chat button */}
-              <button
-                onClick={handleNewChat}
-                disabled={isStreaming}
-                className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-2xl border border-white/8 bg-white/[0.03] text-slate-400 hover:text-white hover:bg-white/[0.06] hover:border-white/15 active:scale-95 touch-manipulation select-none transition-all duration-200 cursor-pointer disabled:opacity-40 text-[10px] font-black uppercase tracking-wider"
-              >
-                <RefreshCw className="w-3 h-3" />
-                New Chat
-              </button>
-              <div className="space-y-1.5">
-                <span className="text-[8.5px] font-black text-slate-500 uppercase tracking-widest">ACTIVE SOCKET HANDSHAKES</span>
-                <p className="font-mono text-xs font-black text-slate-300 flex items-center gap-1.5">
-                  <Activity className="w-3.5 h-3.5 text-purple-400 animate-pulse" />
-                  <span>{activeHandshakes} NODES LINKED</span>
-                </p>
-              </div>
-              <div className="p-3 bg-white/[0.02] border border-white/5 rounded-2xl text-[10px] leading-relaxed text-slate-500">
-                All intake data compiled directly in secure sandbox vaults compliant with executive mandates.
-              </div>
-            </div>
-          </div>
-        </div>
+        <AdvisorSidebar
+          sidebarAdvisors={sidebarAdvisors}
+          activeCategory={activeCategory}
+          setActiveCategory={setActiveCategory}
+          handleNewChat={handleNewChat}
+          isStreaming={isStreaming}
+          activeHandshakes={activeHandshakes}
+        />
 
         {/* ── CHAT PANEL ───────────────────────────────────────────────────── */}
         <div className={`flex-1 flex flex-col rounded-[32px] border overflow-hidden h-full transition-all duration-500 bg-slate-900/40 backdrop-blur-3xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] border-white/8 ${advisor.borderGlow} pointer-events-auto`}>
