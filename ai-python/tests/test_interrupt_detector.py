@@ -6,8 +6,10 @@ has just asked for a different one. It runs ahead of the IDE gate in
 CentralOrchestrator.dispatch and is, in practice, the only thing that catches a
 switch phrased without an explicit hand-off ("i also need…").
 
-test_the_politeness_gap below documents a live defect rather than asserting it
-is correct — read it before changing anything here.
+The two sections that carry the weight are "Length must not decide the outcome"
+and "Scenery vs shopping" — between them they pin the fix for a defect where
+length alone decided routing, dropping polite requests and interrupting
+customers who had said their current domain out loud.
 """
 
 import pytest
@@ -15,6 +17,7 @@ import pytest
 from app.orchestrator.interrupt_detector import (
     _AGENT_NAMES,
     _MAX_WORDS,
+    _PRODUCT_TERMS,
     InterruptDetector,
 )
 
@@ -100,21 +103,21 @@ def test_a_bare_short_mention_is_confident_without_an_abandon_word(detector):
     assert result.confidence == 0.88
 
 
-def test_a_long_mention_is_detected_but_least_confident(detector):
+def test_a_longer_product_request_is_detected_but_least_confident(detector):
     message = "can you please tell me about car insurance for my brand new vehicle today"
     result = detector.detect(message, "health")
     assert result.detected is True
-    assert result.confidence == 0.74
+    assert result.confidence == 0.84
 
 
 def test_confidence_tiers_are_ordered(detector):
     strongest = detector.detect("forget this, travel", "health").confidence
     abandon = detector.detect("actually I think I need motor insurance", "health").confidence
     short = detector.detect("motor please", "health").confidence
-    long = detector.detect(
+    product = detector.detect(
         "can you please tell me about car insurance for my brand new vehicle today", "health"
     ).confidence
-    assert strongest > abandon > short > long
+    assert strongest > abandon > short > product
 
 
 def test_every_detection_explains_itself(detector):
@@ -124,59 +127,116 @@ def test_every_detection_explains_itself(detector):
     assert "motor" in result.reason
 
 
-# ── The politeness gap (live defect) ──────────────────────────────────────────
+# ── Length must not decide the outcome ────────────────────────────────────────
 
 def _caught(detector, message, current="health"):
     return detector.detect(message, current).detected
 
 
-def test_short_and_long_phrasings_of_one_intent_are_both_caught(detector):
-    assert _caught(detector, "car insurance") is True
-    assert _caught(detector, "can you please tell me about car insurance "
-                             "for my brand new vehicle today") is True
+@pytest.mark.parametrize("message", [
+    "car insurance",                                            # 2 words
+    "i want car insurance please",                              # 5 words
+    "i want car insurance for my car",                          # 7 words
+    "can you tell me about car insurance please",               # 8 words
+    "can you tell me about car insurance for my vehicle",       # 10 words
+    "can you tell me about car insurance for my new vehicle",   # 11 words
+    "can you please tell me about car insurance for my brand new vehicle today",
+                                                                # 14 words
+])
+def test_one_intent_is_caught_at_every_length(detector, message):
+    """
+    Regression guard for the politeness gap.
 
+    A 6-12 word band used to be dropped here, deferring to the IDE ("Let IDE
+    handle the remainder") — but the IDE's gate declined them too, since they
+    carry no hand-off phrase and it trusts the active session. Each layer
+    assumed the other had it. Holding this intent fixed and varying only
+    length, it was caught at 2, 5, 7 and 14 words and missed at 8 through 11:
+    asking politely was what lost the transfer, which landed on exactly the
+    first-time and senior customers this product exists for.
+
+    Length is no longer an input to the decision. If a band is ever
+    reintroduced, this fails at the lengths inside it.
+    """
+    assert _caught(detector, message) is True
+
+
+# ── Scenery vs shopping ───────────────────────────────────────────────────────
 
 @pytest.mark.parametrize("message", [
-    "can you tell me about car insurance please",                # 8 words
-    "can you tell me about car insurance for my vehicle",        # 10 words
-    "can you tell me about car insurance for my new vehicle",    # 11 words
+    "I need health insurance because I had a car accident",
+    "I need health insurance because I had a car accident last year and want coverage",
+    "does the health policy cover injuries from a car accident that happened last year",
+    "my health plan should cover me when I travel abroad for work next year ok",
+    "I want health cover for my family and I also drive a car daily to office",
+    "will the health policy pay for an ambulance after a car crash",
 ])
-def test_the_politeness_gap(detector, message):
+def test_naming_the_current_domain_vetoes_the_switch(detector, message):
     """
-    LIVE DEFECT — asserts what happens today, not what should happen.
-
-    interrupt_detector.py:177 drops 6–12 word messages that carry a domain
-    keyword but no abandon word, deferring to the IDE ("Let IDE handle the
-    remainder"). The IDE's gate then declines them too, because they contain no
-    hand-off phrase and it trusts the active session. Each layer assumes the
-    other has it.
-
-    The result is a hole shaped like nothing anyone designed. Holding the
-    intent fixed and varying only length, "tell me about car insurance" is
-    caught at 2, 5, 7, 14 and 17 words — and missed at 8 through 11. Phrasing
-    the same question politely is what loses the transfer, which lands hardest
-    on the first-time and senior customers this product exists for.
-
-    Fixing it means closing the 6–12 band here, in the layer that already owns
-    mid-session switches. When that happens, this test inverts to True and
-    joins the cases above.
+    Each of these offered a transfer before the veto existed — interrupting a
+    customer who had just said "health insurance" out loud to ask whether they
+    would rather discuss motor. The other domain's word is scenery here, not a
+    request.
     """
     assert _caught(detector, message) is False
 
 
-def test_the_gap_has_hard_edges_at_five_and_twelve_words(detector):
-    """Pins the exact band, so a fix can be checked against it."""
-    assert _caught(detector, "i want car insurance please") is True            # 5w
-    assert _caught(detector, "can you tell me about car insurance please") is False   # 8w
-    assert _caught(detector, "can you please tell me about car insurance "
-                             "for my brand new vehicle today") is True         # 14w
+def test_an_abandon_word_overrides_the_veto(detector):
+    """
+    "actually" names the current domain and still means to leave it — an
+    explicit abandon outranks the scenery rule.
+
+    Note the phrasing: bare "forget" is not an abandon word (the list carries
+    "forget that/this/it"), so "forget health, lets do travel insurance" reads
+    as scenery and stays put. That is a pre-existing lexicon gap, left alone
+    here.
+    """
+    assert _caught(detector, "actually forget health, lets do travel insurance") is True
 
 
-def test_an_abandon_word_rescues_a_message_inside_the_gap(detector):
+def test_a_short_switch_is_not_vetoed_by_naming_the_current_domain(detector):
     """
-    The same 8-word question is caught the moment it carries "actually" —
-    further evidence the band is an oversight rather than a deliberate
-    ambiguity threshold.
+    The veto only applies past five words. "forget health, travel" is too short
+    to be anything but the request, and — because bare "forget" is not an
+    abandon word — the veto would otherwise swallow it.
     """
-    assert _caught(detector, "can you tell me about car insurance please") is False
-    assert _caught(detector, "actually can you tell me about car insurance") is True
+    assert _caught(detector, "forget health, travel") is True
+
+
+@pytest.mark.parametrize("message", [
+    "my brother drives a car to work every single day of the week",
+    "the traffic and all the cars here in chennai are really terrible these days",
+])
+def test_a_passing_mention_with_no_product_word_is_not_a_switch(detector, message):
+    """
+    No product word, so nothing here reads as shopping. These were detected at
+    0.74 before, purely for being over 12 words long.
+    """
+    assert _caught(detector, message) is False
+
+
+def test_a_short_bare_mention_is_still_a_switch(detector):
+    """
+    Short messages are exempt from the product-word rule: "motor please" has no
+    product word and plainly means it.
+    """
+    assert _caught(detector, "motor please") is True
+
+
+@pytest.mark.parametrize("term,message", [
+    ("insurance", "can you tell me about car insurance for my new vehicle"),
+    ("policy",    "what would a policy for my new car cost me these days"),
+    ("cover",     "i want to cover my new car against damage and theft"),
+    ("coverage",  "what coverage can i get for my new car please tell me"),
+    ("plan",      "is there a plan for my new car that you would suggest"),
+    ("premium",   "i just bought a new bike and want to know the premium for it"),
+    ("quote",     "can i get a quote for my new bike from you today please"),
+])
+def test_every_product_word_opens_the_switch(detector, term, message):
+    """
+    Customers do not all say "insurance". Each term in _PRODUCT_TERMS is
+    exercised through a real sentence — testing only the "insurance" phrasing
+    leaves the other six free to be deleted without a test noticing.
+    """
+    assert term in _PRODUCT_TERMS
+    assert _caught(detector, message) is True

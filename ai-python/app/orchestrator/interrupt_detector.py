@@ -14,9 +14,17 @@ Detection criteria (ALL must hold):
   1. Active workflow exists (current_domain is set)
   2. Message ≤ 25 words
   3. Message contains a domain keyword for a DIFFERENT domain
-  4. EITHER: message starts with an abandon/redirect signal
+  4. EITHER: message carries an abandon/redirect signal
              OR: message is ≤ 5 words (pure domain name request)
-             OR: message length > 12 (longer than FIR limit — catches its blind spot)
+             OR: it does NOT also name the current domain ("I need health
+                 insurance after a car accident" is a health sentence), AND it
+                 carries a product word — insurance/policy/cover/plan/premium/
+                 quote — so it reads as shopping rather than scenery
+
+Length is deliberately not a criterion beyond the 25-word cap. An earlier
+version dropped 6–12 word messages and deferred to the IDE, which declined them
+in turn, so "can you tell me about car insurance for my new vehicle" reached
+nobody while "car insurance" and a 14-word version both worked.
 
 Not detected (handled elsewhere):
   • Explicit "connect me to X" / "switch to X"  → FastIntentRouter
@@ -90,6 +98,17 @@ _AGENT_NAMES: Dict[str, str] = {
 }
 
 _MAX_WORDS = 25
+
+# Words that mark a message as shopping for a product rather than mentioning one
+# in passing. "car insurance for my new vehicle" asks to switch; "I had a car
+# accident" is describing a medical history and must not.
+_PRODUCT_TERMS: List[str] = [
+    "insurance", "policy", "cover", "coverage", "plan", "premium", "quote",
+]
+
+_PRODUCT_RE = re.compile(
+    r"(?<!\w)(" + "|".join(_PRODUCT_TERMS) + r")", re.IGNORECASE
+)
 
 
 @dataclass
@@ -173,12 +192,21 @@ class InterruptDetector:
 
         word_count = len(words)
 
-        # Require at least one qualifying condition beyond the domain keyword
-        if not has_abandon and word_count > 5 and word_count <= 12:
-            # Medium-length message, no abandon signal — too ambiguous.
-            # FIR already covered trigger+keyword combos in this range.
-            # Let IDE handle the remainder.
-            return InterruptResult(detected=False)
+        # An abandon signal is the customer saying so outright, and a message
+        # short enough to be nothing but the request ("forget health, travel")
+        # speaks for itself. Everything longer has to earn it.
+        if not has_abandon and word_count > 5:
+            # The current domain named alongside the other one means they are
+            # still on this topic and the other word is scenery: "I need health
+            # insurance because I had a car accident" is a health sentence.
+            if self._domain_res[current_domain].search(msg_lower):
+                return InterruptResult(detected=False)
+
+            # Otherwise the other domain still has to read as shopping rather
+            # than scenery — "my brother drives a car to work" is neither a
+            # request nor about us.
+            if not _PRODUCT_RE.search(msg_lower):
+                return InterruptResult(detected=False)
 
         # Confidence scoring
         if has_abandon and word_count <= 5:
@@ -191,8 +219,8 @@ class InterruptDetector:
             confidence = 0.88  # "motor please" / "travel insurance"
             reason = f"short_domain_only({target_domain}, {word_count}w)"
         else:
-            confidence = 0.74  # 13–25 word message with domain keyword
-            reason = f"long_domain_mention({target_domain}, {word_count}w)"
+            confidence = 0.84  # "can you tell me about car insurance for my car"
+            reason = f"product_term+domain({target_domain}, {word_count}w)"
 
         return InterruptResult(
             detected=True,
