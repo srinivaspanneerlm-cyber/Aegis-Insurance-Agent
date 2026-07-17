@@ -114,20 +114,7 @@ const initSockets = (io) => {
   });
 };
 
-// Real-time push notification helper for underwriting statuses
-const notifyUnderwritingStatus = (io, leadId, status) => {
-  if (io) {
-    io.emit("notify_underwriting", {
-      leadId,
-      status,
-      timestamp: new Date(),
-    });
-    console.log(`🔔 Broadcasted underwriting notification for Lead ${leadId}: ${status}`);
-  }
-};
-
 module.exports = {
   initSockets,
   socketAuthMiddleware,
-  notifyUnderwritingStatus,
 };
