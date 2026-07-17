@@ -691,7 +691,7 @@ backward compatibility with `ai.service.js`.
   "product_type": "health",
   "session_id": "sess_abc123",
   "force_transfer_to": null,
-  "skip_interrupt": false
+  "declined_domains": ["motor"]
 }
 ```
 
@@ -702,7 +702,12 @@ Field constraints (Pydantic v2):
 - `product_type`: max 64 characters
 - `session_id`: max 200 characters
 - `force_transfer_to`: max 64 characters — only set after user approves a transfer
-- `skip_interrupt`: boolean — set when user declines an interrupt suggestion
+- `declined_domains`: max 16 items, each max 64 chars — domains the user has
+  refused to switch to. Send the full list with **every** message: the refusal
+  holds for the whole session, not just the next turn. Interrupt detection still
+  runs, but a switch to a declined domain is not offered again and the message
+  goes to the active agent instead. Omitting it re-offers a refused switch,
+  which the UI suppresses — leaving the suggestion on screen unanswerable.
 
 **Response `200` (`ChatResponse`):**
 ```json

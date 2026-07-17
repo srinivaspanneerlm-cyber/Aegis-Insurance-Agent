@@ -93,7 +93,7 @@ async def stream_chat(
     product_type: Optional[str],
     session_id: str,
     force_transfer_to: Optional[str] = None,
-    skip_interrupt: bool = False,
+    declined_domains: Optional[List[str]] = None,
 ) -> AsyncGenerator[str, None]:
     """
     Main SSE generator — yields thinking steps while the orchestrator processes,
@@ -111,7 +111,7 @@ async def stream_chat(
             session_id=session_id,
             force_transfer_to=force_transfer_to,
             initial_domain=product_type,
-            skip_interrupt=skip_interrupt,
+            declined_domains=declined_domains,
         )
     )
 

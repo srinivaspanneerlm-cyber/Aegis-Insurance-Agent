@@ -1,5 +1,5 @@
-from pydantic import BaseModel, Field
-from typing import List, Optional
+from pydantic import BaseModel, Field, StringConstraints
+from typing import Annotated, List, Optional
 
 
 class ChatHistoryMessage(BaseModel):
@@ -48,12 +48,15 @@ class ChatRequest(BaseModel):
             "Set ONLY when the user has explicitly approved the transfer in the UI."
         )
     )
-    skip_interrupt: bool = Field(
-        False,
+    declined_domains: List[Annotated[str, StringConstraints(max_length=64)]] = Field(
+        default_factory=list,
+        max_length=16,
         description=(
-            "Skip interrupt detection for this message. "
-            "Set when the user declined an interrupt transfer and wants to continue "
-            "with the current agent."
+            "Domains the user has already declined to switch to. Interrupt "
+            "detection still runs, but a switch to a declined domain is not "
+            "offered again — the message goes to the active agent instead. "
+            "Per-domain and for the whole session, mirroring the UI rule that "
+            "a refused advisor stops asking."
         )
     )
 

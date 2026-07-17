@@ -191,3 +191,58 @@ def test_an_interrupt_is_flagged_as_one(orchestrator, health_session):
     assert result["is_interrupt"] is True
 
 
+
+
+# ── declined domains ──────────────────────────────────────────────────────────
+#
+# Proving a declined domain is not re-offered means proving a message does NOT
+# transfer, which the rule at the top of this file forbids: a non-transferring
+# message reaches the live agent and edits real profile data.
+#
+# The seam that makes it safe: the intent gate is the very next step after the
+# interrupt check, so stubbing it stops dispatch in both directions before any
+# agent is reached. Landing there proves the interrupt was skipped; not landing
+# there proves it fired.
+
+class _ReachedIntentGate(Exception):
+    """Dispatch got past the interrupt check. Stops it before the live agent."""
+
+
+@pytest.fixture
+def stop_at_intent_gate(orchestrator, monkeypatch):
+    def _stop(*_args, **_kwargs):
+        raise _ReachedIntentGate
+    monkeypatch.setattr(orchestrator.intent_engine, "needs_detection", _stop)
+
+
+def test_an_interrupt_fires_when_nothing_is_declined(orchestrator, health_session, stop_at_intent_gate):
+    """The default: a mid-workflow domain switch is offered to the user."""
+    result = dispatch(orchestrator, "car insurance", health_session, declined_domains=[])
+    assert result["is_interrupt"] is True
+
+
+def test_a_declined_domain_is_not_offered_again(orchestrator, health_session, stop_at_intent_gate):
+    """
+    The user already said no to motor. Asking about a car again must reach the
+    agent, not re-offer the switch — the UI suppresses that dialog, so the
+    suggestion would render as an unanswerable question.
+    """
+    with pytest.raises(_ReachedIntentGate):
+        dispatch(orchestrator, "car insurance", health_session, declined_domains=["motor"])
+
+
+def test_declining_one_domain_does_not_block_another(orchestrator, health_session, stop_at_intent_gate):
+    """Refusing motor must not cost the user a genuine switch to travel."""
+    result = dispatch(orchestrator, "travel insurance", health_session, declined_domains=["motor"])
+    assert result["is_interrupt"] is True
+    assert result["transfer_to"] == "travel"
+
+
+def test_declining_survives_the_whole_session(orchestrator, health_session, stop_at_intent_gate):
+    """
+    Not a per-message flag: the same declined domain stays declined across
+    every later message, which is the rule the UI already enforces.
+    """
+    for _ in range(3):
+        with pytest.raises(_ReachedIntentGate):
+            dispatch(orchestrator, "car insurance", health_session, declined_domains=["motor"])

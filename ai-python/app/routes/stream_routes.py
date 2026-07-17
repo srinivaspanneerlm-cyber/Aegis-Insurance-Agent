@@ -35,7 +35,7 @@ async def stream_chat_endpoint(request: ChatRequest):
         product_type=request.product_type,
         session_id=request.session_id or "",
         force_transfer_to=request.force_transfer_to,
-        skip_interrupt=request.skip_interrupt,
+        declined_domains=request.declined_domains,
     )
 
     return StreamingResponse(

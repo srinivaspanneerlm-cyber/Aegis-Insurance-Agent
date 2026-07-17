@@ -37,7 +37,7 @@ describe("useAdvisorTransfer — initial state", () => {
     const { result } = setup();
     let pending;
     act(() => { pending = result.current.consumePending(); });
-    expect(pending).toEqual({ forceTransferTo: undefined, skipInterrupt: false });
+    expect(pending).toEqual({ forceTransferTo: undefined });
   });
 });
 
@@ -205,15 +205,47 @@ describe("interrupt confirm / decline", () => {
     expect(result.current.interruptRequest).toBeNull();
   });
 
-  // Pins a live defect: the flag is plumbed to the backend but nothing raises it.
-  // See the note in the report — decide the intended behaviour before changing this.
-  it("declining does NOT currently set skip_interrupt", () => {
+  // The orchestrator needs the refusal too. Without it, it re-detects the
+  // switch and replies with the suggestion template instead of answering —
+  // and the UI suppresses that dialog, leaving the question unanswerable.
+  it("reports a declined interrupt domain to the orchestrator", () => {
     const { result } = setup();
     act(() => result.current.suggestInterrupt(interrupt(), "health"));
     act(() => { result.current.declineInterrupt(); });
-    let pending;
-    act(() => { pending = result.current.consumePending(); });
-    expect(pending).toMatchObject({ skipInterrupt: false });
+    expect(result.current.getDeclinedDomains()).toEqual(["motor"]);
+  });
+
+  it("reports a declined transfer domain too", () => {
+    const { result } = setup();
+    act(() => result.current.suggestTransfer(transfer(), "miscellaneous"));
+    act(() => { result.current.declineTransfer(); });
+    expect(result.current.getDeclinedDomains()).toEqual(["health"]);
+  });
+
+  it("keeps the refusal for the whole session, not just the next message", () => {
+    const { result } = setup();
+    act(() => result.current.suggestInterrupt(interrupt(), "health"));
+    act(() => { result.current.declineInterrupt(); });
+
+    act(() => { result.current.consumePending(); });
+    act(() => { result.current.consumePending(); });
+    // Still declined after later messages — this is the bug the old one-shot
+    // flag could not express.
+    expect(result.current.getDeclinedDomains()).toEqual(["motor"]);
+  });
+
+  it("accumulates every refusal without duplicating one", () => {
+    const { result } = setup();
+    act(() => result.current.suggestInterrupt(interrupt(), "health"));
+    act(() => { result.current.declineInterrupt(); });
+    act(() => result.current.suggestInterrupt(interrupt({ transferTo: "travel", transferToName: "Ethan AI" }), "health"));
+    act(() => { result.current.declineInterrupt(); });
+    expect(result.current.getDeclinedDomains().sort()).toEqual(["motor", "travel"]);
+  });
+
+  it("reports nothing declined before the user refuses anything", () => {
+    const { result } = setup();
+    expect(result.current.getDeclinedDomains()).toEqual([]);
   });
 });
 

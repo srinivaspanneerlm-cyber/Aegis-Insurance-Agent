@@ -41,6 +41,7 @@ class ChatService:
         product_type: Optional[str] = None,
         session_id: Optional[str] = None,
         force_transfer_to: Optional[str] = None,
+        declined_domains: Optional[List[str]] = None,
     ) -> Dict[str, Any]:
         """
         Full dispatch — returns a dict with reply, agent_name, agent_domain,
@@ -59,6 +60,7 @@ class ChatService:
                     session_id=session_id,
                     force_transfer_to=force_transfer_to,
                     initial_domain=product_type,
+                    declined_domains=declined_domains,
                 )
                 logger.info(
                     f"[ChatService] Response from {result.get('agent_name','?')} "

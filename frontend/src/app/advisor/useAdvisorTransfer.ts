@@ -28,7 +28,6 @@ export interface DeclineReply {
 /** One-shot flags a queued handoff contributes to the next outbound stream. */
 export interface PendingTransfer {
   forceTransferTo: string | undefined;
-  skipInterrupt: boolean;
 }
 
 /**
@@ -49,7 +48,6 @@ export function useAdvisorTransfer() {
   // Refs, not state: consumed mid-send, and a re-render must never replay them.
   const declinedDomainsRef = useRef<Set<string>>(new Set());
   const pendingForceTransferRef = useRef<string | null>(null);
-  const skipInterruptRef = useRef(false);
 
   const suggestTransfer = useCallback((info: TransferSuggestion, activeCategory: AdvisorKey) => {
     const req = buildTransferRequest(info, activeCategory, declinedDomainsRef.current);
@@ -69,10 +67,17 @@ export function useAdvisorTransfer() {
   const consumePending = useCallback((): PendingTransfer => {
     const forceTransferTo = pendingForceTransferRef.current || undefined;
     pendingForceTransferRef.current = null;
-    const skipInterrupt = skipInterruptRef.current;
-    skipInterruptRef.current = false;
-    return { forceTransferTo, skipInterrupt };
+    return { forceTransferTo };
   }, []);
+
+  /**
+   * Domains the user has refused, sent with every message so the orchestrator
+   * stops re-offering them. Deliberately not one-shot: a refusal holds for the
+   * session, which is the same rule the dialogs enforce locally.
+   */
+  const getDeclinedDomains = useCallback((): string[] => (
+    Array.from(declinedDomainsRef.current)
+  ), []);
 
   /** Approve the handoff. Returns the prompt to send, or null if no dialog was open. */
   const confirmTransfer = useCallback((lastUserMsg: string): string | null => {
@@ -146,6 +151,7 @@ export function useAdvisorTransfer() {
     suggestTransfer,
     suggestInterrupt,
     consumePending,
+    getDeclinedDomains,
     confirmTransfer,
     declineTransfer,
     confirmInterrupt,

@@ -167,7 +167,7 @@ export function useStreaming() {
     sessionId: string,
     callbacks?: StreamCallbacks,
     forceTransferTo?: string,
-    skipInterrupt?: boolean,
+    declinedDomains?: string[],
   ) => {
     // Cancel any in-progress request
     abortRef.current?.abort();
@@ -196,7 +196,7 @@ export function useStreaming() {
           product_type: productType,
           session_id: sessionId,
           force_transfer_to: forceTransferTo || null,
-          skip_interrupt: skipInterrupt || false,
+          declined_domains: declinedDomains || [],
         }),
         signal: abortRef.current.signal,
       });

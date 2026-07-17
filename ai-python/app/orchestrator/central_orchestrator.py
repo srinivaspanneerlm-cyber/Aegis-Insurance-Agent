@@ -139,7 +139,7 @@ class CentralOrchestrator:
         session_id: Optional[str] = None,
         force_transfer_to: Optional[str] = None,
         initial_domain: Optional[str] = None,
-        skip_interrupt: bool = False,
+        declined_domains: Optional[List[str]] = None,
     ) -> Dict[str, Any]:
         """
         Message routing pipeline:
@@ -206,15 +206,27 @@ class CentralOrchestrator:
         #   • "Actually motor insurance" (domain keyword, no trigger phrase)
         #   • "Forget health. Travel." (abandon signal + domain)
         #   • Messages > 12 words that FIR skips
-        # Only fires when an active workflow exists and skip_interrupt=False.
+        # Only fires when an active workflow exists.
+        #
+        # A domain the user already refused is never offered again: detection
+        # still runs, but a declined target falls through to the active agent so
+        # the message is actually answered. Re-offering it would return the
+        # suggestion template as the reply — the user's question would never
+        # reach the agent, and the UI suppresses the dialog, leaving the
+        # question unanswerable.
+        declined = set(declined_domains or ())
         if (
-            not skip_interrupt
-            and active_agent
+            active_agent
             and workflow_status == "active"
             and self.registry.get(active_agent)
         ):
             interrupt = self.interrupt_detector.detect(message, active_agent)
-            if interrupt.detected and self.registry.get(interrupt.target_domain) and interrupt.target_domain != active_agent:
+            if (
+                interrupt.detected
+                and self.registry.get(interrupt.target_domain)
+                and interrupt.target_domain != active_agent
+                and interrupt.target_domain not in declined
+            ):
                 logger.info(
                     f"[Orchestrator:Interrupt] Mid-workflow switch: "
                     f"{active_agent} → {interrupt.target_name} "

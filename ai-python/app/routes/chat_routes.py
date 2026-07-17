@@ -45,6 +45,7 @@ async def chat_endpoint(request: ChatRequest):
             request.message, request.history, request.user_name,
             request.product_type, request.session_id,
             force_transfer_to=request.force_transfer_to,
+            declined_domains=request.declined_domains,
         )
         return _result_to_response(result)
     except Exception as e:
@@ -62,6 +63,7 @@ async def direct_integration_endpoint(request: ChatRequest):
             request.message, request.history, request.user_name,
             request.product_type, request.session_id,
             force_transfer_to=request.force_transfer_to,
+            declined_domains=request.declined_domains,
         )
         return _result_to_response(result)
     except Exception as e:

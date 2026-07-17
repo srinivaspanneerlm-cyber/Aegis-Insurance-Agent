@@ -156,8 +156,8 @@ function AdvisorChat() {
     const sessionId =
       (typeof window !== "undefined" && localStorage.getItem("aegis_session_id")) || "";
 
-    // Consume the one-shot handoff flags queued by the confirm/return actions
-    const { forceTransferTo, skipInterrupt } = transfer.consumePending();
+    // Consume the one-shot forced transfer queued by the confirm/return actions
+    const { forceTransferTo } = transfer.consumePending();
 
     // Build history from current conversation (exclude just-added user msg)
     const history: ChatHistoryItem[] = conversationRef.current
@@ -255,7 +255,7 @@ function AdvisorChat() {
           onError: () => addErrorMsg(),
         },
         forceTransferTo,
-        skipInterrupt,
+        transfer.getDeclinedDomains(),
       );
     } catch {
       addErrorMsg();
