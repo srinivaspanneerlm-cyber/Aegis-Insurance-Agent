@@ -26,6 +26,35 @@ export interface VoiceHook {
   retryAfterError: () => void;
 }
 
+// ── Minimal Web Speech API types ────────────────────────────────────────────────
+// The Speech Recognition API is not part of the standard TS DOM lib, so the
+// shapes the browser hands us are declared here instead of falling back to `any`.
+
+interface SpeechRecognitionResultLike {
+  isFinal: boolean;
+  [index: number]: { transcript: string };
+}
+interface SpeechRecognitionEventLike {
+  resultIndex: number;
+  results: { length: number; [index: number]: SpeechRecognitionResultLike };
+}
+interface SpeechRecognitionErrorEventLike {
+  error: string;
+}
+interface SpeechRecognitionLike {
+  lang: string;
+  continuous: boolean;
+  interimResults: boolean;
+  maxAlternatives: number;
+  onstart: (() => void) | null;
+  onresult: ((e: SpeechRecognitionEventLike) => void) | null;
+  onerror: ((e: SpeechRecognitionErrorEventLike) => void) | null;
+  onend: (() => void) | null;
+  start: () => void;
+  stop: () => void;
+}
+type SpeechRecognitionCtor = new () => SpeechRecognitionLike;
+
 // ── Hook ──────────────────────────────────────────────────────────────────────
 
 export function useVoice(options: VoiceOptions = {}): VoiceHook {
@@ -37,8 +66,7 @@ export function useVoice(options: VoiceOptions = {}): VoiceHook {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [volume, setVolume] = useState(0);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const recognitionRef = useRef<any>(null);
+  const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
   const audioCtxRef    = useRef<AudioContext | null>(null);
   const analyserRef    = useRef<AnalyserNode | null>(null);
   const streamRef      = useRef<MediaStream | null>(null);
@@ -84,7 +112,11 @@ export function useVoice(options: VoiceOptions = {}): VoiceHook {
     setVoiceState("requesting");
 
     // Check browser support
-    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const w = window as unknown as {
+      SpeechRecognition?: SpeechRecognitionCtor;
+      webkitSpeechRecognition?: SpeechRecognitionCtor;
+    };
+    const SR = w.SpeechRecognition || w.webkitSpeechRecognition;
     if (!SR) {
       setError("Speech recognition is not supported in this browser. Try Chrome.");
       setVoiceState("error");
@@ -96,8 +128,7 @@ export function useVoice(options: VoiceOptions = {}): VoiceHook {
       streamRef.current = stream;
       _startVolumeAnalysis(stream);
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const rec: any = new SR();
+      const rec = new SR();
       rec.lang = language;
       rec.continuous = false;
       rec.interimResults = true;
@@ -106,7 +137,7 @@ export function useVoice(options: VoiceOptions = {}): VoiceHook {
 
       rec.onstart = () => setVoiceState("listening");
 
-      rec.onresult = (e: any) => {
+      rec.onresult = (e: SpeechRecognitionEventLike) => {
         let text = "";
         let isFinal = false;
         for (let i = e.resultIndex; i < e.results.length; i++) {
@@ -117,7 +148,7 @@ export function useVoice(options: VoiceOptions = {}): VoiceHook {
         onTranscript?.(text, isFinal);
       };
 
-      rec.onerror = (e: any) => {
+      rec.onerror = (e: SpeechRecognitionErrorEventLike) => {
         // aborted fires when we call rec.stop() manually — not a real error
         if (e.error === "aborted") return;
 
@@ -147,11 +178,12 @@ export function useVoice(options: VoiceOptions = {}): VoiceHook {
       };
 
       rec.start();
-    } catch (err: any) {
+    } catch (err) {
+      const name = (err as DOMException)?.name;
       const msg =
-        err.name === "NotAllowedError" || err.name === "PermissionDeniedError"
+        name === "NotAllowedError" || name === "PermissionDeniedError"
           ? "Mic blocked — allow microphone in browser settings."
-          : err.name === "NotFoundError"
+          : name === "NotFoundError"
           ? "No microphone found. Plug one in and try again."
           : "Could not access microphone.";
       setError(msg);

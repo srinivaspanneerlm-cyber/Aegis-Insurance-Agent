@@ -306,8 +306,8 @@ export function useStreaming() {
         }
       }
 
-    } catch (err: any) {
-      if (err?.name === "AbortError") return;
+    } catch (err) {
+      if ((err as Error)?.name === "AbortError") return;
       // SSE failed — fall through to simulated streaming below
     }
 
