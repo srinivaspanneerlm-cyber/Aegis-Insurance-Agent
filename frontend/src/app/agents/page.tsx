@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { 
-  Search, User, Star, Shield, Users, ShieldCheck, 
-  ArrowRight, Phone, MessageSquare, Briefcase, Award, Check
+import {
+  Search, Star, Shield, Users,
+  ArrowRight
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Navbar from "@/components/Navbar";

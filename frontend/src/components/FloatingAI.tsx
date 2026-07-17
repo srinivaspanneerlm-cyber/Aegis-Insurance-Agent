@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Sparkles, MessageSquare, X, Heart, Car, Shield, Award, Plane, ArrowRight } from "lucide-react";
+import { Sparkles, X, Heart, Car, Shield, Award, Plane, ArrowRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { useTheme } from "@/context/ThemeContext";

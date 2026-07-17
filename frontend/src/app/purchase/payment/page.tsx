@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { usePurchase, extractPremiumAmount, calculateGST } from "@/context/PurchaseContext";
 import {
   Smartphone, CreditCard, Building2, Wallet, Clock, Briefcase,
-  ArrowRight, Lock, ChevronDown, Check,
+  ArrowRight, Lock, ChevronDown,
 } from "lucide-react";
 
 type Method = "upi" | "card" | "netbanking" | "wallet" | "emi" | "corporate";

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Check, ShieldAlert, Sparkles, Heart, Crown } from "lucide-react";
+import { Check, ShieldAlert, Sparkles, Heart, Crown, LucideIcon } from "lucide-react";
 import { motion } from "framer-motion";
 import { policyService } from "@/services/api";
 
@@ -9,6 +9,29 @@ interface PolicyCardsProps {
   selectedPlan: string;
   onSelectPlan: (plan: string) => void;
   onScrollToForm: () => void;
+}
+
+/** A policy record as returned by the backend policy service. */
+interface PolicyRecord {
+  id: string;
+  policyName: string;
+  coverage: string;
+  premium: number;
+}
+
+/** A fully-rendered plan card (static layout merged with any DB overrides). */
+interface PolicyCardPlan {
+  id: string;
+  name: string;
+  tagline: string;
+  icon: LucideIcon;
+  iconColor: string;
+  coverage: string;
+  monthlyPrice: number;
+  yearlyPrice: number;
+  claimRatio: string;
+  benefits: string[];
+  recommended: boolean;
 }
 
 export default function PolicyCards({ selectedPlan, onSelectPlan, onScrollToForm }: PolicyCardsProps) {
@@ -73,7 +96,7 @@ export default function PolicyCards({ selectedPlan, onSelectPlan, onScrollToForm
     },
   ];
 
-  const [plans, setPlans] = useState<any[]>(staticPlans);
+  const [plans, setPlans] = useState<PolicyCardPlan[]>(staticPlans);
 
   useEffect(() => {
     async function loadPolicies() {
@@ -81,7 +104,7 @@ export default function PolicyCards({ selectedPlan, onSelectPlan, onScrollToForm
         const fetched = await policyService.getPolicies();
         if (fetched && fetched.length > 0) {
           // Merge dynamic DB parameters with corresponding layout features
-          const merged = fetched.map((policy: any) => {
+          const merged = fetched.map((policy: PolicyRecord) => {
             const staticMatch = staticPlans.find(
               (sp) => sp.name.toLowerCase() === policy.policyName.toLowerCase()
             );

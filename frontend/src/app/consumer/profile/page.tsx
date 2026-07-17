@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
-import { ShieldCheck, User, Mail, Database, ArrowLeft, Key } from "lucide-react";
+import { User, Mail, Database, ArrowLeft, Key } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { useTheme } from "@/context/ThemeContext";

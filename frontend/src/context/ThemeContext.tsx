@@ -1,8 +1,9 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect } from "react";
+import { STORAGE_KEYS } from "@/lib/storage-keys";
 
-type Theme = "dark" | "light";
+export type Theme = "dark" | "light";
 
 interface ThemeContextType {
   theme: Theme;
@@ -17,7 +18,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     // Read theme from localStorage on initial load
-    const savedTheme = localStorage.getItem("aegis_theme") as Theme;
+    const savedTheme = localStorage.getItem(STORAGE_KEYS.THEME) as Theme;
     if (savedTheme) {
       setTheme(savedTheme);
       updateDocumentTheme(savedTheme);
@@ -30,7 +31,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const toggleTheme = () => {
     const nextTheme = theme === "dark" ? "light" : "dark";
     setTheme(nextTheme);
-    localStorage.setItem("aegis_theme", nextTheme);
+    localStorage.setItem(STORAGE_KEYS.THEME, nextTheme);
     updateDocumentTheme(nextTheme);
   };
 

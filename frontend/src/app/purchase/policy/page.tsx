@@ -3,7 +3,7 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { usePurchase } from "@/context/PurchaseContext";
 import {
-  ShieldCheck, Star, Clock, Hospital, AlertTriangle,
+  ShieldCheck, Star, AlertTriangle,
   TrendingUp, Plus, ArrowRight, ArrowLeftRight, Zap,
 } from "lucide-react";
 

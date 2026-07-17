@@ -3,15 +3,16 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
-import { ShieldCheck, TrendingUp, Cpu, Database, ArrowLeft, Radio } from "lucide-react";
+import { TrendingUp, Cpu, Database, ArrowLeft, Radio } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { adminService } from "@/services/api";
+import { AdminStats } from "@/types/domain";
 
 export default function AdminAnalyticsPage() {
-  const { user, loading, isAuthenticated, isAdmin } = useAuth();
+  const { loading, isAuthenticated, isAdmin } = useAuth();
   const router = useRouter();
-  const [stats, setStats] = useState<any>({ totalLeads: 12, totalChats: 48, uploadedDocuments: 9 });
+  const [stats, setStats] = useState<AdminStats>({ totalLeads: 12, totalChats: 48, uploadedDocuments: 9 });
 
   useEffect(() => {
     if (!loading) {

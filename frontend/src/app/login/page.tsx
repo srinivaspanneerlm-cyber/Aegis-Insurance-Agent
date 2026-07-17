@@ -4,12 +4,11 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { 
-  Shield, Mail, Lock, ArrowRight, Sparkles, Eye, EyeOff, 
-  Heart, Activity, ShieldCheck, Check, Users, Award, Database, 
-  HelpCircle, ChevronRight
+import {
+  Mail, Lock, ArrowRight, Eye, EyeOff,
+  Heart, ChevronRight
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { useTheme } from "@/context/ThemeContext";
@@ -50,8 +49,8 @@ export default function ConsumerLoginPage() {
     try {
       await login(email, password);
       // login handles redirect
-    } catch (err: any) {
-      setErrorMsg(err.message || "Invalid credentials. Please verify your passcode vault.");
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : "Invalid credentials. Please verify your passcode vault.");
     }
   };
 

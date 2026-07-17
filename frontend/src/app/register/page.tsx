@@ -34,8 +34,8 @@ export default function RegisterPage() {
 
     try {
       await register(name, email, password);
-    } catch (err: any) {
-      setErrorMsg(err.message || "Failed to register secure credentials.");
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : "Failed to register secure credentials.");
     }
   };
 

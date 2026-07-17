@@ -3,13 +3,13 @@
 import { useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
-import { ShieldCheck, Heart, Car, Sparkles, ArrowLeft, ArrowRight } from "lucide-react";
+import { Heart, Car, Sparkles, ArrowLeft, ArrowRight } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { useTheme } from "@/context/ThemeContext";
 
 export default function ConsumerRecommendationsPage() {
-  const { user, loading, isAuthenticated } = useAuth();
+  const { loading, isAuthenticated } = useAuth();
   const { theme } = useTheme();
   const router = useRouter();
 

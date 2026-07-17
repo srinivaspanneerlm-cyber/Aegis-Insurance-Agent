@@ -32,7 +32,7 @@ const STEPS: ProcessingStep[] = [
 
 export default function ProcessingPage() {
   const router = useRouter();
-  const { state, setSuccess } = usePurchase();
+  const { setSuccess } = usePurchase();
 
   const [statuses, setStatuses] = useState<Record<string, StepStatus>>({});
   const [currentStep, setCurrentStep] = useState(0);

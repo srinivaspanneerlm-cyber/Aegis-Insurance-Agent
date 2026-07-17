@@ -4,9 +4,9 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { 
-  Shield, Key, Lock, ArrowRight, Eye, EyeOff, 
-  Cpu, Activity, ShieldAlert, Sparkles, Terminal
+import {
+  Shield, Lock, ArrowRight, Eye, EyeOff,
+  Cpu, ShieldAlert, Terminal
 } from "lucide-react";
 import { motion } from "framer-motion";
 import Navbar from "@/components/Navbar";
@@ -55,8 +55,8 @@ export default function AdminLoginPage() {
       // authenticates through the administrator portal.
       await login(finalEmail, password, { adminOnly: true });
       // login handles redirect
-    } catch (err: any) {
-      setErrorMsg(err.message || "Access Denied: Invalid Security Officer credentials.");
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : "Access Denied: Invalid Security Officer credentials.");
     }
   };
 

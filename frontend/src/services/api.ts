@@ -1,8 +1,7 @@
-import axios from "axios";
+import axios, { AxiosProgressEvent } from "axios";
+import { API_URL } from "@/lib/config";
 
 // 1) Axios base configuration
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
-
 export const apiClient = axios.create({
   baseURL: API_URL,
   headers: { "Content-Type": "application/json" },
@@ -30,11 +29,11 @@ apiClient.interceptors.response.use(
 // Auth
 // ---------------------------------------------------------------------------
 export const authService = {
-  register: async (payload: any) => {
+  register: async (payload: Record<string, unknown>) => {
     const res = await apiClient.post("/auth/register", payload);
     return res.data;
   },
-  login: async (payload: any) => {
+  login: async (payload: Record<string, unknown>) => {
     const res = await apiClient.post("/auth/login", payload);
     return res.data;
   },
@@ -117,7 +116,7 @@ export const chatService = {
 // Upload
 // ---------------------------------------------------------------------------
 export const uploadService = {
-  uploadDocument: async (file: File, onUploadProgress?: (progressEvent: any) => void) => {
+  uploadDocument: async (file: File, onUploadProgress?: (progressEvent: AxiosProgressEvent) => void) => {
     const formData = new FormData();
     formData.append("file", file);
     const res = await apiClient.post("/upload", formData, {

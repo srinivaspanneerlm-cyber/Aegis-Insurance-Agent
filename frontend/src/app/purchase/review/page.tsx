@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { usePurchase, extractPremiumAmount, calculateGST } from "@/context/PurchaseContext";
 import {
   ShieldCheck, User, FileCheck, Tag, CheckSquare,
-  ArrowRight, IndianRupee, Percent, Gift,
+  ArrowRight, IndianRupee, Gift,
 } from "lucide-react";
 
 const COUPONS: Record<string, number> = {

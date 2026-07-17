@@ -3,17 +3,18 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
-import { MessageSquare, Calendar, Sparkles, ArrowLeft, Clock } from "lucide-react";
+import { ArrowLeft, Clock } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { useTheme } from "@/context/ThemeContext";
 import { chatService } from "@/services/api";
+import { ChatLog } from "@/types/domain";
 
 export default function ConsumerHistoryPage() {
-  const { user, loading, isAuthenticated } = useAuth();
+  const { loading, isAuthenticated } = useAuth();
   const { theme } = useTheme();
   const router = useRouter();
-  const [history, setHistory] = useState<any[]>([]);
+  const [history, setHistory] = useState<ChatLog[]>([]);
 
   useEffect(() => {
     if (!loading && !isAuthenticated) {
@@ -26,7 +27,7 @@ export default function ConsumerHistoryPage() {
       try {
         const data = await chatService.getHistory();
         if (data && data.length > 0) setHistory(data);
-      } catch (err) {
+      } catch {
         console.warn("Failed to load historical chats. Seed placeholder data.");
         setHistory([
           { id: "1", message: "Suggest a smart auto shield plan", createdAt: new Date(Date.now() - 3600 * 2000).toISOString(), advisorMessage: { message: "For your vehicle protection, the Aegis Smart Auto Shield locks in zero-depreciation coverage and 24/7 recovery." } }
@@ -81,7 +82,7 @@ export default function ConsumerHistoryPage() {
                 <div key={idx} className="p-6 bg-slate-900/60 border border-white/5 rounded-3xl text-left space-y-4 shadow-2xl">
                   <div className="flex items-center justify-between border-b border-white/5 pb-2">
                     <span className="text-[10px] text-purple-400 font-extrabold font-mono">CONVERSATION-ID: #{h.id || idx + 101}</span>
-                    <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">{new Date(h.createdAt).toLocaleDateString()}</span>
+                    <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">{new Date(h.createdAt ?? Date.now()).toLocaleDateString()}</span>
                   </div>
                   <p className="text-xs text-slate-300 leading-relaxed font-semibold">
                     <span className="text-purple-400 font-black">Your Context:</span> &quot;{h.message}&quot;

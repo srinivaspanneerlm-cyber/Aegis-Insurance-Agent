@@ -1,11 +1,11 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { usePurchase } from "@/context/PurchaseContext";
 import {
   CreditCard, Mail, Phone, Camera, FileCheck,
-  CheckCircle2, Clock, ArrowRight, ShieldCheck,
+  CheckCircle2, ArrowRight, ShieldCheck,
 } from "lucide-react";
 
 type KStatus = "pending" | "verifying" | "verified" | "failed";

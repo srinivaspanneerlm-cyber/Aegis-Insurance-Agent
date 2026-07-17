@@ -25,7 +25,7 @@ interface Props {
 }
 
 // Flowing dot between two agent cards
-function FlowingDots({ fromTheme, toTheme }: { fromTheme: string; toTheme: string }) {
+function FlowingDots() {
   return (
     <div className="relative flex items-center justify-center w-16 flex-shrink-0">
       {/* Track line */}
@@ -162,7 +162,7 @@ export default function TransferDialog({ request, onConfirm, onDecline }: Props)
               </div>
 
               {/* Arrow */}
-              <FlowingDots fromTheme={request.fromTheme} toTheme={request.toTheme} />
+              <FlowingDots />
 
               {/* TO */}
               <div

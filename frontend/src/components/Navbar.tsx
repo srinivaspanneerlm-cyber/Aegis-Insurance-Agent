@@ -2,10 +2,10 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { 
-  Shield, Sun, Moon, Search, Lock, User, LogOut, X, 
+import {
+  Shield, Sun, Moon, Search, User, LogOut,
   Home as HomeIcon, Package, Users as UsersIcon, UserCheck, PhoneCall,
-  Car, Heart, Globe, Home as HomeIconSolid, ShieldAlert, Sparkles, ArrowRight
+  Car, Heart, Globe, Home as HomeIconSolid, ArrowRight
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/context/AuthContext";
@@ -28,7 +28,6 @@ export default function Navbar({ onLoginClick }: NavbarProps) {
 
   // Mega dropdown menu state
   const [isMegaMenuOpen, setIsMegaMenuOpen] = useState(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const menuTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Listen to keyboard shortcut ⌘ K or Ctrl K

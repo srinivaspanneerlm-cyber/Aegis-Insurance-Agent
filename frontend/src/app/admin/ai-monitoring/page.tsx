@@ -1,14 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
-import { ShieldCheck, Cpu, ArrowLeft, Terminal, Radio } from "lucide-react";
+import { Cpu, ArrowLeft } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
 export default function AdminAiMonitoringPage() {
-  const { user, loading, isAuthenticated, isAdmin } = useAuth();
+  const { loading, isAuthenticated, isAdmin } = useAuth();
   const router = useRouter();
 
   useEffect(() => {

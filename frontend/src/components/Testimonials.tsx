@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Star, MessageSquare, Heart, Car, Plane, Home as HomeIcon, Shield, Sparkles, User } from "lucide-react";
+import { Star, Heart, Car, Plane, Home as HomeIcon, Shield, Sparkles, User } from "lucide-react";
 import { motion } from "framer-motion";
 import { useTheme } from "@/context/ThemeContext";
 

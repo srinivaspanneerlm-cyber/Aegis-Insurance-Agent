@@ -5,12 +5,13 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { 
   ArrowLeft, ShieldCheck, Heart, Car, Plane, Home as HomeIcon,
-  Calculator, Search, ShieldAlert, Award, FileText, CheckCircle, Scale, 
+  Calculator, Search, ShieldAlert, Award, CheckCircle, Scale,
   Signature, Clock, ChevronRight, Zap
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { STORAGE_KEYS } from "@/lib/storage-keys";
 
 // Interface representing the selected plan structure
 interface PlanDetails {
@@ -29,7 +30,7 @@ interface PlanDetails {
   hospitalNetwork?: string;
   premiumBreakdown?: string;
   executiveNotes?: string;
-  alternativePlan?: any;
+  alternativePlan?: PlanDetails;
   category?: string;
   idvValue?: string;
   ownDamageCover?: string;
@@ -50,6 +51,9 @@ interface PlanDetails {
   contentsCover?: string;
 }
 
+/** The selectable detail tabs on the policy details page. */
+type DetailTab = "benefits" | "network" | "exclusions" | "compare";
+
 // Mock cashless hospitals/service network
 const MOCK_HOSPITALS = [
   { name: "Apollo Proton Cancer Centre", city: "Chennai", rating: "4.9", category: "Super Specialty" },
@@ -65,12 +69,12 @@ function PolicyDetailsContent() {
   const searchParams = useSearchParams();
   const isCompareDefault = searchParams.get("compare") === "true";
   
-  const [activeTab, setActiveTab] = useState<"benefits" | "network" | "exclusions" | "compare">("benefits");
+  const [activeTab, setActiveTab] = useState<DetailTab>("benefits");
   const [plan, setPlan] = useState<PlanDetails | null>(null);
   
   // Interactive Premium Calculator states
   const [basePremium, setBasePremium] = useState<number>(850);
-  const [selectedRiders, setSelectedRiders] = useState<{ id: string; label: string; cost: number }[]>([
+  const [selectedRiders] = useState<{ id: string; label: string; cost: number }[]>([
     { id: "critical", label: "Critical Illness Shield Option", cost: 120 },
     { id: "accidental", label: "Accidental Recovery Supplement", cost: 80 }
   ]);
@@ -84,7 +88,7 @@ function PolicyDetailsContent() {
     if (isCompareDefault) {
       setActiveTab("compare");
     }
-    const stored = localStorage.getItem("selectedPlanDetails");
+    const stored = localStorage.getItem(STORAGE_KEYS.SELECTED_PLAN);
     if (stored) {
       try {
         const parsed = JSON.parse(stored);
@@ -277,7 +281,7 @@ function PolicyDetailsContent() {
               ].map((t) => (
                 <button
                   key={t.id}
-                  onClick={() => setActiveTab(t.id as any)}
+                  onClick={() => setActiveTab(t.id as DetailTab)}
                   className={`w-full p-4 rounded-2xl flex items-center gap-3.5 text-xs font-black uppercase tracking-widest border transition-all text-left cursor-pointer active:scale-98 ${
                     activeTab === t.id 
                       ? "bg-cyan-500/10 border-cyan-500/35 text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.1)]"
@@ -562,7 +566,7 @@ function PolicyDetailsContent() {
                             </span>
                             <h4 className="text-xs font-black text-white mt-3">Chief Risk Officer Audit Pass</h4>
                             <p className="text-[11px] text-slate-400 leading-relaxed font-semibold mt-1">
-                              "{plan.executiveApproval || "Underwritten under premium guidelines. All standard parameters fully validated."}"
+                              &quot;{plan.executiveApproval || "Underwritten under premium guidelines. All standard parameters fully validated."}&quot;
                             </p>
                           </div>
                           
@@ -690,7 +694,7 @@ function PolicyDetailsContent() {
                                         "paws": "Emma",
                                         "health": "Sarah"
                                       };
-                                      const altPlanName = plan.alternativePlan.planName.toLowerCase();
+                                      const altPlanName = plan.alternativePlan?.planName?.toLowerCase() ?? "";
                                       let bot = "Sarah";
                                       for (const [key, value] of Object.entries(botMap)) {
                                         if (altPlanName.includes(key)) {
@@ -698,7 +702,7 @@ function PolicyDetailsContent() {
                                           break;
                                         }
                                       }
-                                      window.location.href = `/advisor?bot=${bot}&selectPlan=${encodeURIComponent(plan.alternativePlan.planName)}`;
+                                      window.location.href = `/advisor?bot=${bot}&selectPlan=${encodeURIComponent(plan.alternativePlan?.planName ?? "")}`;
                                     }}
                                     className="w-full py-3 rounded-xl font-black uppercase text-[10px] tracking-wider border border-white/10 hover:border-white/20 bg-white/5 hover:bg-white/10 text-white transition-all flex items-center justify-center gap-1 active:scale-95 cursor-pointer"
                                   >

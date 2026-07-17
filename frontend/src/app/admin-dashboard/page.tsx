@@ -3,24 +3,27 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
-import { 
-  Shield, Users, MessageSquare, FileText, TrendingUp, 
-  UploadCloud, FileSpreadsheet, Lock, AlertCircle, 
-  CheckCircle, ArrowRight, UserCheck, Calendar, ArrowUpRight,
+import {
+  Shield, Users, MessageSquare, FileText, TrendingUp,
+  UploadCloud, FileSpreadsheet, Lock, ArrowRight,
   Cpu, Terminal, RefreshCw, Radio, Settings, ShieldAlert,
-  Sliders, Play, Heart, Star
+  Sliders, Play
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { adminService, leadService, chatService, uploadService } from "@/services/api";
+import { Lead, ChatLog, DocumentRecord } from "@/types/domain";
+
+/** Selectable sections of the admin dashboard. */
+type AdminNav = "analytics" | "leads" | "chats" | "vault" | "automation" | "telemetry";
 
 export default function AdminDashboard() {
   const { user, loading, isAuthenticated, isAdmin, logout } = useAuth();
   const router = useRouter();
 
   // Active Navigation
-  const [activeNav, setActiveNav] = useState<"analytics" | "leads" | "chats" | "vault" | "automation" | "telemetry">("analytics");
+  const [activeNav, setActiveNav] = useState<AdminNav>("analytics");
 
   // Dynamic Metrics
   const [stats, setStats] = useState({
@@ -29,9 +32,9 @@ export default function AdminDashboard() {
     uploadedDocuments: 9,
     activeUsers: 4,
   });
-  const [leads, setLeads] = useState<any[]>([]);
-  const [chats, setChats] = useState<any[]>([]);
-  const [documents, setDocuments] = useState<any[]>([]);
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [chats, setChats] = useState<ChatLog[]>([]);
+  const [documents, setDocuments] = useState<DocumentRecord[]>([]);
 
   // Page Loaders
   const [isPageLoading, setIsPageLoading] = useState(true);
@@ -109,15 +112,16 @@ export default function AdminDashboard() {
 
     try {
       const doc = await uploadService.uploadDocument(file, (progressEvent) => {
-        const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+        const total = progressEvent.total ?? file.size;
+        const percent = Math.round((progressEvent.loaded * 100) / total);
         setUploadProgress(percent);
       });
 
       setUploadSuccess(`Securely Vaulted: "${file.name}" uploaded successfully!`);
       setDocuments((prev) => [doc, ...prev]);
       setStats((prev) => ({ ...prev, uploadedDocuments: prev.uploadedDocuments + 1 }));
-    } catch (err: any) {
-      setValidationError(err.message || "Failed to vault the designated document.");
+    } catch (err) {
+      setValidationError(err instanceof Error ? err.message : "Failed to vault the designated document.");
     } finally {
       setIsSubmittingFile(false);
       setUploadProgress(0);
@@ -259,7 +263,7 @@ export default function AdminDashboard() {
               return (
                 <button
                   key={item.id}
-                  onClick={() => setActiveNav(item.id as any)}
+                  onClick={() => setActiveNav(item.id as AdminNav)}
                   className={`w-full flex items-center gap-3.5 px-4.5 py-3.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all cursor-pointer border ${
                     isActive 
                       ? "bg-cyan-950/40 text-cyan-400 border-cyan-500/30 shadow-[0_0_15px_rgba(6,182,212,0.1)]" 
@@ -587,7 +591,7 @@ export default function AdminDashboard() {
                           </div>
                           <div className="overflow-hidden">
                             <p className="text-xs font-black text-white truncate">{doc.name || doc.filename}</p>
-                            <p className="text-[9.5px] text-slate-500 mt-0.5 leading-none font-bold uppercase tracking-wider">{doc.size || `${(doc.sizeBytes / 1024).toFixed(1)} KB`}</p>
+                            <p className="text-[9.5px] text-slate-500 mt-0.5 leading-none font-bold uppercase tracking-wider">{doc.size || `${((doc.sizeBytes ?? 0) / 1024).toFixed(1)} KB`}</p>
                           </div>
                         </div>
                         <span className="text-[9px] text-slate-550 font-extrabold uppercase tracking-widest">{doc.createdAt ? new Date(doc.createdAt).toLocaleDateString() : "Active"}</span>

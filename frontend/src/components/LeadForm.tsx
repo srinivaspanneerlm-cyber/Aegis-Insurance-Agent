@@ -67,8 +67,8 @@ export default function LeadForm({ initialPlanSelection }: LeadFormProps) {
         setLeadId(lead.id);
       }
       setIsSuccess(true);
-    } catch (err: any) {
-      alert(err.message || "Failed to submit underwriting details.");
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to submit underwriting details.");
     } finally {
       setIsSubmitting(false);
     }

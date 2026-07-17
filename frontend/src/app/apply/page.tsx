@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { useState, Suspense } from "react";
 import Link from "next/link";
 import { 
   ShieldCheck, Lock, Sparkles, User, Mail, Phone, 
@@ -14,14 +13,21 @@ import { useTheme } from "@/context/ThemeContext";
 
 import { leadService } from "@/services/api";
 
+/** Recommendation verdict surfaced after the guided underwriting flow. */
+interface UnderwritingVerdict {
+  name?: string;
+  claimRatio?: string;
+  coverage?: string;
+  premium?: string;
+  reason?: string;
+  benefits?: string[];
+}
+
 function ApplyForm() {
-  const searchParams = useSearchParams();
-  const initialPlan = searchParams.get("plan") || "Aegis Supreme Health Shield";
   const { theme } = useTheme();
 
   const [step, setStep] = useState(1);
-  const [selectedPlan, setSelectedPlan] = useState(initialPlan);
-  
+
   // Guided State
   const [familyConfig, setFamilyConfig] = useState<string[]>(["self"]); 
   const [budgetTier, setBudgetTier] = useState("medium"); 
@@ -34,7 +40,7 @@ function ApplyForm() {
 
   const [loading, setLoading] = useState(false);
   const [secureId, setSecureId] = useState("");
-  const [underwritingVerdict, setUnderwritingVerdict] = useState<any>(null);
+  const [underwritingVerdict, setUnderwritingVerdict] = useState<UnderwritingVerdict | null>(null);
 
   // Toggle family helper
   const toggleFamily = (member: string) => {
@@ -155,7 +161,7 @@ function ApplyForm() {
         setSecureId("AEG-" + Math.floor(100000 + Math.random() * 900000));
       }
       setUnderwritingVerdict(recommendation);
-    } catch (err: any) {
+    } catch (err) {
       console.error("Underwriting lead creation error:", err);
       setSecureId("AEG-" + Math.floor(100000 + Math.random() * 900000));
       setUnderwritingVerdict(recommendation);
@@ -645,7 +651,7 @@ function ApplyForm() {
                         <div className="space-y-3 mb-6">
                           <span className="text-[9.5px] text-slate-400 font-bold uppercase tracking-widest block">Sovereign Safeguards Checklist:</span>
                           <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
-                            {underwritingVerdict?.benefits.map((b: string, bIdx: number) => (
+                            {underwritingVerdict?.benefits?.map((b: string, bIdx: number) => (
                               <li key={bIdx} className="flex items-start gap-2 text-xs text-slate-700">
                                 <Check className="w-4 h-4 text-emerald-600 stroke-[3.5] mt-0.5 flex-shrink-0" />
                                 <span className="font-semibold leading-tight">{b}</span>
