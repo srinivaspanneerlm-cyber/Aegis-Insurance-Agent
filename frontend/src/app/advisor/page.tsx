@@ -4,7 +4,6 @@ import { useState, useEffect, useRef, useCallback, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { Send, Shield, Heart, Car, Plane, Home as HomeIcon, X, ChevronLeft } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useAuth } from "@/context/AuthContext";
 import LeadForm from "@/components/LeadForm";
 import ChatMessage, { type ChatMsg, type RecommendationData } from "@/components/ChatMessage";
 import ThinkingEngine from "@/components/ThinkingEngine";
@@ -36,7 +35,6 @@ import AdvisorSidebar from "@/components/advisor/AdvisorSidebar";
 
 function AdvisorChat() {
   const searchParams = useSearchParams();
-  const { user } = useAuth();
 
   const getInitialCategory = (): AdvisorKey => {
     const bot = (searchParams.get("bot") || "").toLowerCase();
@@ -181,7 +179,6 @@ function AdvisorChat() {
       await stream(
         userMsg,
         history,
-        user?.name || "there",
         ADVISORS[activeCategory].pythonDomain,
         sessionId,
         {
@@ -260,7 +257,7 @@ function AdvisorChat() {
     } catch {
       addErrorMsg();
     }
-  }, [activeCategory, user?.name, stream]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [activeCategory, stream]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSend = useCallback(async (e?: React.FormEvent) => {
     e?.preventDefault();

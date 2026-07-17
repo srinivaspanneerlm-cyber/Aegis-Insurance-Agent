@@ -15,6 +15,11 @@ const internalHeaders = env.AI_INTERNAL_API_KEY
 // fallback reply below instead.
 const aiHttp = createHttpClient({ timeout: AI_CLIENT.TIMEOUT_MS, retries: 0 });
 
+// Separate client for the SSE path. No timeout: an advisor stream is long-lived
+// by design and a request timer would sever it mid-answer. The stream ends when
+// the AI service finishes or the browser disconnects (see `signal`).
+const aiStreamHttp = createHttpClient({ timeout: 0, retries: 0 });
+
 /**
  * Aegis AI — Multi-Agent Service Bridge
  * Routes chat messages through the Python CentralOrchestrator and returns
@@ -272,6 +277,47 @@ function _buildFallbackReply(userMessage, userName, productType, history) {
   return introMessages[category] || introMessages.health;
 }
 
+/**
+ * Open the AI engine's SSE stream on behalf of an authenticated customer.
+ *
+ * The browser used to call the AI service directly, which meant the engine had
+ * no way to tell who was asking: it took `user_name` from the request body and
+ * resolved that straight to a customer's profile and conversation memory. Any
+ * caller could name any customer. Routing through here closes that — `userName`
+ * is supplied by the caller in this process from the verified session, never
+ * from the request body, and the shared key means the engine can stop accepting
+ * requests from anywhere else.
+ *
+ * Returns the raw upstream stream for the caller to pipe; SSE framing is the
+ * AI service's, and passing it through unparsed keeps this a transport.
+ */
+const openAIStream = ({
+  message,
+  history = [],
+  userName,
+  productType = null,
+  sessionId = "",
+  forceTransferTo = null,
+  declinedDomains = [],
+  signal,
+}) =>
+  aiStreamHttp
+    .post(
+      `${env.AI_SERVICE_URL}/chat/stream`,
+      {
+        message,
+        history,
+        user_name: userName,
+        product_type: productType,
+        session_id: sessionId,
+        force_transfer_to: forceTransferTo,
+        declined_domains: declinedDomains,
+      },
+      { headers: internalHeaders, responseType: "stream", signal }
+    )
+    .then((response) => response.data);
+
 module.exports = {
   getResponseFromAIService,
+  openAIStream,
 };

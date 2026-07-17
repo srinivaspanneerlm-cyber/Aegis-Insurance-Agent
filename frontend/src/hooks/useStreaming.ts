@@ -1,11 +1,10 @@
 "use client";
 import { useState, useCallback, useRef } from "react";
 
-// Direct Python AI service URL for SSE streaming
-const AI_STREAM_URL =
-  typeof window !== "undefined"
-    ? (process.env.NEXT_PUBLIC_AI_STREAM_URL || "http://localhost:8000")
-    : "http://localhost:8000";
+// The advisor stream is proxied by the Node backend, which authenticates the
+// customer and tells the AI engine who they are. The browser never addresses
+// the AI service directly — it has no way to prove identity to it.
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -162,7 +161,6 @@ export function useStreaming() {
   const stream = useCallback(async (
     message: string,
     history: ChatHistoryItem[],
-    userName: string,
     productType: string,
     sessionId: string,
     callbacks?: StreamCallbacks,
@@ -186,13 +184,16 @@ export function useStreaming() {
 
     // ── Try real SSE streaming from Python ────────────────────────────────────
     try {
-      const res = await fetch(`${AI_STREAM_URL}/api/ai/chat/stream`, {
+      const res = await fetch(`${API_BASE}/chat/stream`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        // Auth rides in the httpOnly cookie; the backend derives the customer
+        // from it. Deliberately no user_name here — identity is not the
+        // browser's to assert.
+        credentials: "include",
         body: JSON.stringify({
           message,
           history,
-          user_name: userName,
           product_type: productType,
           session_id: sessionId,
           force_transfer_to: forceTransferTo || null,
@@ -315,8 +316,6 @@ export function useStreaming() {
     // ── Fallback: regular Node.js API + simulated streaming ───────────────────
     await _simulatedStream(
       message,
-      history,
-      userName,
       productType,
       sessionId,
       callbacks,
@@ -345,8 +344,6 @@ export function useStreaming() {
 
 async function _simulatedStream(
   message: string,
-  history: ChatHistoryItem[],
-  userName: string,
   productType: string,
   sessionId: string,
   callbacks: StreamCallbacks | undefined,

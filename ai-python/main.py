@@ -101,13 +101,16 @@ app.include_router(
     dependencies=[Depends(require_internal_auth)],
 )
 
-# NOTE: the streaming endpoint is called directly by the browser (SSE), so it
-# is intentionally NOT gated by the internal service key — that would break the
-# real-time streaming / voice workflow. It should be fronted by a gateway or
-# proxied through the Node backend in a future hardening pass (see report).
+# The browser no longer reaches this endpoint directly — the Node backend
+# authenticates the customer, applies the AI rate limit, and proxies the stream
+# through, so this can be gated like every other route. It matters more here
+# than elsewhere: `user_name` in the request body is resolved straight to a
+# customer's profile and conversation memory, so an ungated stream let any
+# caller read and write any customer's data by naming them.
 app.include_router(
     stream_routes.router,
     prefix="/api/ai",
+    dependencies=[Depends(require_internal_auth)],
     tags=["Streaming Chat"],
 )
 

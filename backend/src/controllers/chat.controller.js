@@ -72,4 +72,53 @@ const getChatHistory = catchAsync(async (req, res, next) => {
   });
 });
 
-module.exports = { createChatMessage, getChatHistory };
+/**
+ * Proxy the advisor's SSE stream, so the browser never talks to the AI engine
+ * directly and the engine is never told who the customer is by the browser.
+ *
+ * Not wrapped in `catchAsync`: SSE headers go out before the upstream call, so
+ * the error middleware could not send its JSON body afterwards. Failures are
+ * reported in-band as an `error` event, which is what the client already
+ * handles.
+ */
+const streamChatMessage = async (req, res) => {
+  const { message, history, product_type, session_id, force_transfer_to, declined_domains } = req.body;
+
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+  // Stop reverse proxies buffering the stream into one lump at the end.
+  res.setHeader("X-Accel-Buffering", "no");
+  res.flushHeaders();
+
+  // A customer who closes the tab or hits stop should not leave a paid LLM
+  // call running upstream.
+  const upstreamAbort = new AbortController();
+  res.on("close", () => upstreamAbort.abort());
+
+  try {
+    const upstream = await aiService.openAIStream({
+      message,
+      history,
+      // Identity comes from the verified session. Anything the body claims
+      // about who this is gets dropped here.
+      userName: req.user.name,
+      productType: product_type,
+      sessionId: session_id,
+      forceTransferTo: force_transfer_to,
+      declinedDomains: declined_domains,
+      signal: upstreamAbort.signal,
+    });
+
+    upstream.on("error", () => res.end());
+    upstream.pipe(res);
+  } catch (err) {
+    if (upstreamAbort.signal.aborted) return; // customer left; nothing to report
+    console.error("[AI Stream] Upstream failed:", err.message);
+    // Generic in-band error — never echo the upstream's message to the client.
+    res.write(`data: ${JSON.stringify({ type: "error", message: "The advisor is unavailable right now. Please try again." })}\n\n`);
+    res.end();
+  }
+};
+
+module.exports = { createChatMessage, getChatHistory, streamChatMessage };
