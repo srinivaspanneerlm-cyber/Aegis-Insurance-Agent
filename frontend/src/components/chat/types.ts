@@ -186,6 +186,8 @@ export interface ChatMessageProps {
   message: ChatMsg;
   advisorAvatar?: string;
   advisorTheme?: string;
+  /** Name shown for an advisor message that carries no agentName of its own. */
+  advisorName?: string;
   onUIAction?: (action: string, planData: RecommendationData) => void;
   onOptionClick?: (text: string) => void;
   onRegenerate?: (msgId: string) => void;

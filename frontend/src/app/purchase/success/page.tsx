@@ -2,6 +2,7 @@
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { usePurchase, extractPremiumAmount, calculateGST, getExpiryDate } from "@/context/PurchaseContext";
+import { resolveAdvisorName } from "@/lib/advisors";
 import {
   ShieldCheck, Download, CreditCard, LayoutDashboard,
   MessageSquare, Calendar, User, IndianRupee, Hash, Star,
@@ -36,6 +37,10 @@ export default function SuccessPage() {
   const total = basePremium + gst - discount;
   const startDate = state.startDate || new Date().toISOString().split("T")[0];
   const expiryDate = getExpiryDate(startDate);
+  // The receipt names the advisor who owns this policy's category. Fall back to
+  // that category's advisor — not a hardcoded Sarah — so a motor/travel/home
+  // receipt never mislabels Alex/Ethan/Emma as the health advisor.
+  const advisorName = state.advisorName || resolveAdvisorName(plan?.category ?? "", "Sarah AI");
 
   const formatDate = (d: string) =>
     new Date(d).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" });
@@ -52,7 +57,7 @@ Coverage      : ${plan?.coverage}
 Premium       : ₹${total.toLocaleString()}/month
 Start Date    : ${formatDate(startDate)}
 Expiry Date   : ${formatDate(expiryDate)}
-Advisor       : ${state.advisorName || "Sarah AI"}
+Advisor       : ${advisorName}
 Insured       : ${c ? `${c.firstName} ${c.lastName}` : "Customer"}
 Nominee       : ${c ? `${c.nomineeName} (${c.nomineeRelation})` : "—"}
 ===================================
@@ -78,7 +83,7 @@ IRDAI Registration: Demo Mode
 ║ Plan    : ${(plan?.planName || "—").padEnd(27)}║
 ║ Valid   : ${formatDate(startDate).padEnd(27)}║
 ║ Expires : ${formatDate(expiryDate).padEnd(27)}║
-║ Advisor : ${(state.advisorName || "Sarah AI").padEnd(27)}║
+║ Advisor : ${advisorName.padEnd(27)}║
 ╚══════════════════════════════════════╝
     `.trim();
     const blob = new Blob([content], { type: "text/plain" });
@@ -153,7 +158,7 @@ IRDAI Registration: Demo Mode
           <InfoCard label="Monthly Premium" value={`₹${total.toLocaleString()}`} icon={IndianRupee} accent />
           <InfoCard label="Start Date"     value={formatDate(startDate)} icon={Calendar} />
           <InfoCard label="Expiry Date"    value={formatDate(expiryDate)} icon={Calendar} accent />
-          <InfoCard label="Advisor"        value={state.advisorName || "Sarah AI"} icon={MessageSquare} />
+          <InfoCard label="Advisor"        value={advisorName} icon={MessageSquare} />
         </div>
         {c && (
           <InfoCard

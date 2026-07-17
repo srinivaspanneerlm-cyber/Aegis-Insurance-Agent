@@ -560,6 +560,7 @@ function AdvisorChat() {
                     ? (AGENT_NAME_TO_CATEGORY[m.agentName || ""] ? ADVISORS[AGENT_NAME_TO_CATEGORY[m.agentName || ""]].theme : advisor.theme)
                     : advisor.theme
                 }
+                advisorName={advisor.name}
                 onUIAction={handleUIAction}
                 onOptionClick={handleOptionClick}
                 onRegenerate={m.sender === "advisor" ? handleRegenerate : undefined}
@@ -593,6 +594,7 @@ function AdvisorChat() {
                 }}
                 advisorAvatar={streamingAdvisor.avatar}
                 advisorTheme={streamingAdvisor.theme}
+                advisorName={streamingAdvisor.name}
                 onUIAction={handleUIAction}
                 onOptionClick={handleOptionClick}
               />

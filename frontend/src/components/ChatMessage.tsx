@@ -26,6 +26,7 @@ const ChatMessage = memo(function ChatMessage({
   message,
   advisorAvatar = "S",
   advisorTheme = "from-emerald-600 to-teal-500",
+  advisorName = "Sarah AI",
   onUIAction,
   onOptionClick,
   onRegenerate,
@@ -69,7 +70,7 @@ const ChatMessage = memo(function ChatMessage({
         {/* Agent name + transfer badge */}
         <div className="flex items-center gap-2">
           <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">
-            {message.agentName || "Sarah AI"}
+            {message.agentName || advisorName}
           </p>
           {message.transferred && (
             <TransferBadge from={message.transferFromName} to={message.agentName} />
