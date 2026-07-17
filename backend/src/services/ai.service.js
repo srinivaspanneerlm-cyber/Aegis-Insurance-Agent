@@ -95,12 +95,21 @@ const getResponseFromAIService = async (
 
 // ── Fallback helpers ──────────────────────────────────────────────────────────
 
+// Match any keyword as a whole word. Plain substring matching let a short
+// keyword fire from inside an unrelated word — "care"/"cardiac" contain "car"
+// and routed a health customer to motor. Anchoring with \b matches the keyword
+// only as its own word. Mirrors the intent engine's word-boundary lexicon.
+function _hasKeyword(text, words) {
+  const escaped = words.map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+  return new RegExp(`\\b(?:${escaped.join("|")})\\b`, "i").test(text);
+}
+
 function _detectFallbackDomain(message, history, productType) {
   if (productType) return productType;
   const allText = [message, ...history.map((h) => h.message)].join(" ").toLowerCase();
-  if (["car", "bike", "vehicle", "motor", "creta", "enfield"].some((w) => allText.includes(w))) return "motor";
-  if (["travel", "trip", "flight", "international", "abroad"].some((w) => allText.includes(w))) return "travel";
-  if (["home", "house", "property", "apartment", "tenant"].some((w) => allText.includes(w))) return "home-property";
+  if (_hasKeyword(allText, ["car", "bike", "vehicle", "motor", "creta", "enfield"])) return "motor";
+  if (_hasKeyword(allText, ["travel", "trip", "flight", "international", "abroad"])) return "travel";
+  if (_hasKeyword(allText, ["home", "house", "property", "apartment", "tenant"])) return "home-property";
   return "health";
 }
 
@@ -320,4 +329,7 @@ const openAIStream = ({
 module.exports = {
   getResponseFromAIService,
   openAIStream,
+  // Exported for unit testing of the offline fallback routing.
+  _detectFallbackDomain,
+  _detectFallbackAgent,
 };
