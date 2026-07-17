@@ -25,10 +25,10 @@ export default function KYCPage() {
   const c = state.customerDetails;
 
   const KYC_ITEMS: KItem[] = [
-    { id: "pan",   label: "PAN Validation",        sub: c?.pan || "ABCDE1234F",        icon: CreditCard,   delay: 0    },
-    { id: "aadh",  label: "Aadhaar Validation",    sub: c?.aadhaar ? `****${c.aadhaar.slice(-4)}` : "****9012", icon: CreditCard, delay: 700  },
-    { id: "email", label: "Email Verification",    sub: c?.email || "user@email.com",   icon: Mail,         delay: 1400 },
-    { id: "mobile",label: "Mobile Validation",     sub: c?.mobile ? `+91 ${c.mobile}` : "+91 9876543210", icon: Phone, delay: 2100 },
+    { id: "pan",   label: "PAN Validation",        sub: c?.pan || "Not provided",       icon: CreditCard,   delay: 0    },
+    { id: "aadh",  label: "Aadhaar Validation",    sub: c?.aadhaar ? `****${c.aadhaar.slice(-4)}` : "Not provided", icon: CreditCard, delay: 700  },
+    { id: "email", label: "Email Verification",    sub: c?.email || "Not provided",     icon: Mail,         delay: 1400 },
+    { id: "mobile",label: "Mobile Validation",     sub: c?.mobile ? `+91 ${c.mobile}` : "Not provided", icon: Phone, delay: 2100 },
     { id: "govid", label: "Govt ID Cross-Check",   sub: "UIDAI + NSDL database",        icon: FileCheck,    delay: 2800 },
     { id: "face",  label: "Face Match (Biometric)", sub: "Photo ID vs selfie scan",     icon: Camera,       delay: 3500 },
   ];
