@@ -49,6 +49,20 @@ class AegisMemoryEngine:
         self.customer_segments = self._load_json(self.intelligence_dir / "customer_segments.json")
         self.risk_rules = self._load_json(self.intelligence_dir / "risk_profile_rules.json")
 
+    @staticmethod
+    def _safe_id(customer_id: str) -> str:
+        """
+        Neutralise path separators before a customer id becomes a filename.
+
+        This id is derived from data that arrived over the wire, so a separator
+        in it would place the file outside the intended storage folder. The
+        caller (ProfileManager) guards its own fallback path, but on this
+        engine's path it passed the id through unfiltered — so the boundary has
+        to live here, at the point of file I/O, to actually hold. Mirrors
+        ProfileManager._safe / ConversationStore / RecommendationCache.
+        """
+        return str(customer_id).replace("/", "_").replace("\\", "_")
+
     def _load_json(self, file_path: Path) -> Dict[str, Any]:
         """Utility to safely load JSON files."""
         if file_path.exists():
@@ -180,7 +194,7 @@ class AegisMemoryEngine:
         Loads a customer profile by ID. If it does not exist,
         instantiates an empty default profile matching profile_schema.json.
         """
-        profile_file = self.profiles_storage / f"{customer_id}.json"
+        profile_file = self.profiles_storage / f"{self._safe_id(customer_id)}.json"
         if profile_file.exists():
             return self._load_json(profile_file)
 
@@ -197,7 +211,7 @@ class AegisMemoryEngine:
 
     def save_profile(self, customer_id: str, profile: Dict[str, Any]) -> None:
         """Saves customer profile to profiles folder."""
-        profile_file = self.profiles_storage / f"{customer_id}.json"
+        profile_file = self.profiles_storage / f"{self._safe_id(customer_id)}.json"
         with open(profile_file, "w", encoding="utf-8") as f:
             json.dump(profile, f, indent=2)
 
@@ -229,7 +243,7 @@ class AegisMemoryEngine:
         """
         Maintains conversation stage machine progression and checks recommendation readiness.
         """
-        state_file = self.conversations_storage / f"{customer_id}_state.json"
+        state_file = self.conversations_storage / f"{self._safe_id(customer_id)}_state.json"
         
         # Load or initialize state
         if state_file.exists():
@@ -364,7 +378,7 @@ class AegisMemoryEngine:
             "last_processed": datetime.now().isoformat()
         }
 
-        intel_file = self.intelligence_storage / f"{customer_id}.json"
+        intel_file = self.intelligence_storage / f"{self._safe_id(customer_id)}.json"
         with open(intel_file, "w", encoding="utf-8") as f:
             json.dump(intel_profile, f, indent=2)
 
@@ -401,7 +415,7 @@ class AegisMemoryEngine:
             "compiled_at": datetime.now().isoformat()
         }
 
-        context_file = self.contexts_storage / f"{customer_id}.json"
+        context_file = self.contexts_storage / f"{self._safe_id(customer_id)}.json"
         with open(context_file, "w", encoding="utf-8") as f:
             json.dump(context, f, indent=2)
 
