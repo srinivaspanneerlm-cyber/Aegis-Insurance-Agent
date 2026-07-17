@@ -17,11 +17,14 @@ describe("getExecutiveResponse", () => {
     expect(getExecutiveResponse("reporting a bug")).toContain("Underwriting channels");
   });
 
-  // Matching is plain substring, and the greeting branch runs first, so any word
-  // containing "hi" ("hit", "this", "shipping") greets instead of matching the
-  // later branch. Pinned as-is: this mock's replies predate the extraction.
-  it("lets the greeting branch win over words that merely contain 'hi'", () => {
-    expect(getExecutiveResponse("I hit a technical error")).toContain("Greetings");
+  it("does not greet on words that merely contain a greeting ('hit', 'this')", () => {
+    expect(getExecutiveResponse("I hit a technical error")).toContain("Underwriting channels");
+    expect(getExecutiveResponse("what is this plan")).toContain("Talk-to-Unlock");
+  });
+
+  it("greets on a standalone 'hi' or 'hey'", () => {
+    expect(getExecutiveResponse("hi")).toContain("Greetings");
+    expect(getExecutiveResponse("hey there")).toContain("Greetings");
   });
 
   it("routes recommendation queries to the engine response", () => {

@@ -8,8 +8,13 @@
  */
 export function getExecutiveResponse(query: string): string {
   const norm = query.toLowerCase();
+  // Short greetings are matched as whole words, not substrings, so ordinary
+  // words that merely contain them ("this", "hit", "they") don't trigger a
+  // greeting instead of the branch the user actually wanted.
+  const words = norm.split(/[^a-z]+/).filter(Boolean);
+  const hasWord = (w: string) => words.includes(w);
 
-  if (norm.includes("hi") || norm.includes("hello") || norm.includes("greet") || norm.includes("hey")) {
+  if (hasWord("hi") || hasWord("hey") || norm.includes("hello") || norm.includes("greet")) {
     return "Greetings. I am Sri AI, Chief Executive AI Advisor. I orchestrate the high-fidelity risk valuation matrices here at Aegis AI. How can I facilitate your onboarding or calibrate your underwriter desk today?";
   }
   if (norm.includes("insurance") || norm.includes("guidance") || norm.includes("plan") || norm.includes("cover")) {
