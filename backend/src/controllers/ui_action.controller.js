@@ -34,9 +34,23 @@ const dispatchUIAction = catchAsync(async (req, res, next) => {
       data: response.data,
     });
   } catch (error) {
-    const status = error.response?.status || 502;
+    // Log the upstream detail, never echo it. A network failure puts the AI
+    // service's host and port in `error.message`, and the engine's own errors
+    // describe its internals — it takes care not to leak them to callers, and
+    // relaying them here would undo that.
     const detail = error.response?.data?.detail || error.message;
-    return next(new AppError(`UI Action Engine error: ${detail}`, status));
+    console.error("[UI Action] Engine call failed:", detail);
+
+    // A 4xx means the caller's payload was wrong and they can act on it; the
+    // status says which, without the message saying how we're built. Anything
+    // else is ours to own, as a bad gateway.
+    const status = error.response?.status;
+    const isClientError = status >= 400 && status < 500;
+    return next(
+      isClientError
+        ? new AppError("That action could not be processed. Please retry from the current screen.", status)
+        : new AppError("The action service is unavailable right now. Please try again.", 502)
+    );
   }
 });
 
