@@ -1,7 +1,7 @@
 "use client";
 import React, { memo } from "react";
 import { motion } from "framer-motion";
-import { CheckCircle, ArrowRight, Sparkles, Award, ShieldCheck, FileText, Scale, Car, Globe, Home, Shield, Activity } from "lucide-react";
+import { CheckCircle, ArrowRight, Award, ShieldCheck, FileText, Scale, Car, Globe, Home, Shield, Activity } from "lucide-react";
 
 interface RecommendationData {
   planName: string;

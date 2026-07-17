@@ -15,13 +15,11 @@ export const ComparisonView = memo(function ComparisonView({
   category: string;
   onSelect: (plan: MultiPlan) => void;
 }) {
-  const isHealth   = category === "health";
   const isMotor    = category === "motor";
   const isProperty = category === "property";
   const isTravel   = category === "travel";
 
   const rankColors = ["text-cyan-400", "text-blue-400", "text-violet-400"];
-  const rankBorders = ["border-cyan-500/30", "border-blue-500/20", "border-violet-500/15"];
   const rankBgs = ["bg-cyan-500/8", "bg-blue-500/5", "bg-violet-500/5"];
 
   // Rows for health comparison

@@ -117,7 +117,7 @@ export const MultiPlanSuite = memo(function MultiPlanSuite({
 
       {/* Footer */}
       <p className="text-[8px] text-slate-600 text-center leading-relaxed px-4">
-        Plans matched by Aegis AI · Scores based on your profile · Toggle "Compare" for side-by-side view
+        Plans matched by Aegis AI · Scores based on your profile · Toggle &quot;Compare&quot; for side-by-side view
       </p>
     </motion.div>
   );

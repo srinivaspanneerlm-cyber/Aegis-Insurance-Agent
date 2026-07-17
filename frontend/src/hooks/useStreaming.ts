@@ -359,7 +359,7 @@ async function _simulatedStream(
   const steps = FALLBACK_STEPS[domainKey] || FALLBACK_STEPS.health;
 
   // Phase 1: Show thinking steps while waiting for API
-  const apiPromise = _callNodeApi(message, productType, sessionId, history, userName);
+  const apiPromise = _callNodeApi(message, productType, sessionId);
 
   for (const step of steps) {
     if (abortRef.current?.signal.aborted) return;
@@ -419,12 +419,12 @@ async function _simulatedStream(
   });
 }
 
+// NOTE: the Node bridge keeps its own session memory, so this path deliberately
+// sends only the session id — no client-side history or user name.
 async function _callNodeApi(
   message: string,
   productType: string,
   sessionId: string,
-  history: ChatHistoryItem[],
-  userName: string,
 ): Promise<{ reply: string; agentName: string; agentDomain: string; transferred: boolean; sessionId: string }> {
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
   const headers: Record<string, string> = { "Content-Type": "application/json" };

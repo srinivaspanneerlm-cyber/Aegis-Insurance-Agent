@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Sparkles, Shield, Heart, Car, Globe, Send, User, ChevronRight, Check } from "lucide-react";
+import { Sparkles, Shield, Heart, Car, Globe, Send, User, Check } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 import { chatService } from "@/services/api";
@@ -40,7 +40,8 @@ export default function AIAdvisor({ onSelectPlan, onScrollToForm }: AIAdvisorPro
   const [inputVal, setInputVal] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [typingText, setTypingText] = useState("");
-  const [isPreviewMode, setIsPreviewMode] = useState(false);
+  // Write-only: set when history fails to load, but nothing renders off it yet.
+  const [, setIsPreviewMode] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   // 1) Load Chat History from backend if logged in
