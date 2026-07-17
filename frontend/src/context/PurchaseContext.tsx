@@ -1,5 +1,17 @@
 "use client";
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
+import { STORAGE_KEYS } from "@/lib/storage-keys";
+import { resolveAdvisorName } from "@/lib/advisors";
+
+/**
+ * Categories a policy can actually be sold under, and the advisor a receipt may
+ * therefore name. Sri (`executive`/`miscellaneous`) is deliberately excluded:
+ * the executive advisor routes to specialists rather than closing a sale, so a
+ * receipt naming him would be wrong. `category` arrives untyped from the Python
+ * engine, so anything unrecognised falls back to the health advisor.
+ */
+const RECEIPT_CATEGORIES = ["health", "motor", "travel", "home-property", "property"];
+const DEFAULT_ADVISOR_NAME = "Sarah AI";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -60,13 +72,6 @@ export interface PurchaseState {
   startDate: string | null;
 }
 
-const EMPTY_CUSTOMER: CustomerDetails = {
-  firstName: "", lastName: "", dob: "", gender: "", occupation: "",
-  annualIncome: "", maritalStatus: "", mobile: "", email: "",
-  pan: "", aadhaar: "", nomineeName: "", nomineeRelation: "",
-  address: "", city: "", state: "", pinCode: "",
-};
-
 const DEFAULT_STATE: PurchaseState = {
   planData: null, sessionId: "", customerDetails: null,
   verificationDone: false, kycDone: false, otpDone: false,
@@ -93,7 +98,25 @@ interface PurchaseContextType {
 }
 
 const PurchaseContext = createContext<PurchaseContextType | undefined>(undefined);
-const STORAGE_KEY = "aegis_purchase_session";
+const STORAGE_KEY = STORAGE_KEYS.PURCHASE_SESSION;
+
+/**
+ * Strip the KYC identifiers before anything is written to disk.
+ *
+ * `localStorage` is readable by any script on the origin and outlives the
+ * browser session, so a persisted PAN or Aadhaar sits there for whoever opens
+ * the browser next — and a shared or borrowed device is exactly the one many of
+ * our customers are on. They stay in memory for the length of the flow instead;
+ * the cost is that a refresh mid-purchase makes the customer type them again,
+ * which is the trade we're choosing.
+ */
+function withoutKycIdentifiers(state: PurchaseState): PurchaseState {
+  if (!state.customerDetails) return state;
+  return {
+    ...state,
+    customerDetails: { ...state.customerDetails, pan: "", aadhaar: "" },
+  };
+}
 
 export function PurchaseProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<PurchaseState>(DEFAULT_STATE);
@@ -108,25 +131,27 @@ export function PurchaseProvider({ children }: { children: ReactNode }) {
         setState(prev => ({ ...prev, ...saved }));
       }
       // Always try to pull planData from selectedPlanDetails
-      const planRaw = localStorage.getItem("selectedPlanDetails");
+      const planRaw = localStorage.getItem(STORAGE_KEYS.SELECTED_PLAN);
       if (planRaw) {
         const plan = JSON.parse(planRaw) as PlanData;
         setState(prev => ({ ...prev, planData: plan }));
       }
-      const sid = localStorage.getItem("aegis_session_id") || crypto.randomUUID();
+      const sid = localStorage.getItem(STORAGE_KEYS.SESSION_ID) || crypto.randomUUID();
       setState(prev => ({ ...prev, sessionId: sid }));
     } catch {}
     setIsReady(true);
   }, []);
 
-  // Persist state to localStorage on every change
+  // Persist state to localStorage on every change — minus the KYC identifiers
   useEffect(() => {
     if (!isReady) return;
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch {}
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(withoutKycIdentifiers(state)));
+    } catch {}
   }, [state, isReady]);
 
   const setPlanData = useCallback((plan: PlanData) => {
-    localStorage.setItem("selectedPlanDetails", JSON.stringify(plan));
+    localStorage.setItem(STORAGE_KEYS.SELECTED_PLAN, JSON.stringify(plan));
     setState(prev => ({ ...prev, planData: plan }));
   }, []);
 
@@ -156,14 +181,15 @@ export function PurchaseProvider({ children }: { children: ReactNode }) {
     setState(prev => ({ ...prev, couponCode: code, couponDiscount: discount })), []);
 
   const setSuccess = useCallback((policyNumber: string, policyId: string) => {
-    const advisorMap: Record<string, string> = {
-      health: "Sarah AI", motor: "Alex AI",
-      travel: "Ethan AI", "home-property": "Emma AI", property: "Emma AI",
-    };
-    setState(prev => ({
-      ...prev, policyNumber, policyId,
-      advisorName: advisorMap[prev.planData?.category || "health"] || "Sarah AI",
-    }));
+    setState(prev => {
+      const category = prev.planData?.category || "health";
+      return {
+        ...prev, policyNumber, policyId,
+        advisorName: RECEIPT_CATEGORIES.includes(category)
+          ? resolveAdvisorName(category, DEFAULT_ADVISOR_NAME)
+          : DEFAULT_ADVISOR_NAME,
+      };
+    });
   }, []);
 
   const resetPurchase = useCallback(() => {

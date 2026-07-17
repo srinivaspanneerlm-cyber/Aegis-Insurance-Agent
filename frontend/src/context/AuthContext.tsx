@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { authService } from "@/services/api";
 import { useRouter } from "next/navigation";
+import { purgeCustomerSession } from "@/lib/session-cleanup";
 
 interface User {
   id: string;
@@ -43,7 +44,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         const userData = await authService.getMe();
         setUser(userData.user);
-      } catch (err) {
+      } catch {
         // No valid session cookie — treat as logged out.
         setUser(null);
       } finally {
@@ -132,9 +133,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = async () => {
     try {
       await authService.logout();
-    } catch (err) {
+    } catch {
       // Even if the request fails, drop the local session state.
     }
+    // Purge before dropping the user: the browser holds the customer's KYC
+    // progress, their advisor transcripts, and a session id that would resume
+    // their conversation server-side. Runs even when the request above failed
+    // — especially then, since the local copy is all that's left.
+    purgeCustomerSession();
     setUser(null);
     router.push("/");
   };
