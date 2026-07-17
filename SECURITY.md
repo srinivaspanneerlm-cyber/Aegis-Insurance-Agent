@@ -20,8 +20,8 @@
 graph TD
     U["User"] -->|HTTPS + httpOnly cookie| FE["Frontend"]
     FE -->|credentialed REST| BE["Backend (Express)"]
-    FE -->|SSE / voice| AI["AI Engine"]
-    BE -->|X-Internal-Api-Key| AI
+    FE -->|"SSE / voice (proxied)"| BE
+    BE -->|X-Internal-Api-Key| AI["AI Engine"]
     subgraph Controls
       H["Helmet headers"]
       C["CORS allowlist"]
@@ -30,6 +30,7 @@ graph TD
       I["Internal service key"]
       V["Input validation"]
       T["Tenant scoping"]
+      P["Prompt-safety sanitising"]
     end
     BE --- H
     BE --- C
@@ -39,14 +40,21 @@ graph TD
     BE --- T
     AI --- I
     AI --- V
+    AI --- P
 ```
 
 **Trust boundaries**
 1. Browser ↔ Backend — untrusted client; authenticated by httpOnly-cookie JWT.
 2. Backend ↔ AI Engine — trusted server-to-server; authenticated by shared
    internal key.
-3. Browser ↔ AI Engine (SSE) — the streaming/voice path; hardening backlog item
-   (§12).
+
+**The browser never talks to the AI engine.** Every path to it, streaming
+included, goes through the backend, which authenticates the customer and tells
+the engine who they are. This is not a routing preference: the engine resolves
+the `user_name` it is given straight to that customer's profile and conversation
+memory, so a browser allowed to address it directly could name any customer and
+read and write their data. The engine must not be publicly reachable — the proxy
+is the control, and the shared key is what is left if the network is not.
 
 ---
 
@@ -163,7 +171,38 @@ cost-abuse and scraping bursts.
   `.docx`); single-file, 10 MB cap; stored with generated filenames;
   served behind `protect` with `dotfiles: deny`.
 - **Never trust client identity:** `sender`/`name`/`role` from a client are not
-  authoritative after authentication; the verified user is used instead.
+  authoritative after authentication; the verified user is used instead. This
+  includes `user_name` on AI-engine calls — the backend supplies it from the
+  session, and the browser has no way to assert it.
+
+### Values that reach an LLM prompt
+
+Profile fields are rendered into the agent's system prompt, and every one of
+them started as something the customer typed. An answer is therefore an input to
+the prompt, and is treated as one (`app/utils/prompt_safety.py`).
+
+- **Defend against structure, not vocabulary.** What carries an injection is a
+  newline — it lets a value open a block of its own — and length, which turns a
+  sentence into a wall. Values are flattened and bounded. A blocklist of phrases
+  like "ignore previous instructions" is reworded in a minute; a value that
+  cannot leave its line has nowhere to say it.
+- **Every field that reaches a prompt is length-capped.** Named fields have a
+  ceiling sized to a real answer; anything unlisted still gets a default. An
+  unlisted field is an oversight, not a licence.
+- **Removed:** control characters, zero-width and bidi overrides (invisible to
+  the customer and to a reviewer, not to the model), and angle brackets, so a
+  value cannot forge the block it is rendered inside.
+- **Never an alphabetic allow-list.** Our customers write their names in Tamil
+  and answer in Tamil, English, and a mix of both; an `[A-Za-z]` filter would
+  corrupt exactly the people this product exists for. Unicode letters pass
+  through untouched.
+- **Sanitise at both ends** — when a value is extracted, so nothing new is
+  stored raw, and again when a profile is rendered, because profiles written
+  before a rule existed are still on disk and still load. Securing only the
+  write leaves every existing profile live.
+- **Customer data in a prompt is fenced and framed** as data, not instructions,
+  in the renderer rather than in each agent's `SYSTEM_PROMPT` — so no agent can
+  be added without it.
 
 ---
 
@@ -191,6 +230,29 @@ Cross-tenant data leakage is treated as a **critical** defect.
 - Sensitive config is read through validated modules (`config/env.js`,
   `app/config/config.py`), never `process.env` scattered across the code.
 
+### Runtime data is not source
+
+Secrets are not the only thing that must never be committed. The AI engine
+writes a profile, a conversation state, a risk score and a recommendation cache
+entry **per customer** into `Aegis-AI/layer3/` as it runs. In production each of
+those describes a real person: their name, age, income, medical history, and
+what they told an advisor.
+
+- **The four runtime stores are gitignored**, with the demo personas
+  allow-listed by name. A customer who is not a demo persona is never offered to
+  git — a directory the engine writes to is one `git add -A` from committing
+  real customer data.
+- **Nothing there is a required fixture.** The engine creates each file on
+  demand when it is missing; the suite passes with the profiles emptied. A file
+  that must exist for tests to pass would be a reason to fix the tests, not to
+  commit customer data.
+- **Demo personas carry sample data only.** `customer_id` is structural — the
+  engine derives it from the account name and looks the file up by it — so a
+  file named after a real account cannot be anonymised by editing it. Those are
+  untracked instead.
+- **Removing a file does not remove it from history.** Same rule as a leaked
+  secret: if real data was committed, the file's deletion is not the fix.
+
 | Variable | Component | Notes |
 |---|---|---|
 | `JWT_SECRET` | backend | ≥32 chars, high-entropy; fail-fast |
@@ -208,17 +270,51 @@ Cross-tenant data leakage is treated as a **critical** defect.
 - **Health endpoints** are minimal and do **not** disclose which LLM providers
   or keys are configured.
 - Prisma errors are mapped to safe, user-facing messages.
+- **Never relay an upstream's error detail.** A failed call to the AI engine
+  carries its host and port in the client library's message, and the engine's
+  own errors describe its internals — it takes care not to leak them, and
+  passing them on undoes that. Log the detail; return a generic message. A 4xx
+  may keep its status, since the caller's payload being wrong is worth telling
+  them: the status says which, without the message saying how we are built.
 
 ---
 
-## 11. OWASP Top-10 Alignment
+## 11. Client-Side Data
+
+Anything in the browser belongs to whoever is sitting at it. Our customers are
+disproportionately on a shared, borrowed, or public machine — that is not an
+edge case here, it is the audience in [CLAUDE.md §1](CLAUDE.md).
+
+- **KYC identifiers never touch disk.** PAN and Aadhaar are held in memory for
+  the length of the purchase flow and redacted before anything is persisted.
+  `localStorage` is readable by any script on the origin and outlives the
+  session, so a persisted identifier waits there for the next person. A refresh
+  mid-purchase costing the customer re-entry is the accepted trade.
+- **Logging out purges the device.** One function
+  (`lib/session-cleanup.ts`) decides what leaving removes: the purchase in
+  progress, every advisor transcript, and the session id — which would otherwise
+  let the next person resume the conversation server-side. It runs even when the
+  logout request fails; especially then, since the local copy is all that is
+  left. The theme preference is deliberately spared: it says nothing about the
+  customer.
+- **That function is the list.** Anything new that stores customer data in the
+  browser belongs in it. One place to audit, one place to extend.
+- **Transcripts are customer data.** An advisor conversation names conditions,
+  income, and family. It is not "just UI state" because it lives in the UI.
+- **No secrets in the client bundle.** Only `NEXT_PUBLIC_*` values reach the
+  browser, and only URLs go in them. A constant pointing at an internal service
+  is not neutral — it is an invitation to bypass whatever fronts it.
+
+---
+
+## 12. OWASP Top-10 Alignment
 
 | Risk | Status | Control |
 |---|---|---|
-| A01 Broken Access Control | ✅ / backlog | RBAC + tenant scoping; **upload IDOR** pending (§12) |
+| A01 Broken Access Control | ✅ | RBAC + tenant scoping; uploads scoped by `ownerId`; the AI engine is reachable only via the authenticated backend |
 | A02 Cryptographic Failures | ✅ | bcrypt-12, httpOnly+Secure cookies, HSTS |
-| A03 Injection | ✅ | Prisma parameterisation; validated/bounded input |
-| A04 Insecure Design | ✅ | agent isolation, consent transfers, fail-closed key |
+| A03 Injection | ✅ | Prisma parameterisation; validated/bounded input; profile values flattened and bounded before reaching a prompt (§7) |
+| A04 Insecure Design | ✅ | agent isolation, consent transfers, fail-closed key; KYC identifiers never persisted client-side (§11) |
 | A05 Security Misconfiguration | ✅ | Helmet, strict CORS, fail-fast env validation |
 | A06 Vulnerable Components | ⚠️ | keep deps patched (backlog: automated scanning) |
 | A07 Auth Failures | ✅ | rate limits, anti-enumeration, strong hashing |
@@ -228,12 +324,10 @@ Cross-tenant data leakage is treated as a **critical** defect.
 
 ---
 
-## 12. Hardening Backlog (tracked)
+## 13. Hardening Backlog (tracked)
 
 | Item | Severity | Plan |
 |---|---|---|
-| SSE stream endpoint is browser-reachable without the internal key | High | Front with an API gateway or proxy through the backend without breaking voice |
-| Upload IDOR — documents not scoped to an owner | Medium | Add `ownerId` to `UploadedDocument` + scope queries (DATABASE phase) |
 | CSRF for cookie auth with `SameSite=None` | Medium | Add CSRF token / double-submit for state-changing routes |
 | JWT also returned in response body (redundant) | Low | Remove after frontend audit confirms cookie-only |
 | Dependency & secret scanning in CI | Medium | Add automated scans + Dependabot-style updates |
@@ -241,7 +335,7 @@ Cross-tenant data leakage is treated as a **critical** defect.
 
 ---
 
-## 13. Incident Response (baseline)
+## 14. Incident Response (baseline)
 
 1. **Contain** — revoke exposed keys, invalidate sessions (rotate `JWT_SECRET`),
    block abusive IPs.
@@ -255,7 +349,7 @@ Cross-tenant data leakage is treated as a **critical** defect.
 
 ---
 
-## 14. Reporting a Vulnerability
+## 15. Reporting a Vulnerability
 
 Report suspected vulnerabilities privately to the project owner. Do not open a
 public issue with exploit detail. Include reproduction steps, impact, and

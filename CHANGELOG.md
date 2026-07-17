@@ -126,7 +126,7 @@
 
 ### Changed
 - JWT also returned in response body (for backward-compatibility with API
-  clients — flagged as low-severity in [SECURITY.md §12](SECURITY.md) for
+  clients — flagged as low-severity in [SECURITY.md §13](SECURITY.md) for
   future removal).
 - Socket.io CORS uses the same strict allowlist as the HTTP API.
 

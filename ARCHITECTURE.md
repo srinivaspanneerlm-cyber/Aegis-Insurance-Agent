@@ -37,18 +37,25 @@ graph TD
 
     U -->|HTTPS| FE
     FE -->|REST /api + cookie JWT| BE
-    FE -->|SSE stream / voice| AI
+    FE -->|SSE stream / voice| BE
     BE -->|X-Internal-Api-Key| AI
     BE --> DB
     AI --> KB
     AI --> LLM
 ```
 
-**Two paths reach the AI engine:**
-1. **Server-to-server** — Backend → AI (`POST /api/ai`) authenticated with the
-   internal service key. Used for standard request/response chat.
-2. **Browser SSE** — Frontend → AI (`POST /api/ai/chat/stream`) for streaming
-   and the voice workflow (low latency; token-by-token).
+**Every path to the AI engine is server-to-server**, authenticated with the
+internal service key. The browser never addresses the engine.
+1. **Request/response** — Backend → AI (`POST /api/ai`) for standard chat.
+2. **Streaming / voice** — Browser → Backend (`POST /api/chat/stream`) → AI
+   (`POST /api/ai/chat/stream`). The backend authenticates the customer, applies
+   `aiLimiter`, and pipes the SSE stream back unparsed, so the path keeps its
+   token-by-token latency.
+
+The proxy is not a routing preference. The engine resolves the `user_name` it is
+given straight to that customer's profile and conversation memory, so a browser
+allowed to address it directly could name any customer and read and write their
+data. See [SECURITY.md §1](SECURITY.md).
 
 ---
 
@@ -298,22 +305,28 @@ The voice experience is built on **Server-Sent Events**, not request/response:
 ```mermaid
 sequenceDiagram
     participant B as Browser (useVoice / useStreaming)
+    participant BE as Backend /api/chat/stream
     participant SR as stream_routes /api/ai/chat/stream
     participant SS as stream_service
     participant CO as CentralOrchestrator
 
-    B->>SR: POST message (SSE)
+    B->>BE: POST message (cookie JWT)
+    BE->>SR: POST + X-Internal-Api-Key, user_name from session
     SR->>SS: stream_chat(...)
     SS->>CO: dispatch
-    SS-->>B: event: thinking (steps)
-    SS-->>B: event: agent_info (domain + transfer)
-    SS-->>B: event: token (word batches)
-    SS-->>B: event: done
+    SS-->>BE: event: thinking (steps)
+    SS-->>BE: event: agent_info (domain + transfer)
+    SS-->>BE: event: token (word batches)
+    SS-->>BE: event: done
+    BE-->>B: each event piped through unparsed
 ```
 
-Event types: `thinking`, `agent_info`, `token`, `done`, `error`. The stream
-endpoint is intentionally reachable by the browser (see §10 for the hardening
-plan). **This path is protected — do not alter without sign-off.**
+Event types: `thinking`, `agent_info`, `token`, `done`, `error`. The backend is a
+transport on this path: it pipes the SSE framing through without parsing it, a
+customer closing the tab aborts the upstream call rather than leaving it billing,
+and upstream failures arrive in-band as an `error` event (the SSE headers are
+already sent by then). **This path is protected — do not alter without
+sign-off.**
 
 ---
 

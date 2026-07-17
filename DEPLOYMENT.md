@@ -437,12 +437,13 @@ production deployment.
       SQLite.
 - [ ] TLS terminated at the load balancer / reverse proxy; HSTS header is sent
       by Helmet (`max-age=31536000`).
-- [ ] Upload IDOR fix planned (scope `UploadedDocument` to owner) — see
-      [SECURITY.md §12](SECURITY.md).
-- [ ] SSE stream endpoint fronted by API gateway or proxied through backend —
-      see [SECURITY.md §12](SECURITY.md).
+- [x] Uploads scoped to their owner (`UploadedDocument.ownerId`).
+- [x] SSE stream proxied through the backend; the AI engine requires the
+      internal key on every route — see [SECURITY.md §1](SECURITY.md).
+- [ ] **AI engine port is not publicly reachable.** The proxy is the control;
+      the shared key is what is left if the network is not.
 - [ ] CSRF protection implemented for cookie-auth state-changing routes — see
-      [SECURITY.md §12](SECURITY.md).
+      [SECURITY.md §13](SECURITY.md).
 - [ ] Dependency scanning automated (npm audit, pip-audit or Safety).
 - [ ] Centralised log collection and alerting configured.
 - [ ] Database backups verified (automated, encrypted, point-in-time).

@@ -37,10 +37,14 @@ X-Internal-Api-Key: <AI_INTERNAL_API_KEY>
 ```
 
 This key is set identically on both services. Comparison is constant-time.
-In production, if the key is unset, the gated routes return `503`. The streaming
-endpoint (`/api/ai/chat/stream`) is intentionally ungated — it is called directly
-by the browser for the voice/SSE workflow (hardening backlog item: front with a
-gateway).
+In production, if the key is unset, the gated routes return `503`.
+
+**Every AI Engine route requires it**, streaming included. The engine resolves
+the `user_name` it is given straight to that customer's profile and conversation
+memory, so a caller who could reach it directly could name any customer and read
+and write their data. The browser therefore never addresses the engine: it posts
+to the backend's `POST /api/chat/stream`, which authenticates the customer,
+applies `aiLimiter`, and proxies the stream back.
 
 ---
 
@@ -87,7 +91,7 @@ In production, stack traces and internal detail are never returned to the client
 |---|---|---|---|
 | `apiLimiter` | All `/api` routes | 15 min | 100 |
 | `authLimiter` | `/api/auth/register`, `/api/auth/login` | 1 hour | 20 |
-| `aiLimiter` | `/api/chat` (POST), `/api/ui-action` (POST) | 1 min | 20 |
+| `aiLimiter` | `/api/chat` (POST), `/api/chat/stream` (POST), `/api/ui-action` (POST) | 1 min | 20 |
 
 Exceeding a limit returns HTTP `429 Too Many Requests`.
 
@@ -422,6 +426,41 @@ Fields:
 
 ---
 
+#### `POST /api/chat/stream`
+
+The advisor's SSE stream. This is the browser's entry point for the
+streaming/voice workflow — it proxies `/api/ai/chat/stream` on the AI Engine,
+which the browser cannot reach.
+
+**Auth required:** Yes (`protect`)  
+**Rate limit:** `aiLimiter` — the same paid LLM sits behind it as `POST /api/chat`
+
+**Request body:**
+```json
+{
+  "message": "I need family health insurance",
+  "history": [{ "role": "user", "content": "Hi" }],
+  "product_type": "health",
+  "session_id": "sess_abc123",
+  "force_transfer_to": null,
+  "declined_domains": ["motor"]
+}
+```
+
+**`user_name` is not accepted.** The backend supplies it from the verified
+session; the engine resolves it to that customer's profile and conversation
+memory, so it is not the caller's to assert. Anything the body claims about
+identity is dropped.
+
+**Response:** `Content-Type: text/event-stream` — the AI Engine's SSE events,
+passed through unparsed. See `POST /api/ai/chat/stream` for the event shapes.
+
+Closing the connection aborts the upstream call rather than leaving it billing.
+Upstream failures arrive in-band as an `error` event, since the SSE headers are
+already sent by the time one can happen.
+
+---
+
 #### `GET /api/chat`
 
 Retrieve chat history for the authenticated user.
@@ -602,8 +641,9 @@ Supported `action` values: `view_details`, `compare_plans`, `select_plan`,
 Base URL: `http://localhost:8000` (dev).
 Swagger UI (dev only): `http://localhost:8000/docs`
 
-All routes prefixed `/api/ai` require `X-Internal-Api-Key` except
-`/api/ai/chat/stream` (browser SSE) and the health probes.
+All routes prefixed `/api/ai` require `X-Internal-Api-Key`, streaming included.
+Only the health probes are ungated, and they disclose nothing beyond which agent
+environments are up.
 
 ---
 
@@ -766,10 +806,16 @@ Root-level endpoint on the AI engine. Same contract as above.
 
 #### `POST /api/ai/chat/stream`
 
-Server-Sent Events stream for the voice/streaming advisor experience. Called
-directly by the browser — no internal key required (hardening backlog item).
+Server-Sent Events stream for the voice/streaming advisor experience.
 
-**Auth required:** No (SSE path — see [SECURITY.md §12](SECURITY.md))
+**Not called by the browser.** The frontend posts to the backend's
+`POST /api/chat/stream`, which authenticates the customer, applies the AI rate
+limit, and proxies this stream back. The backend supplies `user_name` from the
+verified session — the engine resolves it straight to that customer's profile
+and conversation memory, so it is not the caller's to assert.
+
+**Auth required:** Yes (`X-Internal-Api-Key`) — see
+[SECURITY.md §1](SECURITY.md)
 
 **Request body:** same `ChatRequest` shape as `/api/ai`.
 
