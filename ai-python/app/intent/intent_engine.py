@@ -588,6 +588,28 @@ class IntentDetectionEngine:
     # PRIVATE: Signal analysis
     # ═══════════════════════════════════════════════════════════════════════════
 
+    def _compiled_lexicon(self) -> Dict[str, List[Tuple[Any, float]]]:
+        """
+        Lexicon phrases compiled to word-boundary patterns, cached on the class.
+
+        Plain substring matching let a short keyword fire from inside an
+        unrelated word — "cardiac" scored motor via "car", "inflation" scored
+        home via "flat" — which could misroute a cold-start conversation on the
+        keyword tie. Anchoring each phrase with \\b matches it only as a whole
+        word (or whole multi-word phrase) instead.
+        """
+        cache = type(self).__dict__.get("_LEXICON_RE")
+        if cache is None:
+            cache = {
+                domain: [
+                    (re.compile(rf"\b{re.escape(phrase)}\b", re.IGNORECASE), weight)
+                    for phrase, weight in lexicon.items()
+                ]
+                for domain, lexicon in self.DOMAIN_LEXICON.items()
+            }
+            type(self)._LEXICON_RE = cache
+        return cache
+
     def _score_domains(self, msg_lower: str) -> Dict[str, float]:
         """
         Score each domain using weighted keyword matching.
@@ -595,11 +617,11 @@ class IntentDetectionEngine:
         Returns domain → confidence (0.0–1.0).
         """
         scores: Dict[str, float] = {}
-        for domain, lexicon in self.DOMAIN_LEXICON.items():
+        for domain, patterns in self._compiled_lexicon().items():
             best_score = 0.0
             match_count = 0
-            for phrase, weight in lexicon.items():
-                if phrase in msg_lower:
+            for pattern, weight in patterns:
+                if pattern.search(msg_lower):
                     best_score = max(best_score, weight)
                     match_count += 1
 
