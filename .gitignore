@@ -59,3 +59,39 @@ logs/
 # Editor / OS
 .DS_Store
 Thumbs.db
+
+# ── Layer 3 runtime memory — real customers' data ────────────────────────────
+# The AI engine writes a profile, a conversation state, a risk score and a
+# recommendation cache entry per customer into these directories as it runs. In
+# production each of those describes a real person: their name, age, income,
+# medical history, and what they told an advisor. None of it belongs in git.
+#
+# Nothing here is a required fixture — the engine creates each file on demand
+# when it is missing. The demo personas below are checked in deliberately and
+# carry sample data only; anything else that appears here is a real customer.
+#
+# (state_manager/ is NOT ignored: those files are schema definitions, not data.)
+
+Aegis-AI/layer3/customer_profile/customer_profiles/*
+!Aegis-AI/layer3/customer_profile/customer_profiles/cust_john.json
+!Aegis-AI/layer3/customer_profile/customer_profiles/cust_officer_bob.json
+!Aegis-AI/layer3/customer_profile/customer_profiles/cust_raja.json
+!Aegis-AI/layer3/customer_profile/customer_profiles/cust_sri.json
+!Aegis-AI/layer3/customer_profile/customer_profiles/executive_cust_sri.json
+!Aegis-AI/layer3/customer_profile/customer_profiles/shared_cust_sri.json
+
+Aegis-AI/layer3/conversation_memory/conversations/*
+!Aegis-AI/layer3/conversation_memory/conversations/cust_john_state.json
+!Aegis-AI/layer3/conversation_memory/conversations/cust_officer_bob_state.json
+!Aegis-AI/layer3/conversation_memory/conversations/cust_raja_state.json
+!Aegis-AI/layer3/conversation_memory/conversations/cust_sri_state.json
+
+Aegis-AI/layer3/customer_intelligence/intelligence_profiles/*
+!Aegis-AI/layer3/customer_intelligence/intelligence_profiles/cust_john.json
+!Aegis-AI/layer3/customer_intelligence/intelligence_profiles/cust_officer_bob.json
+!Aegis-AI/layer3/customer_intelligence/intelligence_profiles/cust_sri.json
+
+Aegis-AI/layer3/recommendation_context/cache/*
+!Aegis-AI/layer3/recommendation_context/cache/executive_cust_sri_rec.json
+
+Aegis-AI/layer3/conversation_memory/sessions/

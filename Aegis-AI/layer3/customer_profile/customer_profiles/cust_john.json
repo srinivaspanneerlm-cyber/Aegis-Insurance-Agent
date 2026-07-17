@@ -1,6 +1,9 @@
 {
   "customer_id": "cust_john",
   "name": "John",
+  "risk_profile": "Medium",
+  "conversation_history_count": 0,
+  "last_interaction": "2026-01-01T00:00:00.000000",
   "age": null,
   "gender": null,
   "marital_status": null,
@@ -9,9 +12,6 @@
   "family_size": null,
   "budget": null,
   "location": null,
-  "existing_policies": [],
-  "preferred_category": null,
-  "risk_profile": "Medium",
-  "conversation_history_count": 1,
-  "last_interaction": "2026-06-21T00:54:31.263240"
+  "existing_policies": null,
+  "preferred_category": null
 }
