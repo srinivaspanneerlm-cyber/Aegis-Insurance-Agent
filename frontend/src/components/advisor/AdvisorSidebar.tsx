@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import { Activity, RefreshCw } from "lucide-react";
-import { ADVISORS, type AdvisorKey } from "@/app/advisor/advisors";
+import { ADVISORS, type AdvisorKey } from "@/lib/advisors";
 
 export interface SidebarAdvisor {
   id: AdvisorKey;

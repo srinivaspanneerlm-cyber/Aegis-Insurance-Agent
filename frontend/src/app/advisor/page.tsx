@@ -5,23 +5,21 @@ import { useSearchParams } from "next/navigation";
 import { Send, Shield, Heart, Car, Plane, Home as HomeIcon, X, ChevronLeft } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/context/AuthContext";
-import { useTheme } from "@/context/ThemeContext";
 import LeadForm from "@/components/LeadForm";
 import ChatMessage, { type ChatMsg, type RecommendationData } from "@/components/ChatMessage";
 import ThinkingEngine from "@/components/ThinkingEngine";
 import VoiceEngine from "@/components/VoiceEngine";
-import TransferDialog, { type TransferRequest } from "@/components/TransferDialog";
-import InterruptDialog, { type InterruptRequest } from "@/components/InterruptDialog";
+import TransferDialog from "@/components/TransferDialog";
+import InterruptDialog from "@/components/InterruptDialog";
 import { useStreaming, type ChatHistoryItem } from "@/hooks/useStreaming";
-import { chatService, uiActionService } from "@/services/api";
+import { uiActionService } from "@/services/api";
 
-// ── Advisor configuration & helpers now live alongside this page ──────────────
+// ── Advisor roster (shared) & page-local helpers ─────────────────────────────
 import {
   ADVISORS,
   AGENT_NAME_TO_CATEGORY,
-  PYTHON_DOMAIN_TO_CATEGORY,
   type AdvisorKey,
-} from "./advisors";
+} from "@/lib/advisors";
 import {
   now,
   makeId,
@@ -29,6 +27,8 @@ import {
   saveAgentHistory,
   clearAgentHistory,
 } from "./history";
+import { resolveAgentNameForDomain } from "./transferRules";
+import { useAdvisorTransfer } from "./useAdvisorTransfer";
 import AdvisorHeader from "@/components/advisor/AdvisorHeader";
 import AdvisorSidebar from "@/components/advisor/AdvisorSidebar";
 
@@ -37,7 +37,6 @@ import AdvisorSidebar from "@/components/advisor/AdvisorSidebar";
 function AdvisorChat() {
   const searchParams = useSearchParams();
   const { user } = useAuth();
-  const { theme } = useTheme();
 
   const getInitialCategory = (): AdvisorKey => {
     const bot = (searchParams.get("bot") || "").toLowerCase();
@@ -57,19 +56,16 @@ function AdvisorChat() {
   const [speakText, setSpeakText] = useState<string | null>(null);
   const [pingSpeed, setPingSpeed] = useState("45ms");
   const [activeHandshakes, setActiveHandshakes] = useState(128);
-  const [transferRequest, setTransferRequest] = useState<TransferRequest | null>(null);
-  const [interruptRequest, setInterruptRequest] = useState<InterruptRequest | null>(null);
-  const [previousAdvisorCategory, setPreviousAdvisorCategory] = useState<AdvisorKey | null>(null);
   const [envResponseTimeMs, setEnvResponseTimeMs] = useState<number | undefined>(undefined);
-  const [connectingTo, setConnectingTo] = useState<{ name: string; avatar: string; theme: string; emoji: string } | null>(null);
+
+  // Agent-handoff state & rules (dialogs, declined domains, one-shot flags)
+  const transfer = useAdvisorTransfer();
+  const { transferRequest, interruptRequest, connectingTo, previousAdvisorCategory } = transfer;
 
   const chatEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const streamingTimestampRef = useRef("");
   const lastUserMsgRef = useRef("");
-  const pendingForceTransferRef = useRef<string | null>(null);
-  const declinedTransferDomainsRef = useRef<Set<string>>(new Set());
-  const skipInterruptRef = useRef(false);
   // Allow sendToAdvisor to read latest messages without stale closure
   const conversationRef = useRef<ChatMsg[]>([]);
   conversationRef.current = messages;
@@ -160,13 +156,8 @@ function AdvisorChat() {
     const sessionId =
       (typeof window !== "undefined" && localStorage.getItem("aegis_session_id")) || "";
 
-    // Consume pending force transfer (set by handleTransferConfirm or handleReturnToPrevious)
-    const forceTransferTo = pendingForceTransferRef.current || undefined;
-    pendingForceTransferRef.current = null;
-
-    // Consume skip_interrupt flag (set by handleInterruptDecline)
-    const skipInterrupt = skipInterruptRef.current;
-    skipInterruptRef.current = false;
+    // Consume the one-shot handoff flags queued by the confirm/return actions
+    const { forceTransferTo, skipInterrupt } = transfer.consumePending();
 
     // Build history from current conversation (exclude just-added user msg)
     const history: ChatHistoryItem[] = conversationRef.current
@@ -195,7 +186,7 @@ function AdvisorChat() {
         sessionId,
         {
           onAgentInfo: (info) => {
-            setConnectingTo(null); // stream is live — dismiss connecting overlay
+            transfer.dismissConnecting(); // stream is live — dismiss connecting overlay
             streamingTimestampRef.current = now();
             if (info.sessionId && typeof window !== "undefined") {
               localStorage.setItem("aegis_session_id", info.sessionId);
@@ -209,26 +200,7 @@ function AdvisorChat() {
           },
           onInterruptSuggested: (info) => {
             // Mid-workflow domain switch detected — show specialized dialog
-            if (declinedTransferDomainsRef.current.has(info.transferTo)) return;
-            const toCat = PYTHON_DOMAIN_TO_CATEGORY[info.transferTo];
-            const fromCat = PYTHON_DOMAIN_TO_CATEGORY[info.fromDomain] || activeCategory;
-            if (!toCat) return;
-            const toAdv = ADVISORS[toCat];
-            const fromAdv = ADVISORS[fromCat];
-            setInterruptRequest({
-              fromName:   info.fromAgentName,
-              fromAvatar: fromAdv.avatar,
-              fromTheme:  fromAdv.theme,
-              fromEmoji:  fromAdv.emoji,
-              fromDomain: info.fromDomain,
-              fromLabel:  info.fromLabel,
-              toName:     info.transferToName || toAdv.name,
-              toAvatar:   toAdv.avatar,
-              toTheme:    toAdv.theme,
-              toEmoji:    toAdv.emoji,
-              toDomain:   info.transferTo,
-              toLabel:    info.transferToLabel,
-            });
+            transfer.suggestInterrupt(info, activeCategory);
           },
           onDone: (result) => {
             if (result.sessionId && typeof window !== "undefined") {
@@ -254,8 +226,7 @@ function AdvisorChat() {
               }
               // Enable "return to previous advisor" button
               if (result.previousAgent) {
-                const prevCat = PYTHON_DOMAIN_TO_CATEGORY[result.previousAgent];
-                if (prevCat) setPreviousAdvisorCategory(prevCat);
+                transfer.recordPreviousAgent(result.previousAgent);
               }
             }
 
@@ -270,7 +241,7 @@ function AdvisorChat() {
                 agentDomain: result.agentDomain || ADVISORS[activeCategory].pythonDomain,
                 transferred: result.transferred,
                 transferFromName: result.transferFrom
-                  ? Object.values(ADVISORS).find(a => a.pythonDomain === result.transferFrom)?.name || result.transferFrom
+                  ? resolveAgentNameForDomain(result.transferFrom)
                   : undefined,
                 transferToName: result.transferred ? (result.agentName || undefined) : undefined,
               },
@@ -279,26 +250,7 @@ function AdvisorChat() {
             setSpeakText(result.text);
           },
           onTransferSuggested: (info) => {
-            // Rule 13: don't re-prompt if user already declined this domain
-            if (declinedTransferDomainsRef.current.has(info.transferTo)) return;
-            const fromCat = PYTHON_DOMAIN_TO_CATEGORY[info.fromDomain] || activeCategory;
-            const toCat = PYTHON_DOMAIN_TO_CATEGORY[info.transferTo];
-            if (!toCat) return;
-            const fromAdv = ADVISORS[fromCat];
-            const toAdv = ADVISORS[toCat];
-            setTransferRequest({
-              fromName: info.fromAgentName,
-              fromAvatar: fromAdv.avatar,
-              fromTheme: fromAdv.theme,
-              fromEmoji: fromAdv.emoji,
-              fromDomain: info.fromDomain,
-              toName: info.transferToName || toAdv.name,
-              toAvatar: toAdv.avatar,
-              toTheme: toAdv.theme,
-              toEmoji: toAdv.emoji,
-              toDomain: info.transferTo,
-              reason: info.transferReason,
-            });
+            transfer.suggestTransfer(info, activeCategory);
           },
           onError: () => addErrorMsg(),
         },
@@ -327,79 +279,39 @@ function AdvisorChat() {
 
   // ── Transfer dialog handlers ──────────────────────────────────────────────
   const handleTransferConfirm = useCallback(() => {
-    const req = transferRequest;
-    setTransferRequest(null);
-    if (!req) return;
-    // Show connecting animation immediately before stream starts
-    const toCat = PYTHON_DOMAIN_TO_CATEGORY[req.toDomain];
-    if (toCat) {
-      const toAdv = ADVISORS[toCat];
-      setConnectingTo({ name: req.toName, avatar: toAdv.avatar, theme: toAdv.theme, emoji: toAdv.emoji });
-    }
-    pendingForceTransferRef.current = req.toDomain;
-    sendToAdvisor(lastUserMsgRef.current || `Please connect me with ${req.toName}.`);
-  }, [transferRequest, sendToAdvisor]);
+    const prompt = transfer.confirmTransfer(lastUserMsgRef.current);
+    if (prompt) sendToAdvisor(prompt);
+  }, [transfer, sendToAdvisor]);
 
   const handleTransferDecline = useCallback(() => {
-    const req = transferRequest;
-    setTransferRequest(null);
-    if (!req) return;
-    declinedTransferDomainsRef.current.add(req.toDomain);
     // Current agent acknowledges and stays (Rule 4)
+    const reply = transfer.declineTransfer();
+    if (!reply) return;
     setMessages(prev => [
       ...prev,
-      {
-        id: makeId(),
-        sender: "advisor" as const,
-        text: `Understood — I'll continue to assist you here. If you ever need help with ${req.toName.replace(" AI", "")}'s expertise, just let me know and I can arrange that.`,
-        timestamp: now(),
-        agentName: req.fromName,
-        agentDomain: req.fromDomain,
-      },
+      { id: makeId(), sender: "advisor" as const, timestamp: now(), ...reply },
     ]);
-  }, [transferRequest]);
+  }, [transfer]);
 
   // ── Interrupt dialog handlers ─────────────────────────────────────────────
   const handleInterruptConfirm = useCallback(() => {
-    const req = interruptRequest;
-    setInterruptRequest(null);
-    if (!req) return;
-    // Show connecting animation before stream begins
-    const toCat = PYTHON_DOMAIN_TO_CATEGORY[req.toDomain];
-    if (toCat) {
-      const toAdv = ADVISORS[toCat];
-      setConnectingTo({ name: req.toName, avatar: toAdv.avatar, theme: toAdv.theme, emoji: toAdv.emoji });
-    }
-    pendingForceTransferRef.current = req.toDomain;
-    sendToAdvisor(lastUserMsgRef.current || `Please switch me to ${req.toName}.`);
-  }, [interruptRequest, sendToAdvisor]);
+    const prompt = transfer.confirmInterrupt(lastUserMsgRef.current);
+    if (prompt) sendToAdvisor(prompt);
+  }, [transfer, sendToAdvisor]);
 
   const handleInterruptDecline = useCallback(() => {
-    const req = interruptRequest;
-    setInterruptRequest(null);
-    if (!req) return;
-    // Block re-triggering for this domain in the session
-    declinedTransferDomainsRef.current.add(req.toDomain);
+    const reply = transfer.declineInterrupt();
+    if (!reply) return;
     setMessages(prev => [
       ...prev,
-      {
-        id: makeId(),
-        sender: "advisor" as const,
-        text: `No problem at all — let's continue with your ${req.fromLabel} Insurance consultation. Where were we?`,
-        timestamp: now(),
-        agentName: req.fromName,
-        agentDomain: req.fromDomain,
-      },
+      { id: makeId(), sender: "advisor" as const, timestamp: now(), ...reply },
     ]);
-  }, [interruptRequest]);
+  }, [transfer]);
 
   const handleReturnToPrevious = useCallback(() => {
-    if (!previousAdvisorCategory) return;
-    const prevAdv = ADVISORS[previousAdvisorCategory];
-    setPreviousAdvisorCategory(null);
-    pendingForceTransferRef.current = prevAdv.pythonDomain;
-    sendToAdvisor(`Please reconnect me to ${prevAdv.name}.`);
-  }, [previousAdvisorCategory, sendToAdvisor]);
+    const prompt = transfer.returnToPrevious();
+    if (prompt) sendToAdvisor(prompt);
+  }, [transfer, sendToAdvisor]);
 
   const handleOptionClick = useCallback(async (text: string) => {
     await sendToAdvisor(text);
@@ -462,13 +374,16 @@ function AdvisorChat() {
     setSelectedPlan(planData?.planName || "Selected Plan");
   }, []);
 
-  const sidebarAdvisors: { id: AdvisorKey; icon: React.ReactNode; label: string; sub: string }[] = [
-    { id: "miscellaneous", icon: <Shield className="w-4 h-4" />, label: "Sri AI",   sub: "Executive Risk"  },
-    { id: "motor",         icon: <Car className="w-4 h-4" />,    label: "Alex AI",  sub: "Vehicle Asset"   },
-    { id: "health",        icon: <Heart className="w-4 h-4" />,  label: "Sarah AI", sub: "Health Floater"  },
-    { id: "travel",        icon: <Plane className="w-4 h-4" />,  label: "Ethan AI", sub: "Global Passage"  },
-    { id: "property",      icon: <HomeIcon className="w-4 h-4" />,label: "Emma AI", sub: "Real Estate"     },
-  ];
+  // Names come from the roster; the icon and sub-label are sidebar-only copy.
+  const sidebarAdvisors: { id: AdvisorKey; icon: React.ReactNode; label: string; sub: string }[] = (
+    [
+      { id: "miscellaneous", icon: <Shield className="w-4 h-4" />,   sub: "Executive Risk" },
+      { id: "motor",         icon: <Car className="w-4 h-4" />,      sub: "Vehicle Asset"  },
+      { id: "health",        icon: <Heart className="w-4 h-4" />,    sub: "Health Floater" },
+      { id: "travel",        icon: <Plane className="w-4 h-4" />,    sub: "Global Passage" },
+      { id: "property",      icon: <HomeIcon className="w-4 h-4" />, sub: "Real Estate"    },
+    ] as const
+  ).map(a => ({ ...a, label: ADVISORS[a.id].name }));
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (

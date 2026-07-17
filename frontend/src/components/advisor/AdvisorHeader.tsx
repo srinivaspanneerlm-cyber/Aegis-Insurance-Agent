@@ -3,7 +3,7 @@ import React from "react";
 import Link from "next/link";
 import { Cpu, Lock, ChevronLeft, X } from "lucide-react";
 import EnvironmentBadge from "@/components/EnvironmentBadge";
-import type { Advisor } from "@/app/advisor/advisors";
+import type { Advisor } from "@/lib/advisors";
 
 interface AdvisorHeaderProps {
   advisor: Advisor;

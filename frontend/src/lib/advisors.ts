@@ -96,3 +96,25 @@ export const PYTHON_DOMAIN_TO_CATEGORY: Record<string, AdvisorKey> = {
   "home-property": "property",
   "executive":     "miscellaneous",
 };
+
+/**
+ * Resolve an advisor from any identifier the app uses for one — a UI category
+ * (`property`) or a Python domain (`home-property`). The two key spaces overlap
+ * but are not identical, and callers receive whichever the backend happened to
+ * send, so both are accepted. Returns null for anything unrecognised.
+ */
+export function resolveAdvisorKey(key: string): AdvisorKey | null {
+  if (key in ADVISORS) return key as AdvisorKey;
+  return PYTHON_DOMAIN_TO_CATEGORY[key] || null;
+}
+
+/**
+ * Display name for whichever advisor owns `key`, falling back to `fallback`
+ * when the key names no advisor. The fallback is explicit because callers
+ * disagree on the right one — a chat bubble wants the current agent, whereas a
+ * purchase receipt wants a sensible default.
+ */
+export function resolveAdvisorName(key: string, fallback: string): string {
+  const advisorKey = resolveAdvisorKey(key);
+  return advisorKey ? ADVISORS[advisorKey].name : fallback;
+}
