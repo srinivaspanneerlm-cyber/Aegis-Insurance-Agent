@@ -33,6 +33,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 from app.utils.logger import logger
+from app.utils.prompt_safety import sanitize_profile, sanitize_profile_value
 
 
 # ── Field definitions ─────────────────────────────────────────────────────────
@@ -411,13 +412,20 @@ class EnhancedProfileManager:
         # ── 1c. Filter out false cross-domain field extractions ───────────────
         extracted = self._filter_cross_domain_fields(extracted, domain)
 
+        # ── 1d. Make the values safe to render into a prompt ──────────────────
+        # Every value above came from something the customer typed, and these
+        # fields end up inside the agent's system prompt. One choke point, after
+        # all three extraction paths have run, so none of them can store a value
+        # that would carry structure into the instructions.
+        extracted = sanitize_profile(extracted)
+
         # ── 2. Load existing profiles ─────────────────────────────────────────
         shared = self.load_shared_profile(base_customer_id)
         domain_profile = self.load_domain_profile(domain_customer_id)
 
         # ── 3. Set name from user_name if not already known ───────────────────
         if user_name and not shared.get("name"):
-            clean_name = user_name.strip().title()
+            clean_name = sanitize_profile_value("name", user_name.strip().title())
             if clean_name.lower() not in ("sri", "default") or not shared.get("name"):
                 shared["name"] = clean_name
 
