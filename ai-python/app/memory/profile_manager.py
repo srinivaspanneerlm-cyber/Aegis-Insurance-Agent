@@ -78,8 +78,25 @@ class EnhancedProfileManager:
 
     # ── Paths ─────────────────────────────────────────────────────────────────
 
+    @staticmethod
+    def _safe(component: str) -> str:
+        """
+        Neutralise path separators in a filename component.
+
+        A customer id is derived from a name that arrived over the wire, so a
+        separator in it would put the file somewhere other than the profile
+        directory. Nothing traverses today only because the id builder happens
+        to replace dots, which kills `..` — but that is slug-making, not a
+        boundary, and it should not be the thing holding this closed. Mirrors
+        ConversationStore and RecommendationCache, which already do this.
+        """
+        return component.replace("/", "_").replace("\\", "_")
+
     def _shared_path(self, base_customer_id: str) -> Path:
-        return self.profiles_dir / f"shared_{base_customer_id}.json"
+        return self.profiles_dir / f"shared_{self._safe(base_customer_id)}.json"
+
+    def _domain_path(self, domain_customer_id: str) -> Path:
+        return self.profiles_dir / f"{self._safe(domain_customer_id)}.json"
 
     # ── Shared profile ────────────────────────────────────────────────────────
 
@@ -126,7 +143,7 @@ class EnhancedProfileManager:
             return dict(profile)
 
         # Fallback: direct file access
-        path = self.profiles_dir / f"{domain_customer_id}.json"
+        path = self._domain_path(domain_customer_id)
         if path.exists():
             try:
                 data = json.loads(path.read_text(encoding="utf-8"))
@@ -141,7 +158,7 @@ class EnhancedProfileManager:
         if self.memory_engine:
             self.memory_engine.save_profile(domain_customer_id, profile)
         else:
-            path = self.profiles_dir / f"{domain_customer_id}.json"
+            path = self._domain_path(domain_customer_id)
             try:
                 path.write_text(json.dumps(profile, indent=2, default=str), encoding="utf-8")
             except Exception as e:
