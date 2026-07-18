@@ -109,7 +109,8 @@ class PurchaseEngine:
         try:
             m = re.search(r"[\d,]+", premium_str.replace(",", ""))
             return int(m.group().replace(",", "")) if m else 850
-        except Exception:
+        except (ValueError, AttributeError, TypeError) as e:
+            logger.debug(f"[PurchaseEngine] Premium parse failed for {premium_str!r}: {e}; using default 850")
             return 850
 
     def handle_select(self, session: dict) -> dict:
