@@ -2,17 +2,10 @@ import type { Theme } from "@/context/ThemeContext";
 
 /**
  * Theme-derived class strings for the Contact page sections.
- * Extracted verbatim from the original page so the extracted section
- * components share one definition instead of each re-deriving it.
+ * `wrapperClass`/`glassCardClass` are shared with other pages (re-exported
+ * from the shared module); the chat-specific helpers below stay local.
  */
-
-export const wrapperClass = (theme: Theme): string =>
-  theme === "dark" ? "bg-slate-950 text-white" : "bg-slate-50 text-navy-900";
-
-export const glassCardClass = (theme: Theme): string =>
-  theme === "dark"
-    ? "bg-slate-900/40 border-white/5 shadow-2xl text-slate-300"
-    : "bg-white border-slate-200/80 shadow-premium text-slate-700";
+export { wrapperClass, glassCardClass } from "@/components/shared/themeClasses";
 
 export const chatBgClass = (theme: Theme): string =>
   theme === "dark"

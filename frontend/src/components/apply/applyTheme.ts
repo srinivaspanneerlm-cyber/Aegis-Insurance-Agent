@@ -6,8 +6,8 @@
  */
 import type { Theme } from "@/context/ThemeContext";
 
-export const wrapperClass = (theme: Theme) =>
-  theme === "dark" ? "bg-slate-950 text-white" : "bg-slate-50 text-navy-900";
+// `wrapperClass` is shared verbatim with the About/Contact pages.
+export { wrapperClass } from "@/components/shared/themeClasses";
 
 export const mainCardClass = (theme: Theme) =>
   theme === "dark"
