@@ -6,10 +6,7 @@ import Footer from "@/components/Footer";
 import Testimonials from "@/components/Testimonials";
 import { useTheme } from "@/context/ThemeContext";
 import { AmbientBackground } from "@/components/shared/AmbientBackground";
-import { HeroSection } from "@/components/home/HeroSection";
-import { StatsBar } from "@/components/home/StatsBar";
-import { AdvisorEcosystem } from "@/components/home/AdvisorEcosystem";
-import { LoginModal } from "@/components/home/LoginModal";
+import { HeroSection, StatsBar, AdvisorEcosystem, LoginModal } from "@/components/home";
 
 export default function Home() {
   const { theme } = useTheme();

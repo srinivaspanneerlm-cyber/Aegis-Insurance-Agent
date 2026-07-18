@@ -6,13 +6,15 @@ import { ArrowLeft } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { usePolicyDetails } from "@/components/policy-details/usePolicyDetails";
-import { DetailsHero } from "@/components/policy-details/DetailsHero";
-import { DetailsTabsNav } from "@/components/policy-details/DetailsTabsNav";
-import { BenefitsTab } from "@/components/policy-details/BenefitsTab";
-import { NetworkTab } from "@/components/policy-details/NetworkTab";
-import { ExclusionsTab } from "@/components/policy-details/ExclusionsTab";
-import { CompareTab } from "@/components/policy-details/CompareTab";
+import {
+  usePolicyDetails,
+  DetailsHero,
+  DetailsTabsNav,
+  BenefitsTab,
+  NetworkTab,
+  ExclusionsTab,
+  CompareTab,
+} from "@/components/policy-details";
 
 function PolicyDetailsContent() {
   const d = usePolicyDetails();

@@ -3,17 +3,19 @@
 import { AnimatePresence } from "framer-motion";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { useAdminDashboard } from "@/components/admin-dashboard/useAdminDashboard";
-import { AdminBootScreen } from "@/components/admin-dashboard/AdminBootScreen";
-import { AccessProhibited } from "@/components/admin-dashboard/AccessProhibited";
-import { AdminAmbient } from "@/components/admin-dashboard/AdminAmbient";
-import { AdminSidebar } from "@/components/admin-dashboard/AdminSidebar";
-import { TelemetryViewport } from "@/components/admin-dashboard/TelemetryViewport";
-import { LeadsViewport } from "@/components/admin-dashboard/LeadsViewport";
-import { ChatsViewport } from "@/components/admin-dashboard/ChatsViewport";
-import { VaultViewport } from "@/components/admin-dashboard/VaultViewport";
-import { AutomationViewport } from "@/components/admin-dashboard/AutomationViewport";
-import { LogsViewport } from "@/components/admin-dashboard/LogsViewport";
+import {
+  useAdminDashboard,
+  AdminBootScreen,
+  AccessProhibited,
+  AdminAmbient,
+  AdminSidebar,
+  TelemetryViewport,
+  LeadsViewport,
+  ChatsViewport,
+  VaultViewport,
+  AutomationViewport,
+  LogsViewport,
+} from "@/components/admin-dashboard";
 
 export default function AdminDashboard() {
   const dash = useAdminDashboard();

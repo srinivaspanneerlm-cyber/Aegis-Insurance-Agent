@@ -5,12 +5,15 @@ import { motion, AnimatePresence } from "framer-motion";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { useTheme } from "@/context/ThemeContext";
-import { useApplyFlow } from "@/components/apply/useApplyFlow";
-import { wrapperClass, mainCardClass } from "@/components/apply/applyTheme";
-import { FamilyStep } from "@/components/apply/FamilyStep";
-import { BudgetStep } from "@/components/apply/BudgetStep";
-import { ContactStep } from "@/components/apply/ContactStep";
-import { VerdictStep } from "@/components/apply/VerdictStep";
+import {
+  useApplyFlow,
+  wrapperClass,
+  mainCardClass,
+  FamilyStep,
+  BudgetStep,
+  ContactStep,
+  VerdictStep,
+} from "@/components/apply";
 
 function ApplyForm() {
   const { theme } = useTheme();

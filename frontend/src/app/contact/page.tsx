@@ -3,13 +3,15 @@
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { useTheme } from "@/context/ThemeContext";
-import { wrapperClass } from "@/components/contact/contactTheme";
-import { useContactChat } from "@/components/contact/useContactChat";
 import { AmbientBackground } from "@/components/shared/AmbientBackground";
-import { ContactHero } from "@/components/contact/ContactHero";
-import { SupportCategories } from "@/components/contact/SupportCategories";
-import { VaultChatRoom } from "@/components/contact/VaultChatRoom";
-import { TrustPillars } from "@/components/contact/TrustPillars";
+import {
+  wrapperClass,
+  useContactChat,
+  ContactHero,
+  SupportCategories,
+  VaultChatRoom,
+  TrustPillars,
+} from "@/components/contact";
 
 export default function ContactPage() {
   const { theme } = useTheme();

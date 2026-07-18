@@ -5,15 +5,17 @@ import { AnimatePresence } from "framer-motion";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { useTheme } from "@/context/ThemeContext";
-import { useConsumerDashboard } from "@/components/consumer-dashboard/useConsumerDashboard";
-import { DashboardAmbient } from "@/components/consumer-dashboard/DashboardAmbient";
-import { DashboardSidebar } from "@/components/consumer-dashboard/DashboardSidebar";
-import { OverviewViewport } from "@/components/consumer-dashboard/OverviewViewport";
-import { PoliciesViewport } from "@/components/consumer-dashboard/PoliciesViewport";
-import { AdvisorViewport } from "@/components/consumer-dashboard/AdvisorViewport";
-import { ClaimsViewport } from "@/components/consumer-dashboard/ClaimsViewport";
-import { DocumentsViewport } from "@/components/consumer-dashboard/DocumentsViewport";
-import { NotificationsViewport } from "@/components/consumer-dashboard/NotificationsViewport";
+import {
+  useConsumerDashboard,
+  DashboardAmbient,
+  DashboardSidebar,
+  OverviewViewport,
+  PoliciesViewport,
+  AdvisorViewport,
+  ClaimsViewport,
+  DocumentsViewport,
+  NotificationsViewport,
+} from "@/components/consumer-dashboard";
 
 export default function ConsumerDashboard() {
   const { theme } = useTheme();
