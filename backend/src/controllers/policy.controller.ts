@@ -3,6 +3,7 @@ import cache from "../services/cache.service";
 import { CACHE_TTL } from "../config/constants";
 import AppError from "../utils/appError";
 import catchAsync from "../utils/catchAsync";
+import { parsePageParams } from "../utils/pagination";
 
 const POLICIES_CACHE_PREFIX = "policies:";
 
@@ -36,30 +37,39 @@ const createPolicy = catchAsync(async (req, res, next) => {
 });
 
 const getPolicies = catchAsync(async (req, res) => {
-  // Cache-aside: the public catalogue is read-heavy and changes only on create
-  // (which invalidates the key), so serve it from cache to avoid repeated joins.
-  const policies = await cache.wrap(`${POLICIES_CACHE_PREFIX}all`, CACHE_TTL.POLICIES, () =>
-    policyRepository.findMany(
-      {},
-      {
-        include: {
-          company: {
-            select: {
-              companyName: true,
-              logo: true,
+  const { page, limit } = parsePageParams(req.query);
+
+  // Cache-aside per page: the public catalogue is read-heavy and changes only on
+  // create (which invalidates the whole "policies:" prefix), so serve each page
+  // from cache to avoid repeated joins. The page/limit are part of the key.
+  const { items, ...pagination } = await cache.wrap(
+    `${POLICIES_CACHE_PREFIX}p${page}:l${limit}`,
+    CACHE_TTL.POLICIES,
+    () =>
+      policyRepository.paginate(
+        {},
+        {
+          page,
+          limit,
+          include: {
+            company: {
+              select: {
+                companyName: true,
+                logo: true,
+              },
             },
           },
-        },
-      }
-    )
+        }
+      )
   );
 
   res.status(200).json({
     status: "success",
-    results: policies.length,
+    results: items.length,
     data: {
-      policies,
+      policies: items,
     },
+    pagination,
   });
 });
 

@@ -60,14 +60,21 @@ describe("createLead", () => {
 });
 
 describe("getLeads", () => {
-  test("returns all leads with a results count", async () => {
-    stub(leadRepository, "findMany", async () => [{ id: "1" }, { id: "2" }]);
+  test("returns a bounded page of leads with a results count and pagination", async () => {
+    stub(leadRepository, "paginate", async () => ({
+      items: [{ id: "1" }, { id: "2" }],
+      total: 2,
+      page: 1,
+      limit: 100,
+      pages: 1,
+    }));
     const res = makeRes();
-    leadController.getLeads({}, res, () => {});
+    leadController.getLeads({ query: {} }, res, () => {});
     await flush();
     assert.equal(res.statusCode, 200);
     assert.equal(res.body.results, 2);
     assert.equal(res.body.data.leads.length, 2);
+    assert.equal(res.body.pagination.total, 2);
   });
 });
 

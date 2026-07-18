@@ -152,43 +152,46 @@ describe("getChatHistory", () => {
 describe("getUploadedDocuments", () => {
   beforeEach(() => mock.restoreAll());
 
-  test("a customer sees only their own documents", async () => {
-    const findByOwner = mock.method(documentRepository, "findByOwner", async () => []);
-    const findMany = mock.method(documentRepository, "findMany", async () => []);
+  // The read is a single paginated query; the tenant scope lives in its `where`
+  // clause. A customer's `where` must be pinned to their own id, an admin's must
+  // be unscoped, and the page size is always bounded (CLAUDE.md §8 + §9).
+  const emptyPage = async () => ({ items: [], total: 0, page: 1, limit: 100, pages: 0 });
+
+  test("a customer's read is scoped to their own id", async () => {
+    const paginate = mock.method(documentRepository, "paginate", emptyPage);
     const { res } = makeResNext();
 
     await run(getUploadedDocuments, makeReq({ user: ALICE }), res, () => {});
 
-    assert.equal(findByOwner.mock.calls[0].arguments[0], ALICE.id);
-    assert.equal(findMany.mock.calls.length, 0, "a customer must never hit the unscoped read");
+    const [where] = paginate.mock.calls[0].arguments;
+    assert.equal(where.ownerId, ALICE.id);
   });
 
   test("a customer cannot reach another customer's documents", async () => {
-    const findByOwner = mock.method(documentRepository, "findByOwner", async () => []);
+    const paginate = mock.method(documentRepository, "paginate", emptyPage);
     const { res } = makeResNext();
 
     await run(getUploadedDocuments, makeReq({ user: MALLORY }), res, () => {});
 
-    assert.equal(findByOwner.mock.calls[0].arguments[0], MALLORY.id);
-    assert.notEqual(findByOwner.mock.calls[0].arguments[0], ALICE.id);
+    const [where] = paginate.mock.calls[0].arguments;
+    assert.equal(where.ownerId, MALLORY.id);
+    assert.notEqual(where.ownerId, ALICE.id);
   });
 
-  test("an admin sees everything", async () => {
-    const findByOwner = mock.method(documentRepository, "findByOwner", async () => []);
-    const findMany = mock.method(documentRepository, "findMany", async () => []);
+  test("an admin's read is unscoped — sees everything", async () => {
+    const paginate = mock.method(documentRepository, "paginate", emptyPage);
     const { res } = makeResNext();
 
     await run(getUploadedDocuments, makeReq({ user: ADMIN }), res, () => {});
 
-    assert.equal(findMany.mock.calls.length, 1);
-    assert.equal(findByOwner.mock.calls.length, 0);
+    const [where] = paginate.mock.calls[0].arguments;
+    assert.ok(!("ownerId" in where), "an admin read must not be owner-scoped");
   });
 
   test("only admin and superadmin get the unscoped read", async () => {
     for (const role of ["admin", "superadmin"]) {
       mock.restoreAll();
-      const findMany = mock.method(documentRepository, "findMany", async () => []);
-      mock.method(documentRepository, "findByOwner", async () => []);
+      const paginate = mock.method(documentRepository, "paginate", emptyPage);
 
       await run(
         getUploadedDocuments,
@@ -196,7 +199,8 @@ describe("getUploadedDocuments", () => {
         makeResNext().res,
         () => {}
       );
-      assert.equal(findMany.mock.calls.length, 1, `${role} should see all`);
+      const [where] = paginate.mock.calls[0].arguments;
+      assert.ok(!("ownerId" in where), `${role} should see all`);
     }
   });
 
@@ -205,8 +209,7 @@ describe("getUploadedDocuments", () => {
      * Fail closed: a role that is not explicitly admin/superadmin — a typo, a
      * new role added later, a value copied from a token — gets the scoped read.
      */
-    const findByOwner = mock.method(documentRepository, "findByOwner", async () => []);
-    const findMany = mock.method(documentRepository, "findMany", async () => []);
+    const paginate = mock.method(documentRepository, "paginate", emptyPage);
 
     await run(
       getUploadedDocuments,
@@ -215,7 +218,7 @@ describe("getUploadedDocuments", () => {
       () => {}
     );
 
-    assert.equal(findMany.mock.calls.length, 0, "role matching must be exact");
-    assert.equal(findByOwner.mock.calls[0].arguments[0], "u-x");
+    const [where] = paginate.mock.calls[0].arguments;
+    assert.equal(where.ownerId, "u-x", "role matching must be exact; fail closed to a scoped read");
   });
 });

@@ -1,5 +1,6 @@
 import { companyRepository } from "../repositories";
 import catchAsync from "../utils/catchAsync";
+import { parsePageParams } from "../utils/pagination";
 
 const createCompany = catchAsync(async (req, res) => {
   const { companyName, logo, description } = req.body;
@@ -19,14 +20,19 @@ const createCompany = catchAsync(async (req, res) => {
 });
 
 const getCompanies = catchAsync(async (req, res) => {
-  const companies = await companyRepository.findMany({}, { orderBy: { createdAt: "desc" } });
+  const { page, limit } = parsePageParams(req.query);
+  const { items, ...pagination } = await companyRepository.paginate(
+    {},
+    { page, limit, orderBy: { createdAt: "desc" } }
+  );
 
   res.status(200).json({
     status: "success",
-    results: companies.length,
+    results: items.length,
     data: {
-      companies,
+      companies: items,
     },
+    pagination,
   });
 });
 

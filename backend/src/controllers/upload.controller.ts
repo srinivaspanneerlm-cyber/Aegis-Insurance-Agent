@@ -1,6 +1,7 @@
 import { documentRepository } from "../repositories";
 import AppError from "../utils/appError";
 import catchAsync from "../utils/catchAsync";
+import { parsePageParams } from "../utils/pagination";
 
 const uploadDocument = catchAsync(async (req, res, next) => {
   if (!req.file) {
@@ -27,19 +28,27 @@ const uploadDocument = catchAsync(async (req, res, next) => {
 });
 
 const getUploadedDocuments = catchAsync(async (req, res) => {
-  // Customers see only their own documents; admins/superadmins see all.
+  const { page, limit } = parsePageParams(req.query);
+
+  // Customers see only their own documents; admins/superadmins see all. The
+  // tenant scope lives in the `where` clause, always derived from the verified
+  // session — never from caller input (closes the upload-listing IDOR).
   const isAdmin =
     req.user?.role === "admin" || req.user?.role === "superadmin";
+  const where = isAdmin ? {} : { ownerId: req.user!.id };
 
-  const docs = isAdmin
-    ? await documentRepository.findMany({}, { orderBy: { uploadedAt: "desc" } })
-    : await documentRepository.findByOwner(req.user!.id);
+  const { items, ...pagination } = await documentRepository.paginate(where, {
+    page,
+    limit,
+    orderBy: { uploadedAt: "desc" },
+  });
 
   res.status(200).json({
     status: "success",
     data: {
-      documents: docs,
+      documents: items,
     },
+    pagination,
   });
 });
 

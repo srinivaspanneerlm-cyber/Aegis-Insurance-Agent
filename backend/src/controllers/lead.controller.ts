@@ -4,6 +4,7 @@ import { JOB_TYPES } from "../jobs";
 import { LEADS } from "../config/constants";
 import AppError from "../utils/appError";
 import catchAsync from "../utils/catchAsync";
+import { parsePageParams } from "../utils/pagination";
 
 const createLead = catchAsync(async (req, res) => {
   const { customerName, email, phone, insuranceType, budget } = req.body;
@@ -35,14 +36,19 @@ const createLead = catchAsync(async (req, res) => {
 });
 
 const getLeads = catchAsync(async (req, res) => {
-  const leads = await leadRepository.findMany({}, { orderBy: { createdAt: "desc" } });
+  const { page, limit } = parsePageParams(req.query);
+  const { items, ...pagination } = await leadRepository.paginate(
+    {},
+    { page, limit, orderBy: { createdAt: "desc" } }
+  );
 
   res.status(200).json({
     status: "success",
-    results: leads.length,
+    results: items.length,
     data: {
-      leads,
+      leads: items,
     },
+    pagination,
   });
 });
 

@@ -58,13 +58,6 @@ class DocumentRepository extends BaseRepository<UploadedDocument> {
   constructor() {
     super(prisma, "uploadedDocument");
   }
-  findByOwner(ownerId: string, options: Record<string, unknown> = {}): Promise<UploadedDocument[]> {
-    return this.delegate.findMany({
-      where: { ownerId },
-      orderBy: { uploadedAt: "desc" },
-      ...options,
-    });
-  }
 }
 
 export { BaseRepository };

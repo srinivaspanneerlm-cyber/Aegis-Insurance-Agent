@@ -71,18 +71,18 @@ describe("createPolicy", () => {
 });
 
 describe("getPolicies (cache-aside)", () => {
-  test("returns the catalogue and serves the second read from cache", async () => {
+  test("returns a page of the catalogue and serves the second read from cache", async () => {
     let dbCalls = 0;
-    stub(policyRepository, "findMany", async () => {
+    stub(policyRepository, "paginate", async () => {
       dbCalls++;
-      return [{ id: "P1" }, { id: "P2" }];
+      return { items: [{ id: "P1" }, { id: "P2" }], total: 2, page: 1, limit: 100, pages: 1 };
     });
 
     const res1 = makeRes();
-    policyController.getPolicies({}, res1, () => {});
+    policyController.getPolicies({ query: {} }, res1, () => {});
     await flush();
     const res2 = makeRes();
-    policyController.getPolicies({}, res2, () => {});
+    policyController.getPolicies({ query: {} }, res2, () => {});
     await flush();
 
     assert.equal(res1.statusCode, 200);
