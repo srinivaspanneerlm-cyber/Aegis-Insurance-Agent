@@ -16,6 +16,7 @@ export const metadata: Metadata = {
 import { AuthProvider } from "@/context/AuthContext";
 import { ThemeProvider } from "@/context/ThemeContext";
 import FloatingAI from "@/components/FloatingAI";
+import { Toaster } from "@/components/shared/Toaster";
 
 export default function RootLayout({
   children,
@@ -31,6 +32,7 @@ export default function RootLayout({
           <AuthProvider>
             {children}
             <FloatingAI />
+            <Toaster />
           </AuthProvider>
         </ThemeProvider>
       </body>

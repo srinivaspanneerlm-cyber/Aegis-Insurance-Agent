@@ -5,6 +5,7 @@ import { User, Phone, Mail, ChevronRight, ChevronLeft, ShieldCheck, Sparkles, Ch
 import { motion, AnimatePresence } from "framer-motion";
 
 import { leadService } from "@/services/api";
+import { notify } from "@/lib/toast";
 
 interface LeadFormProps {
   initialPlanSelection: string;
@@ -50,7 +51,7 @@ export default function LeadForm({ initialPlanSelection }: LeadFormProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.fullName.trim() || !formData.phone.trim() || !formData.email.trim()) {
-      alert("Please fill out all contact fields.");
+      notify.error("Please fill out all contact fields.");
       return;
     }
     
@@ -68,7 +69,7 @@ export default function LeadForm({ initialPlanSelection }: LeadFormProps) {
       }
       setIsSuccess(true);
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to submit underwriting details.");
+      notify.error(err instanceof Error ? err.message : "Failed to submit underwriting details.");
     } finally {
       setIsSubmitting(false);
     }

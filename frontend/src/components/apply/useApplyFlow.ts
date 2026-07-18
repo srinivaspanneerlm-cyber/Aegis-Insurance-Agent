@@ -4,6 +4,7 @@ import { useState } from "react";
 import { leadService } from "@/services/api";
 import { computeRecommendation, type Recommendation } from "./recommendation";
 import { logger } from "@/lib/logger";
+import { notify } from "@/lib/toast";
 
 /** Delay before the underwriting spinner resolves to the verdict (ms). */
 const UNDERWRITE_SIMULATE_DELAY = 2500;
@@ -52,7 +53,7 @@ export function useApplyFlow() {
 
   const executeRiskUnderwriting = async () => {
     if (!fullName.trim() || !phone.trim() || !email.trim()) {
-      alert("Please complete all personal security credentials.");
+      notify.error("Please complete all personal security credentials.");
       return;
     }
 
