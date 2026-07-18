@@ -5,7 +5,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import Testimonials from "@/components/Testimonials";
 import { useTheme } from "@/context/ThemeContext";
-import { HomeAmbientBackground } from "@/components/home/HomeAmbientBackground";
+import { AmbientBackground } from "@/components/shared/AmbientBackground";
 import { HeroSection } from "@/components/home/HeroSection";
 import { StatsBar } from "@/components/home/StatsBar";
 import { AdvisorEcosystem } from "@/components/home/AdvisorEcosystem";
@@ -21,7 +21,7 @@ export default function Home() {
   return (
     <div className={`min-h-screen relative flex flex-col justify-between overflow-hidden transition-colors duration-300 ${wrapperClass}`}>
       <Navbar onLoginClick={openLogin} />
-      <HomeAmbientBackground />
+      <AmbientBackground variant="home" />
       <HeroSection onOpenLogin={openLogin} />
       <StatsBar />
       <AdvisorEcosystem />

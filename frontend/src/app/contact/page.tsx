@@ -5,7 +5,7 @@ import Footer from "@/components/Footer";
 import { useTheme } from "@/context/ThemeContext";
 import { wrapperClass } from "@/components/contact/contactTheme";
 import { useContactChat } from "@/components/contact/useContactChat";
-import { ContactAmbientBackground } from "@/components/contact/ContactAmbientBackground";
+import { AmbientBackground } from "@/components/shared/AmbientBackground";
 import { ContactHero } from "@/components/contact/ContactHero";
 import { SupportCategories } from "@/components/contact/SupportCategories";
 import { VaultChatRoom } from "@/components/contact/VaultChatRoom";
@@ -18,7 +18,7 @@ export default function ContactPage() {
   return (
     <div className={`min-h-screen relative flex flex-col justify-between overflow-hidden transition-colors duration-300 ${wrapperClass(theme)}`}>
       <Navbar />
-      <ContactAmbientBackground />
+      <AmbientBackground variant="contact" />
       <ContactHero onOpenChat={chat.openChat} />
       <SupportCategories onQuickAccess={chat.handleQuickAccess} />
       <VaultChatRoom

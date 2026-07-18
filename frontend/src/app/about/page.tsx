@@ -4,7 +4,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { useTheme } from "@/context/ThemeContext";
 import { wrapperClass } from "@/components/about/aboutTheme";
-import { AboutAmbientBackground } from "@/components/about/AboutAmbientBackground";
+import { AmbientBackground } from "@/components/shared/AmbientBackground";
 import { AboutHero } from "@/components/about/AboutHero";
 import { AchievementsPanel } from "@/components/about/AchievementsPanel";
 import { CompanyIntroCard } from "@/components/about/CompanyIntroCard";
@@ -20,7 +20,7 @@ export default function AboutPage() {
   return (
     <div className={`min-h-screen relative flex flex-col justify-between overflow-hidden transition-colors duration-300 ${wrapperClass(theme)}`}>
       <Navbar />
-      <AboutAmbientBackground />
+      <AmbientBackground variant="about" />
       <AboutHero />
       <AchievementsPanel />
       <CompanyIntroCard />
