@@ -1,4 +1,5 @@
 "use client";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { usePurchase, extractPremiumAmount, calculateGST, getExpiryDate } from "@/context/PurchaseContext";
@@ -95,8 +96,14 @@ IRDAI Registration: Demo Mode
     URL.revokeObjectURL(url);
   };
 
+  // Redirect out in an effect, not during render: calling router.push() while
+  // rendering breaks static prerendering (ReferenceError: location is not
+  // defined) since navigation touches the browser location.
+  useEffect(() => {
+    if (!plan) router.push("/advisor");
+  }, [plan, router]);
+
   if (!plan) {
-    router.push("/advisor");
     return null;
   }
 
