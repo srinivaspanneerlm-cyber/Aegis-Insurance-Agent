@@ -26,7 +26,7 @@ const createPolicy = catchAsync(async (req, res, next) => {
   });
 
   // Invalidate the cached catalogue so the new product is visible immediately.
-  cache.delByPrefix(POLICIES_CACHE_PREFIX);
+  await cache.delByPrefix(POLICIES_CACHE_PREFIX);
 
   res.status(201).json({
     status: "success",

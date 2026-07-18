@@ -82,6 +82,11 @@ const env = {
   AI_SERVICE_URL: process.env.AI_SERVICE_URL || "http://localhost:8000/api/ai",
   AI_INTERNAL_API_KEY: process.env.AI_INTERNAL_API_KEY || "",
 
+  // Redis connection string for the shared cache (and future job queue). When
+  // unset, the cache falls back to an in-process store — so dev / single-node
+  // runs need no Redis, and multi-node deployments just set this.
+  REDIS_URL: process.env.REDIS_URL || "",
+
   // Whether the auth cookie carries the `Secure` flag (HTTPS-only). Defaults to
   // the production flag, but is overridable so a prod-mode box served over
   // plain HTTP (e.g. local dev) can still set the cookie. Set to "true" once

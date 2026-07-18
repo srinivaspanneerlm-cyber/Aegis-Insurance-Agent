@@ -16,42 +16,42 @@ const cache = require("../src/services/cache.service");
 beforeEach(() => cache.clear());
 
 describe("cache get/set", () => {
-  test("returns a stored value", () => {
-    cache.set("k1", { a: 1 }, 60);
-    assert.deepEqual(cache.get("k1"), { a: 1 });
+  test("returns a stored value", async () => {
+    await cache.set("k1", { a: 1 }, 60);
+    assert.deepEqual(await cache.get("k1"), { a: 1 });
   });
 
-  test("returns undefined for a missing key", () => {
-    assert.equal(cache.get("absent"), undefined);
+  test("returns undefined for a missing key", async () => {
+    assert.equal(await cache.get("absent"), undefined);
   });
 
-  test("treats an expired entry as a miss", () => {
-    cache.set("k2", "v", -1); // already expired
-    assert.equal(cache.get("k2"), undefined);
+  test("treats an expired entry as a miss", async () => {
+    await cache.set("k2", "v", -1); // already expired
+    assert.equal(await cache.get("k2"), undefined);
   });
 });
 
 describe("cache invalidation", () => {
-  test("del removes a single key", () => {
-    cache.set("k", "v", 60);
-    assert.equal(cache.del("k"), true);
-    assert.equal(cache.get("k"), undefined);
+  test("del removes a single key", async () => {
+    await cache.set("k", "v", 60);
+    assert.equal(await cache.del("k"), true);
+    assert.equal(await cache.get("k"), undefined);
   });
 
-  test("delByPrefix clears matching keys and returns the count", () => {
-    cache.set("policies:all", 1, 60);
-    cache.set("policies:one", 2, 60);
-    cache.set("companies:all", 3, 60);
-    const removed = cache.delByPrefix("policies:");
+  test("delByPrefix clears matching keys and returns the count", async () => {
+    await cache.set("policies:all", 1, 60);
+    await cache.set("policies:one", 2, 60);
+    await cache.set("companies:all", 3, 60);
+    const removed = await cache.delByPrefix("policies:");
     assert.equal(removed, 2);
-    assert.equal(cache.get("policies:all"), undefined);
-    assert.equal(cache.get("companies:all"), 3);
+    assert.equal(await cache.get("policies:all"), undefined);
+    assert.equal(await cache.get("companies:all"), 3);
   });
 
-  test("clear empties the store", () => {
-    cache.set("a", 1, 60);
-    cache.set("b", 2, 60);
-    cache.clear();
+  test("clear empties the store", async () => {
+    await cache.set("a", 1, 60);
+    await cache.set("b", 2, 60);
+    await cache.clear();
     assert.equal(cache.stats().size, 0);
   });
 });
