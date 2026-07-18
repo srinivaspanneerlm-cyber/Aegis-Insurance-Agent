@@ -3,6 +3,7 @@
 import { Shield } from "lucide-react";
 import { AnimatePresence } from "framer-motion";
 import Navbar from "@/components/Navbar";
+import { Spinner } from "@/components/shared/Spinner";
 import Footer from "@/components/Footer";
 import { useTheme } from "@/context/ThemeContext";
 import {
@@ -28,7 +29,7 @@ export default function ConsumerDashboard() {
         <div className="flex-grow flex items-center justify-center flex-col gap-4">
           <div className="relative w-16 h-16">
             <div className="absolute inset-0 rounded-full border-4 border-purple-500/20" />
-            <div className="absolute inset-0 rounded-full border-4 border-purple-550 border-t-transparent animate-spin" />
+            <Spinner className="absolute inset-0 border-purple-550" />
             <Shield className="absolute inset-0 m-auto w-6 h-6 text-purple-400 animate-pulse" />
           </div>
           <h3 className="text-xs font-black text-white uppercase tracking-widest">Synchronizing Dynamic Dashboard...</h3>

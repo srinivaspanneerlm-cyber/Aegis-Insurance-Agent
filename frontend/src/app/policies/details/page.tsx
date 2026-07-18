@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Navbar from "@/components/Navbar";
+import { Spinner } from "@/components/shared/Spinner";
 import Footer from "@/components/Footer";
 import {
   usePolicyDetails,
@@ -22,7 +23,7 @@ function PolicyDetailsContent() {
   if (!d.plan) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center">
-        <div className="w-10 h-10 rounded-full border-4 border-cyan-400 border-t-transparent animate-spin" />
+        <Spinner className="w-10 h-10 border-cyan-400" />
       </div>
     );
   }
@@ -117,7 +118,7 @@ export default function PolicyDetailsPage() {
   return (
     <Suspense fallback={
       <div className="min-h-screen bg-slate-950 flex items-center justify-center">
-        <div className="w-10 h-10 rounded-full border-4 border-cyan-400 border-t-transparent animate-spin" />
+        <Spinner className="w-10 h-10 border-cyan-400" />
       </div>
     }>
       <PolicyDetailsContent />

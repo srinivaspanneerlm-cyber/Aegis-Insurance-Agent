@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Sparkles, Check, Lock, ShieldCheck } from "lucide-react";
 import { motion } from "framer-motion";
 import { useTheme } from "@/context/ThemeContext";
+import { Spinner } from "@/components/shared/Spinner";
 import { descClass, finalCardBorder } from "./applyTheme";
 import type { Recommendation } from "./recommendation";
 
@@ -28,7 +29,7 @@ export function VerdictStep({ loading, underwritingVerdict, secureId }: VerdictS
         <div className="py-12 space-y-4">
           <div className="relative w-20 h-20 mx-auto">
             <div className="absolute inset-0 rounded-full border-4 border-white/5" />
-            <div className="absolute inset-0 rounded-full border-4 border-cyan-400 border-t-transparent animate-spin" />
+            <Spinner className="absolute inset-0 border-cyan-400" />
             <Sparkles className="absolute inset-0 m-auto w-8 h-8 text-cyan-400 animate-pulse" />
           </div>
           <h3 className={`font-extrabold text-base ${theme === "dark" ? "text-white" : "text-navy-900"}`}>Underwriting Dynamic Risk Parameters...</h3>

@@ -3,6 +3,7 @@
 import { Suspense } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Navbar from "@/components/Navbar";
+import { Spinner } from "@/components/shared/Spinner";
 import Footer from "@/components/Footer";
 import { useTheme } from "@/context/ThemeContext";
 import {
@@ -105,7 +106,7 @@ export default function ApplyPage() {
   return (
     <Suspense fallback={
       <div className="min-h-screen bg-slate-950 flex items-center justify-center">
-        <div className="w-10 h-10 rounded-full border-4 border-royal-600 border-t-transparent animate-spin" />
+        <Spinner className="w-10 h-10 border-royal-600" />
       </div>
     }>
       <ApplyForm />
