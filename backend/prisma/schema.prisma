@@ -70,6 +70,8 @@ model Company {
 
   @@index([companyName])
   @@index([deletedAt])
+  // getCompanies lists all companies ordered by createdAt.
+  @@index([createdAt])
 }
 
 model Policy {
@@ -113,6 +115,9 @@ model Lead {
   @@index([email])
   @@index([assignedToId])
   @@index([deletedAt])
+  // Unfiltered admin list (getLeads) sorts by createdAt with no status filter,
+  // which the leading-column [status, createdAt] index cannot serve.
+  @@index([createdAt])
 }
 
 // ── Conversations ────────────────────────────────────────────────────────────
@@ -155,6 +160,8 @@ model UploadedDocument {
 
   @@index([ownerId])
   @@index([deletedAt])
+  // Admin document listing (getUploadedDocuments) sorts all rows by uploadedAt.
+  @@index([uploadedAt])
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
