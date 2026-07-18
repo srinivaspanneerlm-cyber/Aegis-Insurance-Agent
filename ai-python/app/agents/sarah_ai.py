@@ -249,8 +249,8 @@ Warm • Natural • Patient • Simple • Helpful • Human
                             "recommendation_confirmed: yes",
                             user_name,
                         )
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        logger.debug(f"[SarahAI] Failed to persist recommendation confirmation: {e}")
 
         return profile
 

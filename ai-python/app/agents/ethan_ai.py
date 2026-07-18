@@ -253,8 +253,8 @@ Enthusiastic • Knowledgeable • Travel-passionate • Warm • Human
                             "recommendation_confirmed: yes",
                             user_name,
                         )
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        logger.debug(f"[EthanAI] Failed to persist recommendation confirmation: {e}")
 
         return profile
 

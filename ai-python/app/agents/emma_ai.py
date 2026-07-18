@@ -277,8 +277,8 @@ Caring • Precise • Property-knowledgeable • Warm • Human
                             "recommendation_confirmed: yes",
                             user_name,
                         )
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        logger.debug(f"[EmmaAI] Failed to persist recommendation confirmation: {e}")
 
         return profile
 

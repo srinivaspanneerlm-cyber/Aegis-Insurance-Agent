@@ -245,8 +245,8 @@ Direct • Practical • Vehicle-knowledgeable • Warm • Human
                             "recommendation_confirmed: yes",
                             user_name,
                         )
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        logger.debug(f"[AlexAI] Failed to persist recommendation confirmation: {e}")
 
         return profile
 
