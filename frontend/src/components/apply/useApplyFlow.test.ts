@@ -6,14 +6,21 @@ vi.mock("@/services/api", () => ({
   leadService: { createLead: vi.fn() },
 }));
 
+// Validation failures raise a toast rather than a native alert.
+vi.mock("@/lib/toast", () => ({
+  notify: { error: vi.fn(), success: vi.fn(), info: vi.fn() },
+}));
+
 import { leadService } from "@/services/api";
+import { notify } from "@/lib/toast";
 import { useApplyFlow } from "./useApplyFlow";
 
 const createLead = vi.mocked(leadService.createLead);
+const notifyError = vi.mocked(notify.error);
 
 beforeEach(() => {
   createLead.mockReset();
-  vi.spyOn(window, "alert").mockImplementation(() => {});
+  notifyError.mockReset();
 });
 
 describe("useApplyFlow — family/priority toggles", () => {
@@ -49,10 +56,10 @@ describe("useApplyFlow — family/priority toggles", () => {
 });
 
 describe("useApplyFlow — underwriting submission", () => {
-  it("blocks submission and alerts when contact details are incomplete", async () => {
+  it("blocks submission and toasts when contact details are incomplete", async () => {
     const { result } = renderHook(() => useApplyFlow());
     await act(async () => { await result.current.executeRiskUnderwriting(); });
-    expect(window.alert).toHaveBeenCalled();
+    expect(notifyError).toHaveBeenCalled();
     expect(createLead).not.toHaveBeenCalled();
     expect(result.current.step).toBe(1);
   });
