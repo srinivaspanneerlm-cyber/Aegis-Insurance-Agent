@@ -1,0 +1,60 @@
+import jwt, { type JwtPayload } from "jsonwebtoken";
+import type { Request, Response, NextFunction, RequestHandler } from "express";
+import { userRepository } from "../repositories";
+import env from "../config/env";
+import AppError from "../utils/appError";
+import catchAsync from "../utils/catchAsync";
+import { readTokenFromCookies } from "../utils/cookies";
+
+const protect = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+  // 1) Prefer the httpOnly cookie (XSS-safe); fall back to the Bearer header
+  //    so non-browser API clients keep working.
+  let token: string | null | undefined = readTokenFromCookies(req);
+  if (
+    !token &&
+    req.headers.authorization &&
+    req.headers.authorization.startsWith("Bearer")
+  ) {
+    token = req.headers.authorization.split(" ")[1];
+  }
+
+  if (!token) {
+    return next(
+      new AppError("You are not logged in. Please log in to gain access.", 401)
+    );
+  }
+
+  // 2) Validate token signature
+  let decoded: JwtPayload & { id: string };
+  try {
+    decoded = jwt.verify(token, env.JWT_SECRET) as JwtPayload & { id: string };
+  } catch {
+    return next(new AppError("Invalid security token. Please log in again.", 401));
+  }
+
+  // 3) Check if user still exists
+  const user = await userRepository.findById(decoded.id);
+
+  if (!user) {
+    return next(
+      new AppError("The user belonging to this token no longer exists.", 401)
+    );
+  }
+
+  // Grant Access
+  req.user = user;
+  next();
+});
+
+const restrictTo = (...roles: string[]): RequestHandler => {
+  return (req, res, next) => {
+    if (!req.user || !roles.includes(req.user.role)) {
+      return next(
+        new AppError("You do not have permission to perform this action.", 403)
+      );
+    }
+    next();
+  };
+};
+
+export { protect, restrictTo };

@@ -53,6 +53,8 @@ jobs:
       # tests that import the data layer can load.
       - name: Generate Prisma client
         run: npx prisma generate
+      - name: Typecheck
+        run: npx tsc --noEmit
       - name: Unit tests
         run: npm test
 

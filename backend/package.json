@@ -2,11 +2,12 @@
   "name": "aegis-backend",
   "version": "1.0.0",
   "description": "Production-ready backend for Aegis Premium AI Insurance SaaS Platform",
-  "main": "src/server.js",
+  "main": "src/server.ts",
   "scripts": {
-    "start": "node src/server.js",
-    "dev": "node src/server.js",
-    "test": "node --test tests/",
+    "start": "tsx src/server.ts",
+    "dev": "tsx watch src/server.ts",
+    "test": "node --import tsx --test tests/",
+    "typecheck": "tsc --noEmit",
     "db:generate": "npx prisma generate",
     "db:push": "npx prisma db push",
     "db:migrate": "npx prisma migrate dev",
@@ -31,7 +32,17 @@
     "socket.io": "^4.7.5"
   },
   "devDependencies": {
-    "prisma": "^5.14.0"
+    "@types/bcrypt": "^6.0.0",
+    "@types/compression": "^1.8.1",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/morgan": "^1.9.10",
+    "@types/multer": "^2.2.0",
+    "@types/node": "^20.19.43",
+    "prisma": "^5.14.0",
+    "tsx": "^4.23.1",
+    "typescript": "^7.0.2"
   },
   "engines": {
     "node": ">=18.0.0"
