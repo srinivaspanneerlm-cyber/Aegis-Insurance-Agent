@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { logger } from "@/lib/logger";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { adminService, leadService, chatService, uploadService } from "@/services/api";
@@ -97,7 +98,7 @@ export function useAdminDashboard() {
       if (chatLogs) setChats(chatLogs);
       if (docList) setDocuments(docList);
     } catch (err) {
-      console.error("Dashboard synchronization error:", err);
+      logger.error("Dashboard synchronization error:", err);
     } finally {
       setIsPageLoading(false);
     }

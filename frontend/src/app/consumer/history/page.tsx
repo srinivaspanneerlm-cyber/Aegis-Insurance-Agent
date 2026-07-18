@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { logger } from "@/lib/logger";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Clock } from "lucide-react";
@@ -28,7 +29,7 @@ export default function ConsumerHistoryPage() {
         const data = await chatService.getHistory();
         if (data && data.length > 0) setHistory(data);
       } catch {
-        console.warn("Failed to load historical chats. Seed placeholder data.");
+        logger.warn("Failed to load historical chats. Seed placeholder data.");
         setHistory([
           { id: "1", message: "Suggest a smart auto shield plan", createdAt: new Date(Date.now() - 3600 * 2000).toISOString(), advisorMessage: { message: "For your vehicle protection, the Aegis Smart Auto Shield locks in zero-depreciation coverage and 24/7 recovery." } }
         ]);

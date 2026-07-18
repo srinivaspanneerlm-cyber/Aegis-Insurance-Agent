@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { STORAGE_KEYS } from "@/lib/storage-keys";
+import { logger } from "@/lib/logger";
 import { advisorPlanUrl } from "./botRouter";
 import { MOCK_HOSPITALS, DEFAULT_PLAN } from "./constants";
 import type { PlanDetails, DetailTab } from "./types";
@@ -53,7 +54,7 @@ export function usePolicyDetails() {
           setBasePremium(parseInt(match[0], 10));
         }
       } catch (err) {
-        console.error("Failed to parse stored plan details", err);
+        logger.error("Failed to parse stored plan details", err);
       }
     } else {
       // Fallback default details if none saved yet

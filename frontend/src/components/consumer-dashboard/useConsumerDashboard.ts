@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { logger } from "@/lib/logger";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { chatService, policyService } from "@/services/api";
@@ -91,7 +92,7 @@ export function useConsumerDashboard() {
           setDbPolicies(data);
         }
       } catch {
-        console.warn("Failed to load user policies. Proceeding with premium defaults.");
+        logger.warn("Failed to load user policies. Proceeding with premium defaults.");
       } finally {
         setIsPoliciesLoading(false);
       }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { logger } from "@/lib/logger";
 import { Check, ShieldAlert, Sparkles, Heart, Crown, LucideIcon } from "lucide-react";
 import { motion } from "framer-motion";
 import { policyService } from "@/services/api";
@@ -140,7 +141,7 @@ export default function PolicyCards({ selectedPlan, onSelectPlan, onScrollToForm
           setPlans(merged);
         }
       } catch (err) {
-        console.warn("Failed to synchronize with backend policy database. Proceeding with static plans fallback.", err);
+        logger.warn("Failed to synchronize with backend policy database. Proceeding with static plans fallback.", err);
       }
     }
 

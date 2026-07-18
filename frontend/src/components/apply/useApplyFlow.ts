@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { leadService } from "@/services/api";
 import { computeRecommendation, type Recommendation } from "./recommendation";
+import { logger } from "@/lib/logger";
 
 /** Delay before the underwriting spinner resolves to the verdict (ms). */
 const UNDERWRITE_SIMULATE_DELAY = 2500;
@@ -78,7 +79,7 @@ export function useApplyFlow() {
       }
       setUnderwritingVerdict(recommendation);
     } catch (err) {
-      console.error("Underwriting lead creation error:", err);
+      logger.error("Underwriting lead creation error:", err);
       setSecureId("AEG-" + Math.floor(100000 + Math.random() * 900000));
       setUnderwritingVerdict(recommendation);
     } finally {
