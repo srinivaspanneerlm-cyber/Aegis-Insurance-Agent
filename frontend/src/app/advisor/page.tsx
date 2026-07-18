@@ -2,12 +2,8 @@
 
 import { useState, useEffect, useRef, useCallback, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { Send, Shield, Heart, Car, Plane, Home as HomeIcon, X, ChevronLeft } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
-import LeadForm from "@/components/LeadForm";
-import ChatMessage, { type ChatMsg, type RecommendationData } from "@/components/ChatMessage";
-import ThinkingEngine from "@/components/ThinkingEngine";
-import VoiceEngine from "@/components/VoiceEngine";
+import { Shield, Heart, Car, Plane, Home as HomeIcon } from "lucide-react";
+import { type ChatMsg, type RecommendationData } from "@/components/ChatMessage";
 import TransferDialog from "@/components/TransferDialog";
 import InterruptDialog from "@/components/InterruptDialog";
 import { useStreaming, type ChatHistoryItem } from "@/hooks/useStreaming";
@@ -30,6 +26,10 @@ import { resolveAgentNameForDomain } from "./transferRules";
 import { useAdvisorTransfer } from "./useAdvisorTransfer";
 import AdvisorHeader from "@/components/advisor/AdvisorHeader";
 import AdvisorSidebar from "@/components/advisor/AdvisorSidebar";
+import { AdvisorBackdrop } from "@/components/advisor/AdvisorBackdrop";
+import { MessageTranscript } from "@/components/advisor/MessageTranscript";
+import { ChatComposer } from "@/components/advisor/ChatComposer";
+import { LeadFormModal } from "@/components/advisor/LeadFormModal";
 
 // ── Component ──────────────────────────────────────────────────────────────────
 
@@ -386,22 +386,7 @@ function AdvisorChat() {
   return (
     <div className="fixed inset-0 h-screen w-screen overflow-hidden bg-slate-950 flex flex-col z-50 select-none touch-none">
 
-      <style jsx global>{`
-        .chat-scroll::-webkit-scrollbar { width: 4px; }
-        .chat-scroll::-webkit-scrollbar-track { background: transparent; }
-        .chat-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.07); border-radius: 99px; }
-        .chat-scroll::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.18); }
-      `}</style>
-
-      {/* Cyber grid */}
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.012)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.012)_1px,transparent_1px)] bg-[size:36px_36px] pointer-events-none opacity-50 z-0" />
-
-      {/* Ambient glow */}
-      <div
-        style={{ background: `radial-gradient(circle, ${advisor.glowColor} 0%, rgba(0,0,0,0) 70%)` }}
-        className="absolute top-1/4 left-1/4 w-[500px] h-[500px] rounded-full blur-[140px] pointer-events-none z-0 transition-all duration-700"
-      />
-      <div className="absolute bottom-[10%] right-[-5%] w-[350px] h-[350px] rounded-full bg-cyan-500/5 blur-[100px] pointer-events-none z-0" />
+      <AdvisorBackdrop glowColor={advisor.glowColor} />
 
       <AdvisorHeader
         advisor={advisor}
@@ -428,259 +413,38 @@ function AdvisorChat() {
         {/* ── CHAT PANEL ───────────────────────────────────────────────────── */}
         <div className={`flex-1 flex flex-col rounded-[32px] border overflow-hidden h-full transition-all duration-500 bg-slate-900/40 backdrop-blur-3xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] border-white/8 ${advisor.borderGlow} pointer-events-auto`}>
 
-          {/* Message stream */}
-          <div className="flex-1 overflow-y-auto px-5 sm:px-7 py-6 space-y-5 chat-scroll relative touch-pan-y" style={{ scrollbarWidth: "thin" }}>
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.01),transparent_50%)] pointer-events-none" />
+          <MessageTranscript
+            connectingTo={connectingTo}
+            messages={messages}
+            advisor={advisor}
+            streamingAdvisor={streamingAdvisor}
+            streamState={streamState}
+            streamingTimestamp={streamingTimestampRef.current || now()}
+            onUIAction={handleUIAction}
+            onOptionClick={handleOptionClick}
+            onRegenerate={handleRegenerate}
+            onVoicePlay={handleVoicePlay}
+            chatEndRef={chatEndRef}
+          />
 
-            {/* Connecting overlay — shown instantly after YES, dismissed on first SSE event */}
-            <AnimatePresence>
-              {connectingTo && (
-                <motion.div
-                  key="connecting-overlay"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.25 }}
-                  className="absolute inset-0 z-20 flex flex-col items-center justify-center"
-                  style={{ background: "rgba(1, 4, 16, 0.9)", backdropFilter: "blur(16px)" }}
-                >
-                  <motion.div
-                    initial={{ scale: 0.82, y: 20, opacity: 0 }}
-                    animate={{ scale: 1, y: 0, opacity: 1 }}
-                    exit={{ scale: 0.88, y: 12, opacity: 0 }}
-                    transition={{ type: "spring", stiffness: 200, damping: 24 }}
-                    className="flex flex-col items-center gap-6 w-full max-w-[260px]"
-                  >
-                    {/* Agent avatar — layered rings */}
-                    <div className="relative flex items-center justify-center">
-                      <motion.div
-                        className="absolute rounded-3xl"
-                        style={{
-                          width: 88, height: 88,
-                          border: "1px solid rgba(255,255,255,0.08)",
-                          borderRadius: 26,
-                        }}
-                        animate={{ scale: [1, 1.18, 1], opacity: [0.5, 0, 0.5] }}
-                        transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                      />
-                      <motion.div
-                        className="absolute rounded-3xl"
-                        style={{
-                          width: 72, height: 72,
-                          border: "1px solid rgba(255,255,255,0.12)",
-                          borderRadius: 22,
-                        }}
-                        animate={{ scale: [1, 1.12, 1], opacity: [0.6, 0, 0.6] }}
-                        transition={{ duration: 2, repeat: Infinity, ease: "easeInOut", delay: 0.3 }}
-                      />
-                      <div
-                        className={`w-14 h-14 rounded-[18px] bg-gradient-to-tr ${connectingTo.theme} text-white font-black text-lg flex items-center justify-center shadow-2xl relative z-10`}
-                      >
-                        {connectingTo.avatar}
-                      </div>
-                    </div>
-
-                    {/* Label */}
-                    <div className="text-center">
-                      <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">
-                        Establishing Secure Channel
-                      </p>
-                      <div className="flex items-baseline gap-1.5 justify-center">
-                        <p className="text-[15px] font-black text-white leading-none">
-                          Connecting to {connectingTo.name}
-                        </p>
-                        <span className="flex gap-0.5 pb-0.5">
-                          {[0, 1, 2].map(i => (
-                            <motion.span
-                              key={i}
-                              className="w-1 h-1 rounded-full bg-white/70 inline-block"
-                              animate={{ opacity: [0.2, 1, 0.2] }}
-                              transition={{ duration: 1.1, repeat: Infinity, delay: i * 0.2 }}
-                            />
-                          ))}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Step progress */}
-                    <div className="w-full flex flex-col gap-2">
-                      {[
-                        { label: "Saving session context", delay: 0 },
-                        { label: "Routing to specialist", delay: 0.28 },
-                        { label: "Establishing connection", delay: 0.56 },
-                        { label: "Ready", delay: 0.82 },
-                      ].map(({ label, delay }) => (
-                        <motion.div
-                          key={label}
-                          className="flex items-center gap-2.5"
-                          initial={{ opacity: 0, x: -8 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay, duration: 0.3 }}
-                        >
-                          <motion.div
-                            className={`w-1.5 h-1.5 rounded-full flex-shrink-0 bg-gradient-to-tr ${connectingTo.theme}`}
-                            initial={{ scale: 0 }}
-                            animate={{ scale: 1 }}
-                            transition={{ delay: delay + 0.1, type: "spring", stiffness: 260, damping: 18 }}
-                          />
-                          <p className="text-[10px] font-semibold text-slate-400">{label}</p>
-                        </motion.div>
-                      ))}
-                    </div>
-
-                    {/* Progress bar */}
-                    <div
-                      className="w-full h-px rounded-full overflow-hidden"
-                      style={{ background: "rgba(255,255,255,0.07)" }}
-                    >
-                      <motion.div
-                        className={`h-full rounded-full bg-gradient-to-r ${connectingTo.theme}`}
-                        initial={{ width: "0%" }}
-                        animate={{ width: "100%" }}
-                        transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
-                      />
-                    </div>
-                  </motion.div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {/* Finalized messages */}
-            {messages.map(m => (
-              <ChatMessage
-                key={m.id}
-                message={m}
-                advisorAvatar={
-                  m.sender === "advisor"
-                    ? (AGENT_NAME_TO_CATEGORY[m.agentName || ""] ? ADVISORS[AGENT_NAME_TO_CATEGORY[m.agentName || ""]].avatar : advisor.avatar)
-                    : advisor.avatar
-                }
-                advisorTheme={
-                  m.sender === "advisor"
-                    ? (AGENT_NAME_TO_CATEGORY[m.agentName || ""] ? ADVISORS[AGENT_NAME_TO_CATEGORY[m.agentName || ""]].theme : advisor.theme)
-                    : advisor.theme
-                }
-                advisorName={advisor.name}
-                onUIAction={handleUIAction}
-                onOptionClick={handleOptionClick}
-                onRegenerate={m.sender === "advisor" ? handleRegenerate : undefined}
-                onVoicePlay={m.sender === "advisor" ? handleVoicePlay : undefined}
-              />
-            ))}
-
-            {/* ThinkingEngine — shown during thinking phase */}
-            <ThinkingEngine
-              active={streamState.phase === "thinking"}
-              currentStep={streamState.thinkingStep}
-              thinkingHistory={streamState.thinkingHistory}
-              agentName={streamingAdvisor.name}
-              agentDomain={streamState.agentDomain || advisor.pythonDomain}
-              advisorAvatar={streamingAdvisor.avatar}
-              advisorTheme={streamingAdvisor.theme}
-            />
-
-            {/* Streaming message — shown during streaming phase */}
-            {streamState.phase === "streaming" && streamState.text && (
-              <ChatMessage
-                message={{
-                  id: "streaming",
-                  sender: "advisor",
-                  text: streamState.text,
-                  timestamp: streamingTimestampRef.current || now(),
-                  agentName: streamState.agentName || advisor.name,
-                  agentDomain: streamState.agentDomain,
-                  transferred: streamState.transferred,
-                  isStreaming: true,
-                }}
-                advisorAvatar={streamingAdvisor.avatar}
-                advisorTheme={streamingAdvisor.theme}
-                advisorName={streamingAdvisor.name}
-                onUIAction={handleUIAction}
-                onOptionClick={handleOptionClick}
-              />
-            )}
-
-            <div ref={chatEndRef} />
-          </div>
-
-          {/* ── INPUT AREA ─────────────────────────────────────────────────── */}
-          <div className="p-4 border-t border-white/5 bg-slate-950/40 relative z-10 select-none flex-shrink-0">
-
-            {/* Return to Previous Advisor pill (Rule 6) */}
-            <AnimatePresence>
-              {previousAdvisorCategory && (
-                <motion.div
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 6 }}
-                  transition={{ duration: 0.2 }}
-                  className="flex justify-center mb-3"
-                >
-                  <button
-                    onClick={handleReturnToPrevious}
-                    disabled={isStreaming}
-                    className="flex items-center gap-2 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer active:scale-95 touch-manipulation disabled:opacity-40"
-                    style={{
-                      background: "rgba(255,255,255,0.04)",
-                      border: "1px solid rgba(255,255,255,0.1)",
-                      color: "rgba(148,163,184,1)",
-                    }}
-                  >
-                    <ChevronLeft className="w-3 h-3" />
-                    Return to {ADVISORS[previousAdvisorCategory].name}
-                  </button>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            <form onSubmit={handleSend} className="flex items-end gap-3">
-
-              {/* Voice engine */}
-              <div className="flex-shrink-0 pb-1">
-                <VoiceEngine
-                  onFinalTranscript={(text) => {
-                    setInputVal(text);
-                    setTimeout(() => sendToAdvisor(text), 0);
-                  }}
-                  speakText={speakText}
-                  onSpeakEnd={() => setSpeakText(null)}
-                  agentDomain={streamState.agentDomain || advisor.pythonDomain}
-                  disabled={isStreaming}
-                  autoSpeak={false}
-                />
-              </div>
-
-              {/* Auto-resize textarea */}
-              <div className="flex-grow relative select-text touch-auto">
-                <textarea
-                  ref={textareaRef}
-                  rows={1}
-                  value={inputVal}
-                  onChange={e => setInputVal(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  placeholder={advisor.placeholder}
-                  disabled={isStreaming}
-                  className="w-full py-3.5 pl-5 pr-4 rounded-[22px] border outline-none text-xs font-semibold transition-all resize-none leading-relaxed bg-slate-950/65 border-white/10 text-white placeholder:text-slate-600 focus:border-cyan-500/40 focus:bg-slate-950 shadow-inner disabled:opacity-50"
-                  style={{ minHeight: "48px", maxHeight: "120px" }}
-                />
-              </div>
-
-              {/* Send button */}
-              <button
-                type="submit"
-                disabled={!inputVal.trim() || isStreaming}
-                className="p-3.5 rounded-2xl flex-shrink-0 flex items-center justify-center transition-all duration-200 cursor-pointer disabled:opacity-30 disabled:scale-100 active:scale-95 touch-manipulation select-none bg-white text-slate-950 hover:bg-slate-100 shadow-[0_0_15px_rgba(255,255,255,0.1)] mb-px"
-              >
-                <Send className="w-4 h-4 stroke-[2.2]" />
-              </button>
-            </form>
-
-            <div className="flex flex-wrap items-center justify-between gap-2 mt-3 px-1.5 text-[9px] font-bold text-slate-600 uppercase tracking-wider">
-              <span>🔐 Pipeline V3.8</span>
-              <span className="hidden sm:inline">Conversations are private &amp; secure</span>
-              <span>Cleared: IRDAI-MOCK</span>
-            </div>
-          </div>
+          <ChatComposer
+            previousAdvisorCategory={previousAdvisorCategory}
+            onReturnToPrevious={handleReturnToPrevious}
+            isStreaming={isStreaming}
+            onSubmit={handleSend}
+            onFinalTranscript={(text) => {
+              setInputVal(text);
+              setTimeout(() => sendToAdvisor(text), 0);
+            }}
+            speakText={speakText}
+            onSpeakEnd={() => setSpeakText(null)}
+            voiceAgentDomain={streamState.agentDomain || advisor.pythonDomain}
+            textareaRef={textareaRef}
+            inputVal={inputVal}
+            onInputChange={setInputVal}
+            onKeyDown={handleKeyDown}
+            placeholder={advisor.placeholder}
+          />
         </div>
       </div>
 
@@ -699,35 +463,7 @@ function AdvisorChat() {
       />
 
       {/* ── LEAD FORM MODAL ──────────────────────────────────────────────────── */}
-      <AnimatePresence>
-        {selectedPlan && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.15 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-slate-950/80 backdrop-blur-md pointer-events-auto"
-          >
-            <motion.div
-              initial={{ scale: 0.95, y: 12 }}
-              animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.95, y: 12 }}
-              transition={{ type: "spring", stiffness: 150, damping: 20 }}
-              className="w-full max-w-lg relative bg-white rounded-3xl border border-slate-200 shadow-2xl overflow-hidden text-left pointer-events-auto"
-            >
-              <button
-                onClick={() => setSelectedPlan(null)}
-                className="absolute right-5 top-5 z-10 p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 transition-colors cursor-pointer active:scale-95 touch-manipulation select-none"
-              >
-                <X className="w-4 h-4 text-slate-600" />
-              </button>
-              <div className="p-3 max-h-[90vh] overflow-y-auto" style={{ scrollbarWidth: "none" }}>
-                <LeadForm initialPlanSelection={selectedPlan} />
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <LeadFormModal planName={selectedPlan} onClose={() => setSelectedPlan(null)} />
     </div>
   );
 }
