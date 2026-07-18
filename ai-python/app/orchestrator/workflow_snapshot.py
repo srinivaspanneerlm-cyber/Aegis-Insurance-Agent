@@ -48,7 +48,8 @@ class WorkflowSnapshot:
         try:
             ts = datetime.fromisoformat(self.timestamp)
             return (datetime.utcnow() - ts).total_seconds()
-        except Exception:
+        except Exception as e:
+            logger.debug(f"[WorkflowSnapshot] Bad timestamp {self.timestamp!r}: {e}")
             return 0.0
 
 

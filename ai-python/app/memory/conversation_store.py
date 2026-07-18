@@ -122,7 +122,8 @@ class ConversationStore:
             try:
                 data = json.loads(path.read_text(encoding="utf-8"))
                 turns = data.get("turns", [])
-            except Exception:
+            except Exception as e:
+                logger.warning(f"[ConversationStore] Corrupt history for {customer_id}/{domain}, resetting: {e}")
                 data = {"customer_id": customer_id, "domain": domain, "turns": []}
                 turns = []
         else:
@@ -165,7 +166,8 @@ class ConversationStore:
             data = json.loads(path.read_text(encoding="utf-8"))
             turns = data.get("turns", [])[-n * 2:]
             return [{"role": t["role"], "content": t["content"]} for t in turns]
-        except Exception:
+        except Exception as e:
+            logger.warning(f"[ConversationStore] History read failed for {customer_id}/{domain}: {e}")
             return []
 
     # ── Questions asked (for repeat-detection) ─────────────────────────────────
@@ -189,7 +191,8 @@ class ConversationStore:
                         if len(part) > 15:
                             questions.append(part + "?")
             return questions
-        except Exception:
+        except Exception as e:
+            logger.warning(f"[ConversationStore] Questions read failed for {customer_id}/{domain}: {e}")
             return []
 
     # ── Conversation summary (for workflow context prompt) ─────────────────────
@@ -226,7 +229,8 @@ class ConversationStore:
         try:
             data = json.loads(path.read_text(encoding="utf-8"))
             return sum(1 for t in data.get("turns", []) if t.get("role") == "user")
-        except Exception:
+        except Exception as e:
+            logger.warning(f"[ConversationStore] Turn-count read failed for {customer_id}/{domain}: {e}")
             return 0
 
     def clear_cache(self, customer_id: str, domain: str) -> None:

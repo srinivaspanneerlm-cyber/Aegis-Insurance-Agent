@@ -133,7 +133,8 @@ class RecommendationCache:
             try:
                 entry = json.loads(path.read_text(encoding="utf-8"))
                 self._mem[mem_key] = entry
-            except Exception:
+            except Exception as e:
+                logger.debug(f"[RecCache] Corrupt cache entry {customer_id}/{domain}: {e}")
                 return None
 
         # Validate fingerprint

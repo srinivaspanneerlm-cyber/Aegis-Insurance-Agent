@@ -113,8 +113,8 @@ class EnhancedProfileManager:
                 data = json.loads(path.read_text(encoding="utf-8"))
                 self._cache[key] = data
                 return dict(data)
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning(f"[ProfileManager] Corrupt shared profile {base_customer_id}, using empty: {e}")
 
         empty = {
             "customer_id": f"shared_{base_customer_id}",
@@ -150,8 +150,8 @@ class EnhancedProfileManager:
                 data = json.loads(path.read_text(encoding="utf-8"))
                 self._cache[key] = data
                 return dict(data)
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning(f"[ProfileManager] Corrupt domain profile {domain_customer_id}, using default: {e}")
 
         return {"customer_id": domain_customer_id}
 

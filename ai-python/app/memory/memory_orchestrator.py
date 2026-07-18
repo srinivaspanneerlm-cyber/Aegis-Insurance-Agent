@@ -142,8 +142,8 @@ class MemoryOrchestrator:
                     if turn.get("role") == "assistant":
                         last_agent_question = turn.get("content", "")
                         break
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug(f"[MemoryOrchestrator] Could not load last agent question for context: {e}")
 
         return self.profile_manager.update_with_message(
             base_customer_id, domain, message, user_name,
