@@ -1,0 +1,59 @@
+name: Deploy
+
+# Manual, pull-based deploy to the production host over SSH. Prerequisites on
+# the host: the repo checked out at /opt/aegis with a populated .env.production,
+# Docker + compose, and outbound access to GHCR. Required repo secrets:
+# DEPLOY_HOST, DEPLOY_USER, DEPLOY_SSH_KEY, GHCR_TOKEN.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Image tag to deploy (must already exist in GHCR)"
+        required: true
+
+# Never let two production rollouts overlap.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          # Passed through to the remote script as env vars (never interpolated
+          # into the shell body) so untrusted input can't be injected.
+          IMAGE_TAG: ${{ github.event.inputs.tag }}
+          OWNER: ${{ github.repository_owner }}
+          GHCR_USER: ${{ github.actor }}
+          GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          envs: IMAGE_TAG,OWNER,GHCR_USER,GHCR_TOKEN
+          script: |
+            set -euo pipefail
+            cd /opt/aegis
+            export IMAGE_PREFIX="ghcr.io/$(printf '%s' "$OWNER" | tr '[:upper:]' '[:lower:]')"
+            export IMAGE_TAG
+            printf '%s' "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
+            docker compose -f docker-compose.prod.yml pull
+            docker compose -f docker-compose.prod.yml up -d
+            docker compose -f docker-compose.prod.yml exec -T backend npx prisma migrate deploy
+            ok=0
+            for _ in $(seq 1 30); do
+              if docker compose -f docker-compose.prod.yml exec -T backend \
+                   node -e "fetch('http://127.0.0.1:5000/health/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"; then
+                ok=1; break
+              fi
+              sleep 4
+            done
+            if [ "$ok" -ne 1 ]; then echo "readiness gate failed — check the stack"; exit 1; fi
+            echo "deploy OK: $IMAGE_PREFIX @ $IMAGE_TAG"

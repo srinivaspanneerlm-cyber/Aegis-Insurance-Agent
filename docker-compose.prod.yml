@@ -57,6 +57,9 @@ services:
       retries: 3
 
   frontend:
+    # Registry image for pull-based deploys; `build` also tags it locally.
+    # CI/deploy set IMAGE_PREFIX=ghcr.io/<owner> + IMAGE_TAG=<git-sha|semver>.
+    image: ${IMAGE_PREFIX:-localhost/aegis}/frontend:${IMAGE_TAG:-latest}
     build:
       context: ./frontend
       args:
@@ -84,6 +87,7 @@ services:
       retries: 3
 
   backend:
+    image: ${IMAGE_PREFIX:-localhost/aegis}/backend:${IMAGE_TAG:-latest}
     build:
       context: ./backend
     env_file: [.env.production]
@@ -110,6 +114,7 @@ services:
       retries: 3
 
   ai:
+    image: ${IMAGE_PREFIX:-localhost/aegis}/ai:${IMAGE_TAG:-latest}
     build:
       context: .
       dockerfile: ai-python/Dockerfile
