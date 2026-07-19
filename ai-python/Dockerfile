@@ -49,9 +49,9 @@ USER appuser
 
 EXPOSE 8000
 
-# Liveness only (TCP accept). A richer /health/ready lands in the Monitoring step.
+# HTTP liveness (a richer /health/ready checks the orchestrator registry).
 HEALTHCHECK --interval=30s --timeout=5s --start-period=25s --retries=3 \
-  CMD python -c "import socket; socket.create_connection(('127.0.0.1',8000),3).close()" || exit 1
+  CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/live', timeout=3)" || exit 1
 
 # Single worker by default preserves the orchestrator + file-based Layer-3
 # memory semantics (not yet process-safe). Raise WEB_CONCURRENCY only after the

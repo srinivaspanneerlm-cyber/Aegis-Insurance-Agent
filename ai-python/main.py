@@ -3,9 +3,10 @@
 Sovereign AI-powered Insurance Conversation Engine
 """
 
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, Response
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
+from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
 
 from app.routes import chat_routes, action_routes, stream_routes
 from app.routes.health_routes import router as health_router
@@ -53,6 +54,37 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ---------------------------------------------------------------------------
+# Monitoring — liveness / readiness / Prometheus metrics (root-level, additive).
+# No request middleware is added, so the protected streaming path is untouched.
+# ---------------------------------------------------------------------------
+@app.get("/health/live", tags=["Health"], include_in_schema=False)
+async def health_live():
+    """Process is up (never touches the orchestrator or any dependency)."""
+    return {"status": "alive"}
+
+
+@app.get("/health/ready", tags=["Health"], include_in_schema=False)
+async def health_ready(response: Response):
+    """Ready once the multi-agent orchestrator has registered environments."""
+    domains: list = []
+    try:
+        from app.services.stream_service import _orchestrator
+        domains = list(_orchestrator.registry.domains())
+    except Exception:
+        domains = []
+    ready = len(domains) > 0
+    if not ready:
+        response.status_code = 503
+    return {"status": "ready" if ready else "not_ready", "environments": domains}
+
+
+@app.get("/metrics", include_in_schema=False)
+async def metrics():
+    """Prometheus exposition — default process metrics (CPU, RAM, FDs)."""
+    return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)
+
 
 # ---------------------------------------------------------------------------
 # Root POST Endpoint (As requested: POST /ai-chat)

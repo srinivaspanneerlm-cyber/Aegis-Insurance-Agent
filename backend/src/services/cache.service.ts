@@ -33,6 +33,8 @@ interface CacheStore {
   /** Cache-aside: return cached value or produce, cache and return it. */
   wrap<T>(key: string, ttlSeconds: number, producer: () => Promise<T> | T): Promise<T>;
   stats(): CacheStats;
+  /** Readiness probe: true when the backing is reachable. */
+  health(): Promise<boolean>;
 }
 
 // Shared cache-aside so both backings behave identically at the wrap layer.
@@ -126,6 +128,10 @@ class InMemoryCache implements CacheStore {
       misses: this.misses,
       hitRate: total ? +(this.hits / total).toFixed(3) : 0,
     };
+  }
+
+  async health(): Promise<boolean> {
+    return true; // in-process store is always available
   }
 }
 
@@ -226,6 +232,14 @@ class RedisCache implements CacheStore {
       misses: this.misses,
       hitRate: total ? +(this.hits / total).toFixed(3) : 0,
     };
+  }
+
+  async health(): Promise<boolean> {
+    try {
+      return (await this.redis.ping()) === "PONG";
+    } catch {
+      return false;
+    }
   }
 }
 

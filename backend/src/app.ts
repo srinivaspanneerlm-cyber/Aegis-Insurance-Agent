@@ -19,8 +19,10 @@ import uploadRoutes from "./routes/upload.routes";
 import companyRoutes from "./routes/company.routes";
 import adminRoutes from "./routes/admin.routes";
 import uiActionRoutes from "./routes/ui_action.routes";
+import healthRoutes from "./routes/health.routes";
 
 import env from "./config/env";
+import { register, httpMetricsMiddleware } from "./config/metrics";
 
 const app = express();
 
@@ -67,10 +69,24 @@ if (process.env.NODE_ENV === "development") {
 app.use(express.json({ limit: "10kb" }));
 app.use(express.urlencoded({ extended: true, limit: "10kb" }));
 
+// Time every request for the Prometheus histogram (records the matched route
+// pattern, so SSE/finish events are captured without unbounded cardinality).
+app.use(httpMetricsMiddleware);
+
 // Liveness/readiness probe for load balancers & orchestrators. Kept outside
 // `/api` so it is unthrottled, and intentionally minimal (no info disclosure).
+// `/health` (legacy) is preserved; `/health/live` + `/health/ready` add the
+// orchestrator-grade split.
 app.get("/health", (req, res) => {
   res.status(200).json({ status: "healthy" });
+});
+app.use("/health", healthRoutes);
+
+// Prometheus scrape endpoint. Deliberately NOT under `/api` (so nginx never
+// exposes it publicly); Prometheus reaches it over the internal network.
+app.get("/metrics", async (_req, res) => {
+  res.set("Content-Type", register.contentType);
+  res.end(await register.metrics());
 });
 
 // Rate Limiter
