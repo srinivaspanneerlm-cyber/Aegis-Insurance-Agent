@@ -25,20 +25,51 @@ x-logging: &default-logging
     max-file: "3"
 
 services:
+  # The single public entry point. Terminates HTTP(S) and reverse-proxies to the
+  # frontend + backend; keeps the SSE stream (buffering off) and socket.io
+  # (WebSocket upgrade) paths intact. See nginx/README.md to enable TLS (443).
+  nginx:
+    image: nginx:alpine
+    ports:
+      # Host port is configurable (default 80). Set NGINX_HTTP_PORT to a value
+      # >=1024 when running under rootless containers without the
+      # net.ipv4.ip_unprivileged_port_start sysctl.
+      - "${NGINX_HTTP_PORT:-80}:80"
+      # - "${NGINX_HTTPS_PORT:-443}:443"   # enable once certs are issued (nginx/README.md)
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - certbot_www:/var/www/certbot
+      - letsencrypt:/etc/letsencrypt
+    networks: [edge]
+    depends_on:
+      frontend:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    logging: *default-logging
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/healthz"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+
   frontend:
     build:
       context: ./frontend
       args:
         # Baked into the client bundle at build time. Compose reads ${...} from
         # a `.env` file / the shell (NOT env_file), so export it or keep it in
-        # `.env` when building. Behind nginx this becomes "/api".
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:5000/api}
+        # `.env` when building. Behind the nginx edge the browser is same-origin,
+        # so the API base is the relative path "/api".
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-/api}
     environment:
       NODE_ENV: production
       PORT: "3000"
       HOSTNAME: "0.0.0.0"
-    ports:
-      - "3000:3000"          # TEMP — removed when the nginx edge lands (Step 3)
+    # No host ports — reached only by nginx over the edge network.
     networks: [edge]
     depends_on:
       backend:
@@ -61,8 +92,7 @@ services:
       PORT: "5000"
       REDIS_URL: "redis://redis:6379"
       AI_SERVICE_URL: "http://ai:8000/api/ai"
-    ports:
-      - "5000:5000"          # TEMP — removed when the nginx edge lands (Step 3)
+    # No host ports — reached only by nginx over the edge network.
     volumes:
       - backend_uploads:/app/src/uploads
       - backend_db:/data     # SQLite lives here (DATABASE_URL=file:/data/prod.db)
@@ -154,3 +184,5 @@ volumes:
   ai_rec_cache:
   redis_data:
   pgdata:
+  certbot_www:      # ACME webroot shared with certbot
+  letsencrypt:      # issued certificates
