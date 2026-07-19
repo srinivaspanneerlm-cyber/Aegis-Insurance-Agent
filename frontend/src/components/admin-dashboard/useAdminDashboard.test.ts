@@ -47,7 +47,10 @@ beforeEach(() => {
     pagination: { total: 0, page: 1, limit: 10, pages: 0 },
   });
   vi.mocked(chatService.getHistory).mockResolvedValue([]);
-  vi.mocked(uploadService.getDocuments).mockResolvedValue([]);
+  vi.mocked(uploadService.getDocuments).mockResolvedValue({
+    documents: [],
+    pagination: { total: 0, page: 1, limit: 8, pages: 0 },
+  });
 });
 
 describe("useAdminDashboard — access guards", () => {
@@ -114,6 +117,29 @@ describe("useAdminDashboard — leads pagination", () => {
     await waitFor(() => expect(result.current.isBooting).toBe(false));
     expect(result.current.leadsPagination).toBeNull();
     expect(result.current.leads.length).toBeGreaterThan(0);
+  });
+});
+
+describe("useAdminDashboard — documents pagination", () => {
+  it("loads a page of vaulted documents and mirrors the envelope", async () => {
+    vi.mocked(uploadService.getDocuments).mockResolvedValue({
+      documents: [{ id: "D1", name: "policy.pdf" }],
+      pagination: { total: 12, page: 1, limit: 8, pages: 2 },
+    });
+    const { result } = renderHook(() => useAdminDashboard());
+    await waitFor(() => expect(result.current.isBooting).toBe(false));
+    expect(uploadService.getDocuments).toHaveBeenCalledWith({ page: 1, limit: 8 });
+    expect(result.current.documentsPagination?.pages).toBe(2);
+
+    vi.mocked(uploadService.getDocuments).mockResolvedValue({
+      documents: [{ id: "D2", name: "receipt.pdf" }],
+      pagination: { total: 12, page: 2, limit: 8, pages: 2 },
+    });
+    await act(async () => {
+      result.current.goToDocumentsPage(2);
+    });
+    await waitFor(() => expect(result.current.documents[0].name).toBe("receipt.pdf"));
+    expect(uploadService.getDocuments).toHaveBeenLastCalledWith({ page: 2, limit: 8 });
   });
 });
 

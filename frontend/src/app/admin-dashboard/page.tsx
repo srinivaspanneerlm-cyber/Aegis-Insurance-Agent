@@ -70,6 +70,9 @@ export default function AdminDashboard() {
             {dash.activeNav === "vault" && (
               <VaultViewport
                 documents={dash.documents}
+                pagination={dash.documentsPagination}
+                isLoading={dash.isDocumentsLoading}
+                onPageChange={dash.goToDocumentsPage}
                 dragActive={dash.dragActive}
                 isSubmittingFile={dash.isSubmittingFile}
                 uploadProgress={dash.uploadProgress}

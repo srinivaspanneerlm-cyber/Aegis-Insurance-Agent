@@ -14,6 +14,9 @@ const SYNC_SIMULATE_DELAY = 1200;
 /** Rows per page for the server-paginated Underwriting Leads Matrix. */
 const LEADS_PAGE_SIZE = 10;
 
+/** Cards per page for the server-paginated Crypt-Vault document ledger. */
+const DOCS_PAGE_SIZE = 8;
+
 const DEFAULT_STATS: AdminStats = {
   totalLeads: 12,
   totalChats: 48,
@@ -55,6 +58,8 @@ export function useAdminDashboard() {
   const [isLeadsLoading, setIsLeadsLoading] = useState(false);
   const [chats, setChats] = useState<ChatLog[]>([]);
   const [documents, setDocuments] = useState<DocumentRecord[]>([]);
+  const [documentsPagination, setDocumentsPagination] = useState<PageInfo | null>(null);
+  const [isDocumentsLoading, setIsDocumentsLoading] = useState(false);
 
   // Page Loaders
   const [isPageLoading, setIsPageLoading] = useState(true);
@@ -117,19 +122,35 @@ export function useAdminDashboard() {
     }
   };
 
+  /** Fetch one page of vaulted documents and mirror the pagination envelope. */
+  const loadDocuments = async (page: number) => {
+    setIsDocumentsLoading(true);
+    try {
+      const { documents: list, pagination } = await uploadService.getDocuments({
+        page,
+        limit: DOCS_PAGE_SIZE,
+      });
+      setDocuments(list ?? []);
+      setDocumentsPagination(pagination);
+    } catch {
+      // Keep the current page on failure (matches the prior silent-empty load).
+    } finally {
+      setIsDocumentsLoading(false);
+    }
+  };
+
   const fetchDashboardData = async () => {
     setIsPageLoading(true);
     try {
-      const [statsData, chatLogs, docList] = await Promise.all([
+      const [statsData, chatLogs] = await Promise.all([
         adminService.getStats().catch(() => null),
         chatService.getHistory().catch(() => []),
-        uploadService.getDocuments().catch(() => []),
         loadLeads(1),
+        loadDocuments(1),
       ]);
 
       if (statsData) setStats(statsData);
       if (chatLogs) setChats(chatLogs);
-      if (docList) setDocuments(docList);
     } catch (err) {
       logger.error("Dashboard synchronization error:", err);
     } finally {
@@ -140,6 +161,11 @@ export function useAdminDashboard() {
   const goToLeadsPage = (page: number) => {
     if (isLeadsLoading || page < 1) return;
     void loadLeads(page);
+  };
+
+  const goToDocumentsPage = (page: number) => {
+    if (isDocumentsLoading || page < 1) return;
+    void loadDocuments(page);
   };
 
   const processFileUpload = async (file: File) => {
@@ -163,6 +189,7 @@ export function useAdminDashboard() {
 
       setUploadSuccess(`Securely Vaulted: "${file.name}" uploaded successfully!`);
       setDocuments((prev) => [doc, ...prev]);
+      setDocumentsPagination((prev) => (prev ? { ...prev, total: prev.total + 1 } : prev));
       setStats((prev) => ({ ...prev, uploadedDocuments: prev.uploadedDocuments + 1 }));
     } catch (err) {
       setValidationError(err instanceof Error ? err.message : "Failed to vault the designated document.");
@@ -229,7 +256,8 @@ export function useAdminDashboard() {
     logout,
     goToLogin: () => router.push("/admin-login"),
     // metrics
-    stats, leads, leadsPagination, isLeadsLoading, goToLeadsPage, chats, documents,
+    stats, leads, leadsPagination, isLeadsLoading, goToLeadsPage, chats,
+    documents, documentsPagination, isDocumentsLoading, goToDocumentsPage,
     // upload
     isSubmittingFile, uploadProgress, dragActive, validationError, uploadSuccess,
     handleDrag, handleDrop, handleFileSelect,

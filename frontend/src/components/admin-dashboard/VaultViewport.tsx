@@ -2,10 +2,14 @@
 
 import { UploadCloud, FileText } from "lucide-react";
 import { motion } from "framer-motion";
-import type { DocumentRecord } from "@/types/domain";
+import type { DocumentRecord, PageInfo } from "@/types/domain";
+import { Pagination } from "@/components/shared/Pagination";
 
 interface VaultViewportProps {
   documents: DocumentRecord[];
+  pagination: PageInfo | null;
+  isLoading: boolean;
+  onPageChange: (page: number) => void;
   dragActive: boolean;
   isSubmittingFile: boolean;
   uploadProgress: number;
@@ -18,7 +22,8 @@ interface VaultViewportProps {
 
 /** Secure Crypt-Vault: drag-and-drop document upload and archived files ledger (nav: "vault"). */
 export function VaultViewport({
-  documents, dragActive, isSubmittingFile, uploadProgress, validationError, uploadSuccess,
+  documents, pagination, isLoading, onPageChange,
+  dragActive, isSubmittingFile, uploadProgress, validationError, uploadSuccess,
   handleDrag, handleDrop, handleFileSelect,
 }: VaultViewportProps) {
   return (
@@ -107,6 +112,10 @@ export function VaultViewport({
           </div>
         )}
       </div>
+
+      {pagination && (
+        <Pagination pagination={pagination} onPageChange={onPageChange} busy={isLoading} />
+      )}
     </motion.div>
   );
 }

@@ -1,6 +1,6 @@
 import axios, { AxiosProgressEvent } from "axios";
 import { API_URL } from "@/lib/config";
-import type { Lead, PageInfo } from "@/types/domain";
+import type { Lead, DocumentRecord, PageInfo } from "@/types/domain";
 
 // 1) Axios base configuration
 export const apiClient = axios.create({
@@ -131,9 +131,13 @@ export const uploadService = {
     });
     return res.data.data.document;
   },
-  getDocuments: async () => {
-    const res = await apiClient.get("/upload");
-    return res.data.data.documents;
+  // Server-side paginated (see leadService.getLeads). Params optional; the
+  // response carries the document page plus its pagination envelope.
+  getDocuments: async (
+    params: { page?: number; limit?: number } = {}
+  ): Promise<{ documents: DocumentRecord[]; pagination: PageInfo }> => {
+    const res = await apiClient.get("/upload", { params });
+    return { documents: res.data.data.documents, pagination: res.data.pagination };
   },
 };
 
