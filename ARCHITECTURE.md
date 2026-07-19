@@ -372,21 +372,27 @@ in SECURITY.md.
 
 ---
 
-## 11. Deployment Topology (target)
+## 11. Deployment Topology
+
+Implemented as a containerised compose stack with a single nginx edge; only the
+edge is host-published, and the AI engine / Redis / database sit on an internal
+network.
 
 ```mermaid
 graph TD
-    CDN["CDN / Edge"] --> FEP["Frontend (Next.js)"]
-    FEP --> GW["API Gateway / Reverse Proxy (TLS)"]
-    GW --> BEP["Backend (Node) — N replicas"]
-    GW --> AIP["AI Engine (FastAPI) — N replicas"]
-    BEP --> PG[("PostgreSQL")]
-    AIP --> KBV["Knowledge base / vector store"]
-    AIP --> LLMP["LLM provider"]
+    U["Browser"] -->|HTTPS| NGINX["nginx edge (TLS · gzip · rate-limit)"]
+    NGINX --> FEP["frontend (Next.js standalone)"]
+    NGINX -->|/api · /api/chat/stream SSE · /socket.io| BEP["backend (Node)"]
+    BEP -->|internal| AIP["ai engine (FastAPI + Aegis-AI tree)"]
+    BEP -->|internal| REDIS[("Redis")]
+    BEP -->|internal| PG[("SQLite vol / PostgreSQL")]
+    AIP --> MEM[["Layer-3 memory volumes"]]
+    AIP -->|egress| LLMP["LLM provider"]
 ```
 
-Deployment procedures, environment matrices, and rollback are in
-**[DEPLOYMENT.md](DEPLOYMENT.md)**.
+Full operations — build, deploy, monitoring, backups, and disaster recovery —
+are in **[DEVOPS.md](DEVOPS.md)**; the environment matrix and migration steps are
+in **[DEPLOYMENT.md](DEPLOYMENT.md)**.
 
 ---
 

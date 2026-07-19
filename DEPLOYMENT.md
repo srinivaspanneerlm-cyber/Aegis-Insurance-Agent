@@ -231,11 +231,26 @@ See [DATABASE.md §5](DATABASE.md) for the full migration and backup procedure.
 
 ---
 
-## 6. Target Docker / Containerisation
+## 6. Docker / Containerisation
 
-> No `Dockerfile` or `docker-compose.yml` exists in the repository today.
-> The configurations below are the **recommended reference targets** to implement
-> before a containerised production deployment.
+> **Implemented.** The repository now ships production Dockerfiles and compose
+> stacks — these are the authoritative source of truth:
+> `frontend/Dockerfile`, `backend/Dockerfile`, `ai-python/Dockerfile`
+> (multi-stage · non-root · health-checked), plus `docker-compose.yml` (dev) and
+> `docker-compose.prod.yml` (prod: nginx edge, internal network, named volumes,
+> secrets via `.env.production`). Operations, monitoring, backups, and disaster
+> recovery are documented in **[DEVOPS.md](DEVOPS.md)**.
+>
+> Quick start:
+> ```bash
+> docker compose up                                   # dev (hot reload, SQLite)
+> docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build   # prod
+> ```
+>
+> ⚠️ The snippets in §6.1–6.4 below are the **original design sketch**, kept for
+> historical context; the committed files above supersede them (e.g. the AI
+> image builds from the repo root for the `Aegis-AI/` tree, and defaults to a
+> single worker to protect the file-based Layer-3 memory).
 
 ### 6.1 Reference Dockerfile — AI Engine
 
@@ -356,21 +371,19 @@ graph TD
 
 ### Step-by-step
 
-1. **Validate** — run `npx tsc --noEmit` (frontend), `node --check src/app.js`
-   (backend), `python -m py_compile app/**/*.py` (AI engine).
-2. **Build images** — build Docker images for each service and tag with the git
-   SHA.
-3. **Push to registry** — push to your container registry.
-4. **Migrate DB** — run `npx prisma migrate deploy` against the production
-   PostgreSQL database.
-5. **Deploy in order** — AI engine first, then backend (depends on AI engine),
-   then frontend (depends on backend).
-6. **Health checks** — verify:
-   - `GET http://<ai-engine>/health` → `{"status":"healthy"}`
-   - `GET http://<backend>/api/auth/me` → `401` (expected — means the server is
-     up and responding; it rejects unauthed requests correctly)
-   - Frontend loads at `http://<frontend>`
-7. **Smoke test** — send a test chat message through the advisor UI.
+This flow is automated by the CI/CD workflows (`docker-build.yml` → GHCR,
+`deploy.yml` → host). See [DEVOPS.md §6](DEVOPS.md) for triggers and secrets.
+
+1. **CI green** — `ci.yml` (typecheck · lint · tests) + `security.yml` pass.
+2. **Build & push** — tag `v*` (or run `docker-build.yml`); images publish to
+   `ghcr.io/<owner>/{frontend,backend,ai}:<tag>`.
+3. **Deploy** — run `deploy.yml` with the tag (or on the host:
+   `IMAGE_PREFIX=… IMAGE_TAG=… docker compose -f docker-compose.prod.yml pull && … up -d`).
+4. **Migrate** — `docker compose -f docker-compose.prod.yml exec backend npx prisma migrate deploy`.
+5. **Readiness gate** — `deploy.yml` polls `GET /health/ready` (200) before
+   declaring success. Also spot-check: `GET /api/auth/me` → `401` (server up,
+   rejects unauthed), the frontend loads via the nginx edge, and a test chat
+   message streams through the advisor UI.
 
 ---
 
@@ -378,15 +391,19 @@ graph TD
 
 ### Application rollback
 
-1. Identify the last known-good image tag.
-2. Re-deploy the previous image tag to all affected services (reverse the deploy
-   order: frontend → backend → AI engine).
-3. Verify health checks pass.
+Run the **`rollback.yml`** workflow with the last known-good image tag (it
+`compose pull`s that tag, `up -d`s, and gates on `/health/ready`). It shares
+`deploy.yml`'s concurrency group so a rollback never overlaps a deploy.
+Manual equivalent on the host: `IMAGE_TAG=<good> docker compose -f
+docker-compose.prod.yml pull && … up -d`.
 
 ### Database rollback
 
 > Migration rollback in Prisma requires manual down-migration SQL. This must be
-> prepared alongside each migration before it ships.
+> prepared alongside each migration before it ships. In practice the safer path
+> is to **restore from the pre-deploy backup** — `scripts/restore-db.sh` (see
+> [scripts/README.md](scripts/README.md) and the DR checklist in
+> [DEVOPS.md §8](DEVOPS.md)).
 
 ```bash
 # Undo the last migration (requires a manually written down.sql):

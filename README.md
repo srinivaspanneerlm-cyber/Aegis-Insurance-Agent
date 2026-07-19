@@ -125,6 +125,19 @@ salesbots/
 
 ## 6. Quick-Start (Local Development)
 
+### Run with Docker (fastest)
+
+The whole stack (frontend · backend · AI engine · Redis) runs with one command
+— no local Node/Python/DB setup needed:
+
+```bash
+docker compose up            # http://localhost:3000 (frontend), :5000 (API), :8000 (AI)
+```
+
+For the production stack (nginx edge, secrets, persistent volumes) and full
+operations, see **[DEVOPS.md](DEVOPS.md)**. The manual per-service setup below
+remains available for working on a single service.
+
 ### Prerequisites
 
 | Tool | Minimum version |
