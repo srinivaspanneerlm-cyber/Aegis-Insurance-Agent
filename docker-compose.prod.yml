@@ -1,0 +1,156 @@
+# ═════════════════════════════════════════════════════════════════════════════
+# Aegis AI — PRODUCTION stack.
+#   docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
+#
+# Topology / security:
+#   • Two networks. `internal` carries service-to-service traffic (backend↔ai↔
+#     redis↔postgres) and is NEVER published. `edge` is the public-facing side
+#     (frontend + backend); the NGINX edge (Step 3) will join `edge` and become
+#     the only host-published service — at which point the direct 3000/5000
+#     publishes below are removed.
+#   • Secrets come from .env.production (gitignored) via env_file — never baked
+#     into an image, never in git. (A Swarm `secrets:` file-based variant needs
+#     the app to read *_FILE vars; noted as a follow-up.)
+#   • Every stateful path is a named volume, including the five mutable Layer-3
+#     memory dirs so customer profiles / conversations survive restarts.
+#   • DB defaults to SQLite on a volume (matches the current Prisma provider).
+#     PostgreSQL is a documented opt-in: `--profile postgres` + switch the
+#     Prisma datasource to postgresql + `prisma migrate deploy` (see DATABASE.md).
+# ═════════════════════════════════════════════════════════════════════════════
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        # Baked into the client bundle at build time. Compose reads ${...} from
+        # a `.env` file / the shell (NOT env_file), so export it or keep it in
+        # `.env` when building. Behind nginx this becomes "/api".
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:5000/api}
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      HOSTNAME: "0.0.0.0"
+    ports:
+      - "3000:3000"          # TEMP — removed when the nginx edge lands (Step 3)
+    networks: [edge]
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    logging: *default-logging
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      start_period: 20s
+      retries: 3
+
+  backend:
+    build:
+      context: ./backend
+    env_file: [.env.production]
+    environment:
+      NODE_ENV: production
+      PORT: "5000"
+      REDIS_URL: "redis://redis:6379"
+      AI_SERVICE_URL: "http://ai:8000/api/ai"
+    ports:
+      - "5000:5000"          # TEMP — removed when the nginx edge lands (Step 3)
+    volumes:
+      - backend_uploads:/app/src/uploads
+      - backend_db:/data     # SQLite lives here (DATABASE_URL=file:/data/prod.db)
+    networks: [edge, internal]
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    logging: *default-logging
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:5000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      start_period: 15s
+      retries: 3
+
+  ai:
+    build:
+      context: .
+      dockerfile: ai-python/Dockerfile
+    env_file: [.env.production]
+    environment:
+      ENVIRONMENT: production
+    # NOT published — only the backend reaches it, over the internal network.
+    volumes:
+      - ai_conversations:/app/Aegis-AI/layer3/conversation_memory/conversations
+      - ai_sessions:/app/Aegis-AI/layer3/conversation_memory/sessions
+      - ai_profiles:/app/Aegis-AI/layer3/customer_profile/customer_profiles
+      - ai_intelligence:/app/Aegis-AI/layer3/customer_intelligence/intelligence_profiles
+      - ai_rec_cache:/app/Aegis-AI/layer3/recommendation_context/cache
+    networks: [internal]
+    restart: unless-stopped
+    logging: *default-logging
+    healthcheck:
+      test: ["CMD", "python", "-c", "import socket; socket.create_connection(('127.0.0.1',8000),3).close()"]
+      interval: 30s
+      timeout: 5s
+      start_period: 25s
+      retries: 3
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    # NOT published — internal cache/queue store only.
+    volumes:
+      - redis_data:/data
+    networks: [internal]
+    restart: unless-stopped
+    logging: *default-logging
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # Opt-in production database. Enable with `--profile postgres` AND switch the
+  # Prisma datasource provider to "postgresql" + run migrations (see DATABASE.md).
+  postgres:
+    image: postgres:16-alpine
+    profiles: ["postgres"]
+    env_file: [.env.production]
+    # NOT published — internal only.
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks: [internal]
+    restart: unless-stopped
+    logging: *default-logging
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-aegis} -d $${POSTGRES_DB:-aegis}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+networks:
+  edge:
+  # Service-to-service only — isolation comes from NOT publishing these ports to
+  # the host, not from cutting egress: the AI engine needs outbound access to
+  # the LLM providers (Gemini/OpenAI). Locking egress to an allowlist (firewall
+  # / proxy) is a further hardening step.
+  internal:
+
+volumes:
+  backend_uploads:
+  backend_db:
+  ai_conversations:
+  ai_sessions:
+  ai_profiles:
+  ai_intelligence:
+  ai_rec_cache:
+  redis_data:
+  pgdata:

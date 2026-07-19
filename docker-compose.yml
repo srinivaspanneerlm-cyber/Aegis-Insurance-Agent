@@ -1,0 +1,87 @@
+# ═════════════════════════════════════════════════════════════════════════════
+# Aegis AI — DEVELOPMENT stack.  Usage:  docker compose up
+#
+# Hot-reload dev: source is bind-mounted and each service runs its watch server.
+# node_modules / site-packages come from the image (named volume or the layer),
+# so the host needs no local installs. SQLite on the host file; a Redis service
+# is included so the scale-out cache path can be exercised locally.
+# For the production topology (Postgres, nginx edge, secrets) see
+# docker-compose.prod.yml.
+# ═════════════════════════════════════════════════════════════════════════════
+
+services:
+  frontend:
+    build:
+      context: ./frontend
+      target: deps            # deps stage carries node_modules; run next dev on top
+    command: npm run dev
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:5000/api
+      WATCHPACK_POLLING: "true"   # reliable file-watching across bind mounts
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - frontend_node_modules:/app/node_modules   # keep the image's install
+    depends_on:
+      - backend
+
+  backend:
+    build:
+      context: ./backend
+      target: builder         # builder has all deps + the generated Prisma client
+    command: npm run dev
+    environment:
+      NODE_ENV: development
+      PORT: "5000"
+      DATABASE_URL: "file:./dev.db"
+      JWT_SECRET: "dev-only-insecure-secret-min-32-characters-long"
+      CLIENT_URL: "http://localhost:3000"
+      COOKIE_SECURE: "false"
+      AI_SERVICE_URL: "http://ai:8000/api/ai"
+      AI_INTERNAL_API_KEY: "dev-internal-key"
+      REDIS_URL: "redis://redis:6379"
+      TRUST_PROXY: "false"
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./backend:/app
+      - backend_node_modules:/app/node_modules
+    depends_on:
+      redis:
+        condition: service_started
+
+  ai:
+    build:
+      context: .              # repo root — the engine needs the Aegis-AI tree
+      dockerfile: ai-python/Dockerfile
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    environment:
+      ENVIRONMENT: development
+      DEFAULT_PROVIDER: "ollama"
+      AI_INTERNAL_API_KEY: "dev-internal-key"
+      ALLOWED_ORIGINS: "http://localhost:3000,http://localhost:5000,http://backend:5000"
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./ai-python/app:/app/ai-python/app          # live code reload
+      - ./ai-python/main.py:/app/ai-python/main.py
+      - ./Aegis-AI:/app/Aegis-AI                    # live knowledge base + memory
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  frontend_node_modules:
+  backend_node_modules:
+  redis_data:
