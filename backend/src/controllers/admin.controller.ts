@@ -5,6 +5,7 @@ import {
   userRepository,
 } from "../repositories";
 import catchAsync from "../utils/catchAsync";
+import { sendSuccess } from "../utils/apiResponse";
 
 const getDashboardStats = catchAsync(async (req, res) => {
   // Aggregate real-time statistics across all our models (parallelised).
@@ -16,15 +17,7 @@ const getDashboardStats = catchAsync(async (req, res) => {
   ]);
 
   // Return the dynamic statistical payload to the frontend
-  res.status(200).json({
-    status: "success",
-    data: {
-      totalLeads,
-      totalChats,
-      uploadedDocuments,
-      activeUsers,
-    },
-  });
+  sendSuccess(res, 200, { totalLeads, totalChats, uploadedDocuments, activeUsers });
 });
 
 export { getDashboardStats };

@@ -7,6 +7,9 @@ declare global {
   namespace Express {
     interface Request {
       user?: User;
+      // Correlation id set by the requestId middleware (and reused by pino-http
+      // + the error handler) so a request can be traced across logs/responses.
+      id?: string;
     }
   }
 }

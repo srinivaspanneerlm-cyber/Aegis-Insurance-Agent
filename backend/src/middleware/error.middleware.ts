@@ -1,5 +1,7 @@
 import type { Request, Response, NextFunction, ErrorRequestHandler } from "express";
 import AppError from "../utils/appError";
+import { codeForStatus } from "../utils/errorCodes";
+import { logger } from "../config/logger";
 
 // The global handler receives whatever was thrown/forwarded — AppError, a
 // Prisma error, a JWT error, or an unexpected programming error — so it works
@@ -14,35 +16,46 @@ interface AppErrorLike extends Error {
 
 const handlePrismaUniqueConstraintError = (err: AppErrorLike): AppError => {
   const target = err.meta?.target ? err.meta.target.join(", ") : "field";
-  return new AppError(`Duplicate value for target: ${target}. Please use another value.`, 400);
+  return new AppError(`Duplicate value for target: ${target}. Please use another value.`, 409, "CONFLICT");
 };
 
 const handlePrismaValidationError = (err: AppErrorLike): AppError => {
-  return new AppError(`Invalid database transaction parameter: ${err.message}`, 400);
+  return new AppError(`Invalid database transaction parameter: ${err.message}`, 400, "VALIDATION_ERROR");
 };
 
+/** Machine `code` for the response — AppError carries its own; others map by status. */
+const resolveCode = (err: AppErrorLike, statusCode: number): string =>
+  err.code && !err.code.startsWith("P") ? err.code : codeForStatus(statusCode);
+
 const sendErrorDev = (err: AppErrorLike, req: Request, res: Response): void => {
-  res.status(err.statusCode || 500).json({
+  const statusCode = err.statusCode || 500;
+  res.status(statusCode).json({
     status: err.status || "error",
-    error: err,
+    code: resolveCode(err, statusCode),
     message: err.message,
+    requestId: req.id,
+    error: err,
     stack: err.stack,
   });
 };
 
 const sendErrorProd = (err: AppErrorLike, req: Request, res: Response): void => {
-  // Operational, trusted error: send message to client
+  const statusCode = err.statusCode || 500;
   if (err.isOperational) {
-    res.status(err.statusCode || 500).json({
+    // Trusted error: safe to surface the message + code.
+    res.status(statusCode).json({
       status: err.status,
+      code: resolveCode(err, statusCode),
       message: err.message,
+      requestId: req.id,
     });
   } else {
-    // Programming or other unknown error: don't leak details
-    console.error("ERROR 💥", err);
+    // Programming/unknown error: never leak details.
     res.status(500).json({
       status: "error",
+      code: "INTERNAL",
       message: "Something went wrong on our end.",
+      requestId: req.id,
     });
   }
 };
@@ -55,6 +68,15 @@ const globalErrorHandler: ErrorRequestHandler = (
 ) => {
   err.statusCode = err.statusCode || 500;
   err.status = err.status || "error";
+
+  // Structured, correlated error logging (replaces console.error). Expected
+  // operational errors log at warn; unexpected ones at error with the stack.
+  const logBase = { requestId: req.id, statusCode: err.statusCode, code: err.code, path: req.originalUrl, method: req.method };
+  if (err.isOperational) {
+    logger.warn(logBase, err.message);
+  } else {
+    logger.error({ ...logBase, err }, err.message || "Unhandled error");
+  }
 
   if (process.env.NODE_ENV === "development") {
     sendErrorDev(err, req, res);

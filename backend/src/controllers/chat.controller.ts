@@ -4,6 +4,7 @@ import { HISTORY } from "../config/constants";
 import aiService = require("../services/ai.service");
 import catchAsync from "../utils/catchAsync";
 import AppError from "../utils/appError";
+import { sendSuccess } from "../utils/apiResponse";
 
 const createChatMessage = catchAsync(async (req, res) => {
   const { message, product_type, session_id } = req.body;
@@ -38,16 +39,13 @@ const createChatMessage = catchAsync(async (req, res) => {
     message: replyText, sender: "advisor", sessionId: sessionIdToStore, userId, agentName, agentDomain,
   });
 
-  res.status(201).json({
-    status: "success",
-    data: {
-      customerMessage: customerMsg,
-      advisorMessage: aiMsg,
-      // Multi-agent metadata — frontend can use these to update advisor header
-      agentName,
-      transferred,
-      sessionId: newSessionId,
-    },
+  sendSuccess(res, 201, {
+    customerMessage: customerMsg,
+    advisorMessage: aiMsg,
+    // Multi-agent metadata — frontend can use these to update advisor header
+    agentName,
+    transferred,
+    sessionId: newSessionId,
   });
 });
 
@@ -66,11 +64,7 @@ const getChatHistory = catchAsync(async (req, res, next) => {
 
   const history = await chatRepository.findHistory(where, HISTORY.CHAT_PAGE_MAX);
 
-  res.status(200).json({
-    status: "success",
-    results: history.length,
-    data: { chat: history },
-  });
+  sendSuccess(res, 200, { chat: history }, { results: history.length });
 });
 
 /**

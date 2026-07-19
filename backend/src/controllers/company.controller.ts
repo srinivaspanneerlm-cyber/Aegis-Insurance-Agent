@@ -1,6 +1,7 @@
 import { companyRepository } from "../repositories";
 import catchAsync from "../utils/catchAsync";
 import { parsePageParams } from "../utils/pagination";
+import { sendSuccess } from "../utils/apiResponse";
 
 const createCompany = catchAsync(async (req, res) => {
   const { companyName, logo, description } = req.body;
@@ -11,12 +12,7 @@ const createCompany = catchAsync(async (req, res) => {
     description,
   });
 
-  res.status(201).json({
-    status: "success",
-    data: {
-      company: newCompany,
-    },
-  });
+  sendSuccess(res, 201, { company: newCompany });
 });
 
 const getCompanies = catchAsync(async (req, res) => {
@@ -26,14 +22,7 @@ const getCompanies = catchAsync(async (req, res) => {
     { page, limit, orderBy: { createdAt: "desc" } }
   );
 
-  res.status(200).json({
-    status: "success",
-    results: items.length,
-    data: {
-      companies: items,
-    },
-    pagination,
-  });
+  sendSuccess(res, 200, { companies: items }, { results: items.length, pagination });
 });
 
 export { createCompany, getCompanies };

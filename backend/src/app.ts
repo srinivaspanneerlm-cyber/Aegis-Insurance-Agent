@@ -25,6 +25,7 @@ import healthRoutes from "./routes/health.routes";
 import env from "./config/env";
 import { register, httpMetricsMiddleware } from "./config/metrics";
 import { logger } from "./config/logger";
+import { requestId } from "./middleware/requestId.middleware";
 
 const app = express();
 
@@ -47,6 +48,10 @@ app.use(
 app.disable("x-powered-by");
 app.use(cors(corsOptions));
 
+// Correlation id for every request (before the logger, so every line carries
+// it). Also set on the X-Request-Id response header and used in error bodies.
+app.use(requestId);
+
 // Response compression (gzip/deflate) for large JSON/text payloads — a major
 // bandwidth win at scale. Loaded defensively so the app runs with or without
 // the optional dependency installed; toggle via FEATURE_COMPRESSION.
@@ -67,6 +72,8 @@ if (env.LOG_FORMAT === "json") {
   app.use(
     pinoHttp({
       logger,
+      // Reuse the correlation id from the requestId middleware.
+      genReqId: (req) => (req as { id?: string }).id ?? "",
       autoLogging: {
         ignore: (req) => req.url === "/metrics" || req.url.startsWith("/health"),
       },

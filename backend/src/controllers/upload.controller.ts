@@ -2,6 +2,7 @@ import { documentRepository } from "../repositories";
 import AppError from "../utils/appError";
 import catchAsync from "../utils/catchAsync";
 import { parsePageParams } from "../utils/pagination";
+import { sendSuccess } from "../utils/apiResponse";
 
 const uploadDocument = catchAsync(async (req, res, next) => {
   if (!req.file) {
@@ -19,12 +20,7 @@ const uploadDocument = catchAsync(async (req, res, next) => {
     sizeBytes: typeof req.file.size === "number" ? req.file.size : null,
   });
 
-  res.status(201).json({
-    status: "success",
-    data: {
-      document: doc,
-    },
-  });
+  sendSuccess(res, 201, { document: doc });
 });
 
 const getUploadedDocuments = catchAsync(async (req, res) => {
@@ -43,13 +39,7 @@ const getUploadedDocuments = catchAsync(async (req, res) => {
     orderBy: { uploadedAt: "desc" },
   });
 
-  res.status(200).json({
-    status: "success",
-    data: {
-      documents: items,
-    },
-    pagination,
-  });
+  sendSuccess(res, 200, { documents: items }, { pagination });
 });
 
 export { uploadDocument, getUploadedDocuments };

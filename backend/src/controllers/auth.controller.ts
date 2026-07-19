@@ -7,6 +7,7 @@ import AppError from "../utils/appError";
 import { audit } from "../config/logger";
 import catchAsync from "../utils/catchAsync";
 import { setAuthCookie, clearAuthCookie } from "../utils/cookies";
+import { sendSuccess } from "../utils/apiResponse";
 
 const signToken = (id: string): string => {
   return jwt.sign({ id }, env.JWT_SECRET, {
@@ -67,13 +68,7 @@ const register = catchAsync(async (req, res, next) => {
 
   audit.info({ event: "register", userId: newUser.id, email }, "account registered");
 
-  res.status(201).json({
-    status: "success",
-    token,
-    data: {
-      user: newUser,
-    },
-  });
+  sendSuccess(res, 201, { user: newUser }, { token });
 });
 
 const login = catchAsync(async (req, res, next) => {
@@ -105,19 +100,13 @@ const login = catchAsync(async (req, res, next) => {
   const { password: _pw, ...userWithoutPassword } = user;
   void _pw;
 
-  res.status(200).json({
-    status: "success",
-    token,
-    data: {
-      user: userWithoutPassword,
-    },
-  });
+  sendSuccess(res, 200, { user: userWithoutPassword }, { token });
 });
 
 const logout = catchAsync(async (req, res) => {
   // Clear the auth cookie so the session cannot be reused from the browser.
   clearAuthCookie(res);
-  res.status(200).json({ status: "success", message: "Logged out." });
+  sendSuccess(res, 200, undefined, { message: "Logged out." });
 });
 
 const getMe = catchAsync(async (req, res) => {
@@ -125,12 +114,7 @@ const getMe = catchAsync(async (req, res) => {
   const { password: _pw, ...userWithoutPassword } = req.user!;
   void _pw;
 
-  res.status(200).json({
-    status: "success",
-    data: {
-      user: userWithoutPassword,
-    },
-  });
+  sendSuccess(res, 200, { user: userWithoutPassword });
 });
 
 export { register, login, logout, getMe };

@@ -2,6 +2,7 @@ import axios, { type AxiosError } from "axios";
 import catchAsync from "../utils/catchAsync";
 import AppError from "../utils/appError";
 import env from "../config/env";
+import { sendSuccess } from "../utils/apiResponse";
 
 const AI_SERVICE_URL = env.AI_SERVICE_URL;
 
@@ -29,10 +30,7 @@ const dispatchUIAction = catchAsync(async (req, res, next) => {
       { timeout: 10000, headers: internalHeaders }
     );
 
-    res.status(200).json({
-      status: "success",
-      data: response.data,
-    });
+    sendSuccess(res, 200, response.data);
   } catch (error) {
     const err = error as AxiosError<{ detail?: string }>;
     // Log the upstream detail, never echo it. A network failure puts the AI

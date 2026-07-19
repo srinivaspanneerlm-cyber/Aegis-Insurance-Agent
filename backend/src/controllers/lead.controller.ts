@@ -5,6 +5,7 @@ import { LEADS } from "../config/constants";
 import AppError from "../utils/appError";
 import catchAsync from "../utils/catchAsync";
 import { parsePageParams } from "../utils/pagination";
+import { sendSuccess } from "../utils/apiResponse";
 
 const createLead = catchAsync(async (req, res) => {
   const { customerName, email, phone, insuranceType, budget } = req.body;
@@ -27,12 +28,7 @@ const createLead = catchAsync(async (req, res) => {
     LEADS.AUTO_QUALIFY_DELAY_MS
   );
 
-  res.status(201).json({
-    status: "success",
-    data: {
-      lead: newLead,
-    },
-  });
+  sendSuccess(res, 201, { lead: newLead });
 });
 
 const getLeads = catchAsync(async (req, res) => {
@@ -42,14 +38,7 @@ const getLeads = catchAsync(async (req, res) => {
     { page, limit, orderBy: { createdAt: "desc" } }
   );
 
-  res.status(200).json({
-    status: "success",
-    results: items.length,
-    data: {
-      leads: items,
-    },
-    pagination,
-  });
+  sendSuccess(res, 200, { leads: items }, { results: items.length, pagination });
 });
 
 const getLeadById = catchAsync(async (req, res, next) => {
@@ -61,12 +50,7 @@ const getLeadById = catchAsync(async (req, res, next) => {
     return next(new AppError("No qualified lead found with that ID.", 404));
   }
 
-  res.status(200).json({
-    status: "success",
-    data: {
-      lead,
-    },
-  });
+  sendSuccess(res, 200, { lead });
 });
 
 const updateLead = catchAsync(async (req, res) => {
@@ -82,12 +66,7 @@ const updateLead = catchAsync(async (req, res) => {
     status,
   });
 
-  res.status(200).json({
-    status: "success",
-    data: {
-      lead: updatedLead,
-    },
-  });
+  sendSuccess(res, 200, { lead: updatedLead });
 });
 
 const deleteLead = catchAsync(async (req, res) => {
@@ -95,10 +74,7 @@ const deleteLead = catchAsync(async (req, res) => {
 
   await leadRepository.delete(id);
 
-  res.status(204).json({
-    status: "success",
-    data: null,
-  });
+  sendSuccess(res, 204, null);
 });
 
 export { createLead, getLeads, getLeadById, updateLead, deleteLead };

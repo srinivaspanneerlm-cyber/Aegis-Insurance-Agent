@@ -4,6 +4,7 @@ import { CACHE_TTL } from "../config/constants";
 import AppError from "../utils/appError";
 import catchAsync from "../utils/catchAsync";
 import { parsePageParams } from "../utils/pagination";
+import { sendSuccess } from "../utils/apiResponse";
 
 const POLICIES_CACHE_PREFIX = "policies:";
 
@@ -28,12 +29,7 @@ const createPolicy = catchAsync(async (req, res, next) => {
   // Invalidate the cached catalogue so the new product is visible immediately.
   await cache.delByPrefix(POLICIES_CACHE_PREFIX);
 
-  res.status(201).json({
-    status: "success",
-    data: {
-      policy: newPolicy,
-    },
-  });
+  sendSuccess(res, 201, { policy: newPolicy });
 });
 
 const getPolicies = catchAsync(async (req, res) => {
@@ -63,14 +59,7 @@ const getPolicies = catchAsync(async (req, res) => {
       )
   );
 
-  res.status(200).json({
-    status: "success",
-    results: items.length,
-    data: {
-      policies: items,
-    },
-    pagination,
-  });
+  sendSuccess(res, 200, { policies: items }, { results: items.length, pagination });
 });
 
 const getPolicyById = catchAsync(async (req, res, next) => {
@@ -91,12 +80,7 @@ const getPolicyById = catchAsync(async (req, res, next) => {
     return next(new AppError("No insurance policy found with that ID.", 404));
   }
 
-  res.status(200).json({
-    status: "success",
-    data: {
-      policy,
-    },
-  });
+  sendSuccess(res, 200, { policy });
 });
 
 export { createPolicy, getPolicies, getPolicyById };
