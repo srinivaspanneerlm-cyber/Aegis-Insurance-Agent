@@ -5,9 +5,13 @@ import { logger } from "@/lib/logger";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { chatService, policyService } from "@/services/api";
+import type { PageInfo } from "@/types/domain";
 import type {
   NavId, DashboardMessage, DashboardPolicy, DashboardDoc, DashboardNotification,
 } from "./types";
+
+/** Cards per page for the server-paginated active-portfolio list. */
+const POLICIES_PAGE_SIZE = 6;
 
 const now = () =>
   new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
@@ -63,7 +67,12 @@ export function useConsumerDashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const [dbPolicies, setDbPolicies] = useState<DashboardPolicy[]>([]);
+  const [policiesPagination, setPoliciesPagination] = useState<PageInfo | null>(null);
+  // `isPoliciesLoading` gates the boot screen (initial load only); a separate
+  // `isPoliciesPaging` flag covers subsequent page fetches so paging never
+  // re-triggers the full-screen boot state.
   const [isPoliciesLoading, setIsPoliciesLoading] = useState(true);
+  const [isPoliciesPaging, setIsPoliciesPaging] = useState(false);
 
   const [chatMessages, setChatMessages] = useState<DashboardMessage[]>(INITIAL_MESSAGES);
   const [chatInput, setChatInput] = useState("");
@@ -83,22 +92,40 @@ export function useConsumerDashboard() {
     }
   }, [loading, isAuthenticated, router]);
 
-  // Load policies
-  useEffect(() => {
-    async function fetchUserPolicies() {
-      try {
-        const data = await policyService.getPolicies();
-        if (data && data.length > 0) {
-          setDbPolicies(data);
-        }
-      } catch {
-        logger.warn("Failed to load user policies. Proceeding with premium defaults.");
-      } finally {
-        setIsPoliciesLoading(false);
+  // Load policies (one page at a time). The premium-default fallback is kept:
+  // an empty first page leaves `dbPolicies` empty so `activePoliciesList` uses
+  // DEFAULT_POLICIES, exactly as before.
+  const loadPolicies = async (page: number, initial = false) => {
+    if (!initial) setIsPoliciesPaging(true);
+    try {
+      const { policies, pagination } = await policyService.getPolicies({
+        page,
+        limit: POLICIES_PAGE_SIZE,
+      });
+      if (policies && policies.length > 0) {
+        setDbPolicies(policies);
+        setPoliciesPagination(pagination);
+      } else {
+        setDbPolicies([]);
+        setPoliciesPagination(page <= 1 ? null : pagination);
       }
+    } catch {
+      logger.warn("Failed to load user policies. Proceeding with premium defaults.");
+      if (page <= 1) setPoliciesPagination(null);
+    } finally {
+      if (initial) setIsPoliciesLoading(false);
+      else setIsPoliciesPaging(false);
     }
-    fetchUserPolicies();
+  };
+
+  useEffect(() => {
+    loadPolicies(1, true);
   }, []);
+
+  const goToPoliciesPage = (page: number) => {
+    if (isPoliciesPaging || page < 1) return;
+    void loadPolicies(page);
+  };
 
   // Chat autoscroll
   useEffect(() => {
@@ -202,7 +229,7 @@ export function useConsumerDashboard() {
     // chat
     chatMessages, chatInput, setChatInput, isTyping, chatEndRef, handleSendMessage,
     // policies
-    activePoliciesList,
+    activePoliciesList, policiesPagination, isPoliciesPaging, goToPoliciesPage,
     // documents
     uploadedFiles, uploadingDoc, uploadSuccess, handleFileUpload,
     // notifications

@@ -15,6 +15,14 @@ export interface PageInfo {
   pages: number;
 }
 
+/** A policy record as returned by the backend policy service. */
+export interface PolicyRecord {
+  id: string;
+  policyName: string;
+  coverage: string;
+  premium: number;
+}
+
 /** A sales/underwriting lead shown in the admin dashboard. */
 export interface Lead {
   id: string;

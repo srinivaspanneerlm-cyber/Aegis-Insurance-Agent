@@ -5,19 +5,12 @@ import { logger } from "@/lib/logger";
 import { Check, ShieldAlert, Sparkles, Heart, Crown, LucideIcon } from "lucide-react";
 import { motion } from "framer-motion";
 import { policyService } from "@/services/api";
+import type { PolicyRecord } from "@/types/domain";
 
 interface PolicyCardsProps {
   selectedPlan: string;
   onSelectPlan: (plan: string) => void;
   onScrollToForm: () => void;
-}
-
-/** A policy record as returned by the backend policy service. */
-interface PolicyRecord {
-  id: string;
-  policyName: string;
-  coverage: string;
-  premium: number;
 }
 
 /** A fully-rendered plan card (static layout merged with any DB overrides). */
@@ -102,7 +95,7 @@ export default function PolicyCards({ selectedPlan, onSelectPlan, onScrollToForm
   useEffect(() => {
     async function loadPolicies() {
       try {
-        const fetched = await policyService.getPolicies();
+        const { policies: fetched } = await policyService.getPolicies();
         if (fetched && fetched.length > 0) {
           // Merge dynamic DB parameters with corresponding layout features
           const merged = fetched.map((policy: PolicyRecord) => {

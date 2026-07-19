@@ -1,6 +1,6 @@
 import axios, { AxiosProgressEvent } from "axios";
 import { API_URL } from "@/lib/config";
-import type { Lead, DocumentRecord, PageInfo } from "@/types/domain";
+import type { Lead, DocumentRecord, PolicyRecord, PageInfo } from "@/types/domain";
 
 // 1) Axios base configuration
 export const apiClient = axios.create({
@@ -52,9 +52,13 @@ export const authService = {
 // Policies
 // ---------------------------------------------------------------------------
 export const policyService = {
-  getPolicies: async () => {
-    const res = await apiClient.get("/policies");
-    return res.data.data.policies;
+  // Server-side paginated (see leadService.getLeads). Params optional so a
+  // caller wanting the whole bounded catalogue can omit them.
+  getPolicies: async (
+    params: { page?: number; limit?: number } = {}
+  ): Promise<{ policies: PolicyRecord[]; pagination: PageInfo }> => {
+    const res = await apiClient.get("/policies", { params });
+    return { policies: res.data.data.policies, pagination: res.data.pagination };
   },
   getPolicyById: async (id: string) => {
     const res = await apiClient.get(`/policies/${id}`);

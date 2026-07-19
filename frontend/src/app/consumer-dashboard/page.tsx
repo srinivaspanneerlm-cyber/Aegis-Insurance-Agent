@@ -76,7 +76,12 @@ export default function ConsumerDashboard() {
               />
             )}
             {dash.activeNav === "policies" && (
-              <PoliciesViewport activePoliciesList={dash.activePoliciesList} />
+              <PoliciesViewport
+                activePoliciesList={dash.activePoliciesList}
+                pagination={dash.policiesPagination}
+                isPaging={dash.isPoliciesPaging}
+                onPageChange={dash.goToPoliciesPage}
+              />
             )}
             {dash.activeNav === "advisor" && (
               <AdvisorViewport

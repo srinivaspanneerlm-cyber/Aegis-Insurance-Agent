@@ -4,10 +4,24 @@ import { Heart, ArrowUpRight } from "lucide-react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useTheme } from "@/context/ThemeContext";
+import { Pagination } from "@/components/shared/Pagination";
+import type { PageInfo } from "@/types/domain";
 import type { DashboardPolicy } from "./types";
 
+interface PoliciesViewportProps {
+  activePoliciesList: DashboardPolicy[];
+  pagination: PageInfo | null;
+  isPaging: boolean;
+  onPageChange: (page: number) => void;
+}
+
 /** Active insurance portfolio list (nav: "policies"). */
-export function PoliciesViewport({ activePoliciesList }: { activePoliciesList: DashboardPolicy[] }) {
+export function PoliciesViewport({
+  activePoliciesList,
+  pagination,
+  isPaging,
+  onPageChange,
+}: PoliciesViewportProps) {
   const { theme } = useTheme();
   const router = useRouter();
 
@@ -72,6 +86,15 @@ export function PoliciesViewport({ activePoliciesList }: { activePoliciesList: D
           </div>
         ))}
       </div>
+
+      {pagination && (
+        <Pagination
+          pagination={pagination}
+          onPageChange={onPageChange}
+          busy={isPaging}
+          variant={theme === "dark" ? "dark" : "light"}
+        />
+      )}
     </motion.div>
   );
 }
