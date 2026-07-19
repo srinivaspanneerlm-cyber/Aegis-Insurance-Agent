@@ -1,0 +1,15 @@
+[Unit]
+Description=Aegis AI database + assets backup
+Documentation=file:///opt/aegis/scripts/README.md
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+# Adjust to the deploy path. The EnvironmentFile supplies DATABASE_URL and,
+# for the prod stack, the paths/URL that reach the real data.
+WorkingDirectory=/opt/aegis
+EnvironmentFile=-/opt/aegis/.env.production
+Environment=BACKUP_DIR=/var/backups/aegis
+Environment=RETENTION_DAYS=14
+ExecStart=/opt/aegis/scripts/backup-db.sh

@@ -97,3 +97,7 @@ Aegis-AI/layer3/recommendation_context/cache/*
 !Aegis-AI/layer3/recommendation_context/cache/executive_cust_sri_rec.json
 
 Aegis-AI/layer3/conversation_memory/sessions/
+
+# Local backup archives (never commit)
+/backups/
+backups/
