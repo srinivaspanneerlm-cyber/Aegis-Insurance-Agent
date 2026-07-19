@@ -4,6 +4,7 @@ import { userRepository } from "../repositories";
 import env from "../config/env";
 import { AUTH } from "../config/constants";
 import AppError from "../utils/appError";
+import { audit } from "../config/logger";
 import catchAsync from "../utils/catchAsync";
 import { setAuthCookie, clearAuthCookie } from "../utils/cookies";
 
@@ -64,6 +65,8 @@ const register = catchAsync(async (req, res, next) => {
   const token = signToken(newUser.id);
   setAuthCookie(res, token);
 
+  audit.info({ event: "register", userId: newUser.id, email }, "account registered");
+
   res.status(201).json({
     status: "success",
     token,
@@ -88,12 +91,15 @@ const login = catchAsync(async (req, res, next) => {
   );
 
   if (!user || !passwordOk) {
+    audit.warn({ event: "login.failure", email }, "login failed");
     return next(new AppError("Incorrect email address or password.", 401));
   }
 
   // 2) Generate token — set as httpOnly cookie and also return in the body.
   const token = signToken(user.id);
   setAuthCookie(res, token);
+
+  audit.info({ event: "login.success", userId: user.id }, "login succeeded");
 
   // Remove password from payload
   const { password: _pw, ...userWithoutPassword } = user;

@@ -77,6 +77,11 @@ const env = {
   JWT_SECRET,
   JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || "30d",
 
+  // Logging. LOG_FORMAT "json" → structured pino access logs (default in prod);
+  // "dev" → morgan pretty output (default in development).
+  LOG_FORMAT: (process.env.LOG_FORMAT || (isProd ? "json" : "dev")).toLowerCase(),
+  LOG_LEVEL: (process.env.LOG_LEVEL || (isProd ? "info" : "debug")).toLowerCase(),
+
   allowedOrigins,
 
   AI_SERVICE_URL: process.env.AI_SERVICE_URL || "http://localhost:8000/api/ai",

@@ -2,6 +2,7 @@ import express from "express";
 import helmet from "helmet";
 import cors from "cors";
 import morgan from "morgan";
+import pinoHttp from "pino-http";
 import path from "path";
 
 import { corsOptions, apiLimiter } from "./config/security";
@@ -23,6 +24,7 @@ import healthRoutes from "./routes/health.routes";
 
 import env from "./config/env";
 import { register, httpMetricsMiddleware } from "./config/metrics";
+import { logger } from "./config/logger";
 
 const app = express();
 
@@ -58,11 +60,20 @@ if (FEATURES.COMPRESSION) {
   }
 }
 
-// HTTP Request Logger
-if (process.env.NODE_ENV === "development") {
-  app.use(morgan("dev"));
+// HTTP Request Logger. LOG_FORMAT=json → structured pino-http (request id +
+// JSON, for prod aggregation); otherwise morgan's dev output. Health/metrics
+// probes are not access-logged to keep the signal clean.
+if (env.LOG_FORMAT === "json") {
+  app.use(
+    pinoHttp({
+      logger,
+      autoLogging: {
+        ignore: (req) => req.url === "/metrics" || req.url.startsWith("/health"),
+      },
+    })
+  );
 } else {
-  app.use(morgan("combined"));
+  app.use(morgan("dev"));
 }
 
 // Request parsers
