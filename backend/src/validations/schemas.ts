@@ -75,3 +75,34 @@ export const policySchema = (data: RequestData): ValidationErrors => {
   }
   return errors.length > 0 ? errors : null;
 };
+
+// ── Route params & query ─────────────────────────────────────────────────────
+
+// All model ids are UUIDs (Prisma @default(uuid())). Validating the shape stops
+// a malformed :id before the service/Prisma — and avoids a Postgres uuid-parse
+// 500 on the production DB path.
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export const idParamSchema = (data: RequestData): ValidationErrors => {
+  const id = data.id;
+  if (typeof id !== "string" || !UUID_RE.test(id)) {
+    return ["Route parameter 'id' is not a valid identifier."];
+  }
+  return null;
+};
+
+// Pagination query: page/limit are optional, but when present must be positive
+// integers. (parsePageParams still bounds them; this returns a clear 400 for
+// garbage instead of silently defaulting.)
+export const paginationQuerySchema = (data: RequestData): ValidationErrors => {
+  const errors: string[] = [];
+  for (const key of ["page", "limit"] as const) {
+    const raw = data[key];
+    if (raw === undefined) continue;
+    const value = Array.isArray(raw) ? raw[0] : raw;
+    if (!/^\d+$/.test(String(value)) || parseInt(String(value), 10) < 1) {
+      errors.push(`Query parameter '${key}' must be a positive integer.`);
+    }
+  }
+  return errors.length > 0 ? errors : null;
+};

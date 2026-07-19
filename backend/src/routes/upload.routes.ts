@@ -5,6 +5,8 @@ import fs from "fs";
 import type { Request } from "express";
 import * as uploadController from "../controllers/upload.controller";
 import { protect } from "../middleware/auth.middleware";
+import { validateQuery } from "../middleware/validate.middleware";
+import { paginationQuerySchema } from "../validations/schemas";
 import { UPLOADS } from "../config/constants";
 import AppError from "../utils/appError";
 
@@ -58,6 +60,6 @@ const upload = multer({
 });
 
 router.post("/", protect, upload.single("file"), uploadController.uploadDocument);
-router.get("/", protect, uploadController.getUploadedDocuments);
+router.get("/", protect, validateQuery(paginationQuerySchema), uploadController.getUploadedDocuments);
 
 export = router;
