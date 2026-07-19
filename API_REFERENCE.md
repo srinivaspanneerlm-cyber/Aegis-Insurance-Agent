@@ -10,6 +10,22 @@
 
 ---
 
+## 0. Versioning & envelope
+
+- **Versioning.** The canonical prefix is **`/api/v1`** (e.g. `/api/v1/policies`).
+  The bare **`/api`** path is a permanent backward-compatible **alias** for the
+  current version, so existing clients keep working unchanged. Every response
+  carries an `X-API-Version` header. New breaking changes land under a future
+  `/api/v2` without touching `v1`.
+- **Correlation.** Every response carries an `X-Request-Id` (an inbound one is
+  honoured); it also appears in error bodies and server logs.
+- **Success envelope:** `{ "status": "success", "data": { … }, "results"?,
+  "pagination"? }` (auth also returns a top-level `token`).
+- **Error envelope:** `{ "status": "fail"|"error", "code": "<MACHINE_CODE>",
+  "message": "<human>", "requestId": "…" }`. Branch on `code`, not the message.
+
+---
+
 ## 1. Authentication
 
 ### 1.1 Cookie Auth (primary — browser clients)

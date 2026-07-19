@@ -7,7 +7,7 @@ import path from "path";
 
 import { corsOptions, apiLimiter } from "./config/security";
 import { protect } from "./middleware/auth.middleware";
-import { FEATURES } from "./config/constants";
+import { FEATURES, API_VERSION } from "./config/constants";
 import AppError from "./utils/appError";
 import globalErrorHandler from "./middleware/error.middleware";
 
@@ -107,18 +107,27 @@ app.get("/metrics", async (_req, res) => {
   res.end(await register.metrics());
 });
 
-// Rate Limiter
+// Rate Limiter (covers both /api/v1 and the bare /api alias below).
 app.use("/api", apiLimiter);
 
-// 2) ROUTE MOUNTINGS
-app.use("/api/auth", authRoutes);
-app.use("/api/leads", leadRoutes);
-app.use("/api/policies", policyRoutes);
-app.use("/api/chat", chatRoutes);
-app.use("/api/upload", uploadRoutes);
-app.use("/api/company", companyRoutes);
-app.use("/api/admin", adminRoutes);
-app.use("/api/ui-action", uiActionRoutes);
+// 2) API ROUTER — one definition, mounted at the versioned prefix (canonical)
+// and aliased at the bare /api path so existing clients keep working unchanged.
+const apiRouter = express.Router();
+apiRouter.use((_req, res, next) => {
+  res.setHeader("X-API-Version", API_VERSION);
+  next();
+});
+apiRouter.use("/auth", authRoutes);
+apiRouter.use("/leads", leadRoutes);
+apiRouter.use("/policies", policyRoutes);
+apiRouter.use("/chat", chatRoutes);
+apiRouter.use("/upload", uploadRoutes);
+apiRouter.use("/company", companyRoutes);
+apiRouter.use("/admin", adminRoutes);
+apiRouter.use("/ui-action", uiActionRoutes);
+
+app.use(`/api/${API_VERSION}`, apiRouter); // canonical: /api/v1/*
+app.use("/api", apiRouter); // backward-compatible alias: /api/*
 
 // Static uploads serving path — these are private customer documents, so the
 // directory is gated behind authentication instead of being world-readable.

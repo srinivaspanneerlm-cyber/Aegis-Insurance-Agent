@@ -17,6 +17,10 @@ const bool = (name: string, fallback: boolean): boolean => {
 };
 
 // ── Rate limiting (mirrors config/security.js) ───────────────────────────────
+// Current API version. Routes mount under `/api/${API_VERSION}` (canonical) and
+// are aliased at the bare `/api` path for backward compatibility.
+export const API_VERSION = "v1";
+
 export const RATE_LIMITS = {
   API: { windowMs: num("RL_API_WINDOW_MS", 15 * 60 * 1000), max: num("RL_API_MAX", 100) },
   AUTH: { windowMs: num("RL_AUTH_WINDOW_MS", 60 * 60 * 1000), max: num("RL_AUTH_MAX", 20) },
