@@ -1,0 +1,16 @@
+# Keep the build context small and secret-free. Note: prisma/schema.prisma and
+# prisma/migrations ARE kept (needed for `prisma generate` + `migrate deploy`).
+node_modules
+.git
+.env*
+prisma/dev.db*
+prisma/*.bak*
+prisma/*-journal
+loadtest
+tests
+coverage
+src/uploads/*
+Dockerfile
+.dockerignore
+*.md
+npm-debug.log*

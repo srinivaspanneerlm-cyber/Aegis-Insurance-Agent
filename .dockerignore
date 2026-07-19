@@ -1,0 +1,21 @@
+# Root .dockerignore — applies to the ai-python image, whose build context is
+# the repository root (see ai-python/Dockerfile). Keep ai-python/ + Aegis-AI/;
+# drop everything else, plus heavy/mutable/secret paths inside the kept trees.
+.git
+.github
+node_modules
+**/node_modules
+frontend
+backend
+**/venv
+**/__pycache__
+**/*.pyc
+**/.pytest_cache
+**/.env
+ai-python/scratch
+ai-python/tests
+# Mutable, PII-bearing runtime memory — mounted as a volume, never baked.
+Aegis-AI/layer3/conversation_memory
+Aegis-AI/layer3/customer_profile
+*.md
+docker-compose*.yml
