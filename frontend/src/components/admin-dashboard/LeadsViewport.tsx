@@ -1,15 +1,25 @@
 "use client";
 
 import { motion } from "framer-motion";
-import type { Lead } from "@/types/domain";
+import type { Lead, PageInfo } from "@/types/domain";
+import { Pagination } from "@/components/shared/Pagination";
 
 interface LeadsViewportProps {
   leads: Lead[];
+  pagination: PageInfo | null;
+  isLoading: boolean;
+  onPageChange: (page: number) => void;
   handleApproveLead: (leadId: string) => void;
 }
 
 /** Underwriting Leads Matrix table with approval action (nav: "leads"). */
-export function LeadsViewport({ leads, handleApproveLead }: LeadsViewportProps) {
+export function LeadsViewport({
+  leads,
+  pagination,
+  isLoading,
+  onPageChange,
+  handleApproveLead,
+}: LeadsViewportProps) {
   return (
     <motion.div
       key="leads"
@@ -24,7 +34,7 @@ export function LeadsViewport({ leads, handleApproveLead }: LeadsViewportProps) 
           <p className="text-xs text-slate-400 mt-1 font-semibold">Active consumer-consulted package pipelines waiting approval lockers.</p>
         </div>
         <span className="text-[10px] bg-cyan-950/50 text-cyan-300 border border-cyan-800/40 py-1 px-3 rounded-full font-black uppercase tracking-widest">
-          Record count: {leads.length}
+          Record count: {pagination ? pagination.total : leads.length}
         </span>
       </div>
 
@@ -75,6 +85,10 @@ export function LeadsViewport({ leads, handleApproveLead }: LeadsViewportProps) 
           </tbody>
         </table>
       </div>
+
+      {pagination && (
+        <Pagination pagination={pagination} onPageChange={onPageChange} busy={isLoading} />
+      )}
     </motion.div>
   );
 }

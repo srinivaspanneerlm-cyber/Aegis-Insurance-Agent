@@ -5,11 +5,14 @@ import { logger } from "@/lib/logger";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { adminService, leadService, chatService, uploadService } from "@/services/api";
-import { Lead, ChatLog, DocumentRecord, AdminStats } from "@/types/domain";
+import { Lead, ChatLog, DocumentRecord, AdminStats, PageInfo } from "@/types/domain";
 import type { AdminNav } from "./types";
 
 /** Delay simulating the actuarial re-sync heartbeat (ms). */
 const SYNC_SIMULATE_DELAY = 1200;
+
+/** Rows per page for the server-paginated Underwriting Leads Matrix. */
+const LEADS_PAGE_SIZE = 10;
 
 const DEFAULT_STATS: AdminStats = {
   totalLeads: 12,
@@ -48,6 +51,8 @@ export function useAdminDashboard() {
   // Dynamic Metrics
   const [stats, setStats] = useState<AdminStats>(DEFAULT_STATS);
   const [leads, setLeads] = useState<Lead[]>([]);
+  const [leadsPagination, setLeadsPagination] = useState<PageInfo | null>(null);
+  const [isLeadsLoading, setIsLeadsLoading] = useState(false);
   const [chats, setChats] = useState<ChatLog[]>([]);
   const [documents, setDocuments] = useState<DocumentRecord[]>([]);
 
@@ -79,22 +84,50 @@ export function useAdminDashboard() {
     }
   }, [loading, isAuthenticated, isAdmin, router]);
 
+  /**
+   * Fetch one page of leads from the server and mirror the pagination envelope.
+   * When the API has no leads (fresh/dev DB) the first page still shows the
+   * mock roster so the dashboard keeps its pristine visuals, as before.
+   */
+  const loadLeads = async (page: number) => {
+    setIsLeadsLoading(true);
+    try {
+      const { leads: list, pagination } = await leadService.getLeads({
+        page,
+        limit: LEADS_PAGE_SIZE,
+      });
+      if (list && list.length > 0) {
+        setLeads(list);
+        setLeadsPagination(pagination);
+      } else if (page <= 1) {
+        setLeads(FALLBACK_LEADS);
+        setLeadsPagination(null);
+      } else {
+        setLeads([]);
+        setLeadsPagination(pagination);
+      }
+    } catch {
+      // Keep the current page on failure; seed the mock roster on first load.
+      if (page <= 1 && leads.length === 0) {
+        setLeads(FALLBACK_LEADS);
+        setLeadsPagination(null);
+      }
+    } finally {
+      setIsLeadsLoading(false);
+    }
+  };
+
   const fetchDashboardData = async () => {
     setIsPageLoading(true);
     try {
-      const [statsData, leadsList, chatLogs, docList] = await Promise.all([
+      const [statsData, chatLogs, docList] = await Promise.all([
         adminService.getStats().catch(() => null),
-        leadService.getLeads().catch(() => []),
         chatService.getHistory().catch(() => []),
         uploadService.getDocuments().catch(() => []),
+        loadLeads(1),
       ]);
 
       if (statsData) setStats(statsData);
-      if (leadsList && leadsList.length > 0) setLeads(leadsList);
-      else {
-        // Fallback mockup to satisfy pristine visuals
-        setLeads(FALLBACK_LEADS);
-      }
       if (chatLogs) setChats(chatLogs);
       if (docList) setDocuments(docList);
     } catch (err) {
@@ -102,6 +135,11 @@ export function useAdminDashboard() {
     } finally {
       setIsPageLoading(false);
     }
+  };
+
+  const goToLeadsPage = (page: number) => {
+    if (isLeadsLoading || page < 1) return;
+    void loadLeads(page);
   };
 
   const processFileUpload = async (file: File) => {
@@ -191,7 +229,7 @@ export function useAdminDashboard() {
     logout,
     goToLogin: () => router.push("/admin-login"),
     // metrics
-    stats, leads, chats, documents,
+    stats, leads, leadsPagination, isLeadsLoading, goToLeadsPage, chats, documents,
     // upload
     isSubmittingFile, uploadProgress, dragActive, validationError, uploadSuccess,
     handleDrag, handleDrop, handleFileSelect,

@@ -1,5 +1,6 @@
 import axios, { AxiosProgressEvent } from "axios";
 import { API_URL } from "@/lib/config";
+import type { Lead, PageInfo } from "@/types/domain";
 
 // 1) Axios base configuration
 export const apiClient = axios.create({
@@ -75,9 +76,14 @@ export const leadService = {
     const res = await apiClient.post("/leads", payload);
     return res.data.data.lead;
   },
-  getLeads: async () => {
-    const res = await apiClient.get("/leads");
-    return res.data.data.leads;
+  // Server-side paginated. Params are optional so any caller that wants the
+  // whole (bounded) list can still omit them; the backend defaults `limit` to
+  // its hard cap. The response carries the list plus the pagination envelope.
+  getLeads: async (
+    params: { page?: number; limit?: number } = {}
+  ): Promise<{ leads: Lead[]; pagination: PageInfo }> => {
+    const res = await apiClient.get("/leads", { params });
+    return { leads: res.data.data.leads, pagination: res.data.pagination };
   },
 };
 

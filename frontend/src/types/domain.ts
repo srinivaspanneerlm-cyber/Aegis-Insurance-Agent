@@ -7,6 +7,14 @@
  * shapes explicit and catches mistakes at compile time.
  */
 
+/** Offset-pagination envelope returned alongside a bounded list endpoint. */
+export interface PageInfo {
+  total: number;
+  page: number;
+  limit: number;
+  pages: number;
+}
+
 /** A sales/underwriting lead shown in the admin dashboard. */
 export interface Lead {
   id: string;

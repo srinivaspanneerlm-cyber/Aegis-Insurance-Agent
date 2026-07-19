@@ -42,7 +42,10 @@ beforeEach(() => {
     logout: vi.fn(),
   };
   vi.mocked(adminService.getStats).mockResolvedValue(null);
-  vi.mocked(leadService.getLeads).mockResolvedValue([]);
+  vi.mocked(leadService.getLeads).mockResolvedValue({
+    leads: [],
+    pagination: { total: 0, page: 1, limit: 10, pages: 0 },
+  });
   vi.mocked(chatService.getHistory).mockResolvedValue([]);
   vi.mocked(uploadService.getDocuments).mockResolvedValue([]);
 });
@@ -72,13 +75,45 @@ describe("useAdminDashboard — data sync", () => {
   });
 
   it("uses API leads when provided", async () => {
-    vi.mocked(leadService.getLeads).mockResolvedValue([
-      { id: "X1", customerName: "Real Lead", status: "Pending Audit" },
-    ]);
+    vi.mocked(leadService.getLeads).mockResolvedValue({
+      leads: [{ id: "X1", customerName: "Real Lead", status: "Pending Audit" }],
+      pagination: { total: 1, page: 1, limit: 10, pages: 1 },
+    });
     const { result } = renderHook(() => useAdminDashboard());
     await waitFor(() => expect(result.current.isBooting).toBe(false));
     expect(result.current.leads).toHaveLength(1);
     expect(result.current.leads[0].customerName).toBe("Real Lead");
+  });
+});
+
+describe("useAdminDashboard — leads pagination", () => {
+  it("requests the given page and mirrors the envelope", async () => {
+    vi.mocked(leadService.getLeads).mockResolvedValue({
+      leads: [{ id: "P1", customerName: "Page One", status: "Pending Audit" }],
+      pagination: { total: 30, page: 1, limit: 10, pages: 3 },
+    });
+    const { result } = renderHook(() => useAdminDashboard());
+    await waitFor(() => expect(result.current.isBooting).toBe(false));
+    expect(result.current.leadsPagination?.pages).toBe(3);
+    expect(leadService.getLeads).toHaveBeenCalledWith({ page: 1, limit: 10 });
+
+    vi.mocked(leadService.getLeads).mockResolvedValue({
+      leads: [{ id: "P2", customerName: "Page Two", status: "Pending Audit" }],
+      pagination: { total: 30, page: 2, limit: 10, pages: 3 },
+    });
+    await act(async () => {
+      result.current.goToLeadsPage(2);
+    });
+    await waitFor(() => expect(result.current.leads[0].customerName).toBe("Page Two"));
+    expect(leadService.getLeads).toHaveBeenLastCalledWith({ page: 2, limit: 10 });
+    expect(result.current.leadsPagination?.page).toBe(2);
+  });
+
+  it("leaves pagination unset (single mock page) when the API has no leads", async () => {
+    const { result } = renderHook(() => useAdminDashboard());
+    await waitFor(() => expect(result.current.isBooting).toBe(false));
+    expect(result.current.leadsPagination).toBeNull();
+    expect(result.current.leads.length).toBeGreaterThan(0);
   });
 });
 

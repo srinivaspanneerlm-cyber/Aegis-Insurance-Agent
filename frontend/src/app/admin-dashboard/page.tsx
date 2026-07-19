@@ -56,7 +56,13 @@ export default function AdminDashboard() {
               />
             )}
             {dash.activeNav === "leads" && (
-              <LeadsViewport leads={dash.leads} handleApproveLead={dash.handleApproveLead} />
+              <LeadsViewport
+                leads={dash.leads}
+                pagination={dash.leadsPagination}
+                isLoading={dash.isLeadsLoading}
+                onPageChange={dash.goToLeadsPage}
+                handleApproveLead={dash.handleApproveLead}
+              />
             )}
             {dash.activeNav === "chats" && (
               <ChatsViewport chats={dash.chats} />
