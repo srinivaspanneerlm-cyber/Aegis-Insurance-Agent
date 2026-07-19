@@ -14,8 +14,14 @@ backend
 **/.env
 ai-python/scratch
 ai-python/tests
-# Mutable, PII-bearing runtime memory — mounted as a volume, never baked.
-Aegis-AI/layer3/conversation_memory
-Aegis-AI/layer3/customer_profile
+# Mutable, PII-bearing runtime memory — mounted as volumes, never baked. NOTE:
+# only the NESTED runtime dirs are excluded; the sibling *.json rule files
+# (memory_rules, profile_schema, customer_segments, context rules, …) are
+# static knowledge the engine loads and MUST stay in the image.
+Aegis-AI/layer3/conversation_memory/conversations
+Aegis-AI/layer3/conversation_memory/sessions
+Aegis-AI/layer3/customer_profile/customer_profiles
+Aegis-AI/layer3/customer_intelligence/intelligence_profiles
+Aegis-AI/layer3/recommendation_context/cache
 *.md
 docker-compose*.yml

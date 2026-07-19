@@ -36,9 +36,14 @@ COPY ai-python/insurance-data ./insurance-data
 # points exist and are writable).
 COPY Aegis-AI /app/Aegis-AI
 
+# Create the nested runtime-memory mount points (excluded from the build
+# context via .dockerignore) so the volume mounts land on writable, owned dirs.
 RUN useradd --create-home --uid 1000 appuser \
- && mkdir -p /app/Aegis-AI/layer3/conversation_memory/sessions \
+ && mkdir -p /app/Aegis-AI/layer3/conversation_memory/conversations \
+             /app/Aegis-AI/layer3/conversation_memory/sessions \
              /app/Aegis-AI/layer3/customer_profile/customer_profiles \
+             /app/Aegis-AI/layer3/customer_intelligence/intelligence_profiles \
+             /app/Aegis-AI/layer3/recommendation_context/cache \
  && chown -R appuser:appuser /app
 USER appuser
 
