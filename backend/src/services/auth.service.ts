@@ -5,7 +5,7 @@ import { userRepository, refreshTokenRepository } from "../repositories";
 import env from "../config/env";
 import { AUTH } from "../config/constants";
 import AppError from "../utils/appError";
-import { audit } from "../config/logger";
+import { auditService } from "./audit.service";
 import { expiresInToMs } from "../utils/cookies";
 
 const signAccessToken = (id: string): string =>
@@ -54,7 +54,7 @@ export const authService = {
     );
 
     const tokens = await issueTokens(user.id);
-    audit.info({ event: "register", userId: user.id, email: input.email }, "account registered");
+    auditService.record({ actorId: user.id, action: "auth.register", metadata: { email: input.email } });
     return { user, ...tokens };
   },
 
@@ -65,12 +65,12 @@ export const authService = {
     const passwordOk = await bcrypt.compare(input.password, user ? user.password : DUMMY_HASH);
 
     if (!user || !passwordOk) {
-      audit.warn({ event: "login.failure", email: input.email }, "login failed");
+      auditService.record({ action: "auth.login.failure", metadata: { email: input.email } });
       throw new AppError("Incorrect email address or password.", 401);
     }
 
     const tokens = await issueTokens(user.id);
-    audit.info({ event: "login.success", userId: user.id }, "login succeeded");
+    auditService.record({ actorId: user.id, action: "auth.login.success" });
 
     const { password: _pw, ...userWithoutPassword } = user;
     void _pw;
@@ -87,13 +87,13 @@ export const authService = {
 
     const record = await refreshTokenRepository.findByHash(hashToken(rawRefresh));
     if (!record || record.revokedAt || record.expiresAt < new Date()) {
-      audit.warn({ event: "refresh.rejected" }, "refresh token rejected");
+      auditService.record({ action: "auth.refresh.rejected" });
       throw new AppError("Invalid or expired session. Please log in again.", 401);
     }
 
     await refreshTokenRepository.revokeById(record.id); // rotate: single-use
     const tokens = await issueTokens(record.userId);
-    audit.info({ event: "refresh.success", userId: record.userId }, "token refreshed");
+    auditService.record({ actorId: record.userId, action: "auth.refresh" });
     return { userId: record.userId, ...tokens };
   },
 
@@ -103,7 +103,7 @@ export const authService = {
     const record = await refreshTokenRepository.findByHash(hashToken(rawRefresh));
     if (record && !record.revokedAt) {
       await refreshTokenRepository.revokeById(record.id);
-      audit.info({ event: "logout", userId: record.userId }, "session revoked");
+      auditService.record({ actorId: record.userId, action: "auth.logout" });
     }
   },
 };

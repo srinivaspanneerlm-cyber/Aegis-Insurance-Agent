@@ -5,7 +5,7 @@ import env from "../config/env";
 import AppError from "../utils/appError";
 import catchAsync from "../utils/catchAsync";
 import { readTokenFromCookies } from "../utils/cookies";
-import { audit } from "../config/logger";
+import { auditService } from "../services/audit.service";
 
 const protect = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
   // 1) Prefer the httpOnly cookie (XSS-safe); fall back to the Bearer header
@@ -50,10 +50,11 @@ const protect = catchAsync(async (req: Request, res: Response, next: NextFunctio
 const restrictTo = (...roles: string[]): RequestHandler => {
   return (req, res, next) => {
     if (!req.user || !roles.includes(req.user.role)) {
-      audit.warn(
-        { event: "rbac.denied", userId: req.user?.id, role: req.user?.role, required: roles },
-        "RBAC denied"
-      );
+      auditService.record({
+        actorId: req.user?.id,
+        action: "authz.rbac.denied",
+        metadata: { role: req.user?.role, required: roles, path: req.originalUrl },
+      });
       return next(
         new AppError("You do not have permission to perform this action.", 403)
       );

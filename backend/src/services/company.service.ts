@@ -1,4 +1,5 @@
 import { companyRepository } from "../repositories";
+import { auditService } from "./audit.service";
 import type { PageParams } from "../utils/pagination";
 
 interface CompanyInput {
@@ -8,8 +9,10 @@ interface CompanyInput {
 }
 
 export const companyService = {
-  create(input: CompanyInput) {
-    return companyRepository.create({ ...input });
+  async create(input: CompanyInput, actorId?: string) {
+    const company = await companyRepository.create({ ...input });
+    auditService.record({ actorId, action: "company.created", entity: "Company", entityId: company.id });
+    return company;
   },
 
   list({ page, limit }: PageParams) {

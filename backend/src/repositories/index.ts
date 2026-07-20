@@ -5,7 +5,7 @@
  *
  * Each repository is a singleton bound to the shared Prisma client.
  */
-import type { User, Chat, Lead, Policy, Company, UploadedDocument, RefreshToken } from "@prisma/client";
+import type { User, Chat, Lead, Policy, Company, UploadedDocument, RefreshToken, AuditLog } from "@prisma/client";
 import prisma from "../config/db";
 import BaseRepository from "./base.repository";
 
@@ -73,6 +73,13 @@ class RefreshTokenRepository extends BaseRepository<RefreshToken> {
   }
 }
 
+// AuditLog — append-only compliance trail (writes are best-effort, never block).
+class AuditLogRepository extends BaseRepository<AuditLog> {
+  constructor() {
+    super(prisma, "auditLog");
+  }
+}
+
 export { BaseRepository };
 export const userRepository = new UserRepository();
 export const chatRepository = new ChatRepository();
@@ -81,3 +88,4 @@ export const policyRepository = new PolicyRepository();
 export const companyRepository = new CompanyRepository();
 export const documentRepository = new DocumentRepository();
 export const refreshTokenRepository = new RefreshTokenRepository();
+export const auditRepository = new AuditLogRepository();

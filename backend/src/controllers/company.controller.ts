@@ -4,7 +4,7 @@ import { parsePageParams } from "../utils/pagination";
 import { sendSuccess } from "../utils/apiResponse";
 
 const createCompany = catchAsync(async (req, res) => {
-  const company = await companyService.create(req.body);
+  const company = await companyService.create(req.body, req.user?.id);
   sendSuccess(res, 201, { company });
 });
 

@@ -4,7 +4,7 @@ import { parsePageParams } from "../utils/pagination";
 import { sendSuccess } from "../utils/apiResponse";
 
 const createPolicy = catchAsync(async (req, res) => {
-  const policy = await policyService.create(req.body);
+  const policy = await policyService.create(req.body, req.user?.id);
   sendSuccess(res, 201, { policy });
 });
 

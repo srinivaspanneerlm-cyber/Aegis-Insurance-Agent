@@ -1,5 +1,6 @@
 import { policyRepository, companyRepository } from "../repositories";
 import cache from "./cache.service";
+import { auditService } from "./audit.service";
 import { CACHE_TTL } from "../config/constants";
 import AppError from "../utils/appError";
 import type { PageParams } from "../utils/pagination";
@@ -16,7 +17,7 @@ interface PolicyInput {
 }
 
 export const policyService = {
-  async create(input: PolicyInput) {
+  async create(input: PolicyInput, actorId?: string) {
     const company = await companyRepository.findById(input.companyId);
     if (!company) throw new AppError("Associated Company identifier not found.", 404);
 
@@ -24,6 +25,7 @@ export const policyService = {
 
     // Invalidate the cached catalogue so the new product is visible immediately.
     await cache.delByPrefix(POLICIES_CACHE_PREFIX);
+    auditService.record({ actorId, action: "policy.created", entity: "Policy", entityId: policy.id });
     return policy;
   },
 
