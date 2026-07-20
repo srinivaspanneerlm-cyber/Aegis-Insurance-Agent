@@ -7,11 +7,23 @@
 process.env.NODE_ENV = "test";
 process.env.JWT_SECRET =
   "test-only-signing-key-not-used-anywhere-real-0123456789";
+// Retry with zero backoff so the retry/dead-letter tests run instantly.
+process.env.JOB_BACKOFF_MS = "0";
 
 const assert = require("node:assert/strict");
 const { test, describe } = require("node:test");
 
 const queue = require("../src/services/jobQueue.service");
+
+// Poll a predicate for up to `ms` (retries dispatch across macrotasks).
+async function waitFor(fn, ms = 2000) {
+  const end = Date.now() + ms;
+  while (Date.now() < end) {
+    if (fn()) return true;
+    await new Promise((r) => setImmediate(r));
+  }
+  return false;
+}
 
 describe("jobQueue register/enqueue", () => {
   test("register is chainable", () => {
@@ -34,18 +46,30 @@ describe("jobQueue register/enqueue", () => {
   });
 });
 
-describe("jobQueue failure isolation", () => {
-  test("a throwing handler increments failed without propagating", async () => {
+describe("jobQueue failure isolation & retry", () => {
+  test("a persistently throwing handler is retried then dead-lettered (failed++), not propagated", async () => {
     const before = queue.stats().failed;
     queue.register("boom", () => { throw new Error("kaboom"); });
 
-    await new Promise((resolve) => {
-      queue.enqueue("boom", {});
-      // give the setImmediate dispatch a couple of ticks to run + record
-      setImmediate(() => setImmediate(resolve));
+    assert.doesNotThrow(() => queue.enqueue("boom", {}));
+    const done = await waitFor(() => queue.stats().failed === before + 1);
+
+    assert.ok(done, "dead-lettered after exhausting retries");
+  });
+
+  test("a handler that fails then succeeds is retried to success (processed++)", async () => {
+    const before = queue.stats().processed;
+    let attempts = 0;
+    queue.register("flaky", () => {
+      attempts += 1;
+      if (attempts < 3) throw new Error("transient");
     });
 
-    assert.equal(queue.stats().failed, before + 1);
+    queue.enqueue("flaky", {});
+    const done = await waitFor(() => queue.stats().processed === before + 1);
+
+    assert.ok(done, "recovered via retry");
+    assert.equal(attempts, 3, "retried until success");
   });
 });
 

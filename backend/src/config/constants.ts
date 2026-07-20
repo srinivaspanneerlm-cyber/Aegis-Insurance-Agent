@@ -58,6 +58,13 @@ export const UPLOADS = {
   MAX_FILES: num("UPLOAD_MAX_FILES", 1),
 };
 
+export const JOBS = {
+  // Retry a failed job this many times (total attempts) with exponential backoff
+  // before it is dead-lettered. Applies to both queue backings.
+  ATTEMPTS: num("JOB_ATTEMPTS", 3),
+  BACKOFF_MS: num("JOB_BACKOFF_MS", 2000),
+};
+
 // ── Cache TTLs (seconds) ─────────────────────────────────────────────────────
 export const CACHE_TTL = {
   POLICIES: num("CACHE_TTL_POLICIES", 60),

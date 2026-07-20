@@ -11,10 +11,16 @@
  *
  * Controllers enqueue jobs by type; handlers are registered once at boot. Which
  * backing runs is a boot-time decision — enqueue sites never change.
+ *
+ * Reliability: a failed job is retried with exponential backoff up to
+ * JOBS.ATTEMPTS; when attempts are exhausted it is dead-lettered — logged as a
+ * structured `job.deadletter` record (and, on BullMQ, kept in the failed set for
+ * inspection / replay).
  */
 import { Queue, Worker } from "bullmq";
-import { FEATURES } from "../config/constants";
+import { FEATURES, JOBS } from "../config/constants";
 import env from "../config/env";
+import { logger } from "../config/logger";
 
 // Job payloads are dynamic per job type, so the handler boundary is untyped by
 // design; each handler narrows the shape it expects.
@@ -39,6 +45,8 @@ interface JobQueue {
   stats(): JobStats;
 }
 
+const backoffMs = (attempt: number): number => JOBS.BACKOFF_MS * 2 ** (attempt - 1);
+
 class InMemoryJobQueue implements JobQueue {
   private handlers: Map<string, JobHandler> = new Map();
   private timers: Set<NodeJS.Timeout> = new Set();
@@ -56,15 +64,27 @@ class InMemoryJobQueue implements JobQueue {
   private async run(jobType: string, payload: JobPayload): Promise<void> {
     const handler = this.handlers.get(jobType);
     if (!handler) {
-      console.warn(`[jobQueue] no handler registered for "${jobType}" — dropping job`);
+      logger.warn({ jobType }, "[jobQueue] no handler registered — dropping job");
       return;
     }
-    try {
-      await handler(payload);
-      this.processed++;
-    } catch (err) {
-      this.failed++;
-      console.error(`[jobQueue] job "${jobType}" failed:`, (err as Error).message);
+    for (let attempt = 1; attempt <= JOBS.ATTEMPTS; attempt++) {
+      try {
+        await handler(payload);
+        this.processed++;
+        return;
+      } catch (err) {
+        const message = (err as Error).message;
+        if (attempt >= JOBS.ATTEMPTS) {
+          this.failed++;
+          logger.error(
+            { event: "job.deadletter", jobType, attempts: attempt, payload, err: message },
+            "[jobQueue] job dead-lettered after retries"
+          );
+          return;
+        }
+        logger.warn({ jobType, attempt, err: message }, "[jobQueue] job failed — retrying");
+        await new Promise((resolve) => setTimeout(resolve, backoffMs(attempt)));
+      }
     }
   }
 
@@ -131,7 +151,7 @@ class BullMqJobQueue implements JobQueue {
       async (job) => {
         const handler = this.handlers.get(job.name);
         if (!handler) {
-          console.warn(`[jobQueue] no handler registered for "${job.name}" — dropping job`);
+          logger.warn({ jobType: job.name }, "[jobQueue] no handler registered — dropping job");
           return;
         }
         await handler(job.data as JobPayload);
@@ -142,14 +162,36 @@ class BullMqJobQueue implements JobQueue {
     this.worker.on("completed", () => {
       this.processed++;
     });
-    this.worker.on("failed", (_job, err) => {
-      this.failed++;
-      console.error(`[jobQueue] job failed:`, err?.message);
+    // Fires on every attempt failure. When attempts are exhausted the job is
+    // dead-lettered (kept in the failed set for inspection/replay) and logged;
+    // earlier failures are logged as retriable.
+    this.worker.on("failed", (job, err) => {
+      const attemptsAllowed = job?.opts?.attempts ?? 1;
+      const finalFailure = !job || job.attemptsMade >= attemptsAllowed;
+      if (finalFailure) {
+        this.failed++;
+        logger.error(
+          {
+            event: "job.deadletter",
+            jobName: job?.name,
+            jobId: job?.id,
+            attemptsMade: job?.attemptsMade,
+            data: job?.data,
+            err: err?.message,
+          },
+          "[jobQueue] job dead-lettered (attempts exhausted)"
+        );
+      } else {
+        logger.warn(
+          { jobName: job?.name, jobId: job?.id, attemptsMade: job?.attemptsMade, err: err?.message },
+          "[jobQueue] job attempt failed — will retry"
+        );
+      }
     });
 
     const onError = (err: Error): void => {
       if (!this.errorLogged) {
-        console.error("[jobQueue] Redis unavailable — jobs will retry on reconnect:", err.message);
+        logger.error({ err: err.message }, "[jobQueue] Redis unavailable — jobs retry on reconnect");
         this.errorLogged = true;
       }
     };
@@ -157,7 +199,7 @@ class BullMqJobQueue implements JobQueue {
     this.worker.on("error", onError);
     this.worker.on("ready", () => {
       this.errorLogged = false;
-      console.log("[jobQueue] BullMQ worker ready.");
+      logger.info("[jobQueue] BullMQ worker ready.");
     });
   }
 
@@ -181,14 +223,18 @@ class BullMqJobQueue implements JobQueue {
     try {
       await this.queue.add(jobType, payload, {
         delay,
-        // Keep Redis from growing without bound as jobs churn.
+        // Retry transient failures with exponential backoff before dead-lettering.
+        attempts: JOBS.ATTEMPTS,
+        backoff: { type: "exponential", delay: JOBS.BACKOFF_MS },
+        // Keep Redis from growing without bound as jobs churn (failed set is the
+        // dead-letter store for inspection/replay).
         removeOnComplete: 1000,
         removeOnFail: 5000,
       });
     } catch (err) {
       // A brief outage is buffered by ioredis and flushed on reconnect; a hard
       // failure is logged rather than crashing the request path.
-      console.error(`[jobQueue] failed to enqueue "${jobType}":`, (err as Error).message);
+      logger.error({ jobType, err: (err as Error).message }, "[jobQueue] failed to enqueue");
     }
   }
 
@@ -205,6 +251,6 @@ class BullMqJobQueue implements JobQueue {
 // Pick the backing once at boot. REDIS_URL present → durable BullMQ; else the
 // in-process queue. Enqueue sites depend only on the JobQueue contract.
 const jobQueue: JobQueue = env.REDIS_URL ? new BullMqJobQueue(env.REDIS_URL) : new InMemoryJobQueue();
-if (env.REDIS_URL) console.log("[jobQueue] Using BullMQ (Redis) backing.");
+if (env.REDIS_URL) logger.info("[jobQueue] Using BullMQ (Redis) backing.");
 
 export = jobQueue;
