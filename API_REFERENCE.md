@@ -44,6 +44,21 @@ that cannot use cookies. Pass it as:
 Authorization: Bearer <token>
 ```
 
+### 1.2b Refresh tokens & session revocation
+
+`register` / `login` also set a second httpOnly cookie, `aegis_refresh` (scoped
+to `/api`), backed by a hashed, rotating, revocable server-side token:
+
+- **`POST /api/v1/auth/refresh`** — presents the refresh cookie (no access token
+  needed), rotates it single-use (the presented token is revoked and a new
+  access + refresh pair issued), and returns the new access token in the body +
+  cookie. A reused/expired/revoked refresh token → `401`.
+- **`POST /api/v1/auth/logout`** — revokes the refresh token server-side and
+  clears both cookies.
+
+The access token lifetime defaults to `JWT_EXPIRES_IN`; shorten
+`ACCESS_TOKEN_EXPIRES_IN` and drive refresh from the client for short sessions.
+
 ### 1.3 Internal Service Auth (Backend → AI Engine)
 
 Routes on the AI Engine that are gated for internal use only require:
