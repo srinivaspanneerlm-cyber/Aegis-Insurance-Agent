@@ -77,6 +77,13 @@ const env = {
   JWT_SECRET,
   JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || "30d",
 
+  // Access-token lifetime defaults to JWT_EXPIRES_IN (unchanged behaviour); it
+  // can be shortened once a refresh flow is active on the client. The refresh
+  // token is the long-lived, rotating, revocable credential.
+  ACCESS_TOKEN_EXPIRES_IN:
+    process.env.ACCESS_TOKEN_EXPIRES_IN || process.env.JWT_EXPIRES_IN || "30d",
+  REFRESH_TOKEN_EXPIRES_IN: process.env.REFRESH_TOKEN_EXPIRES_IN || "30d",
+
   // Logging. LOG_FORMAT "json" → structured pino access logs (default in prod);
   // "dev" → morgan pretty output (default in development).
   LOG_FORMAT: (process.env.LOG_FORMAT || (isProd ? "json" : "dev")).toLowerCase(),

@@ -46,11 +46,28 @@ model User {
   recommendations   RecommendationHistory[]
   notifications     Notification[]
   auditLogs         AuditLog[]              @relation("ActorAuditLogs")
+  refreshTokens     RefreshToken[]
 
   @@index([role])
   @@index([isActive])
   @@index([deletedAt])
   @@index([createdAt])
+}
+
+// ── Auth: rotating refresh tokens (durable session revocation) ───────────────
+// Only the SHA-256 hash of the opaque refresh token is stored (never the raw
+// value). Rotation revokes the old row and inserts a new one; logout revokes.
+model RefreshToken {
+  id        String    @id @default(uuid())
+  tokenHash String    @unique
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
 }
 
 // ── Catalogue: companies & policies ──────────────────────────────────────────

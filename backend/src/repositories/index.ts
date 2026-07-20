@@ -5,7 +5,7 @@
  *
  * Each repository is a singleton bound to the shared Prisma client.
  */
-import type { User, Chat, Lead, Policy, Company, UploadedDocument } from "@prisma/client";
+import type { User, Chat, Lead, Policy, Company, UploadedDocument, RefreshToken } from "@prisma/client";
 import prisma from "../config/db";
 import BaseRepository from "./base.repository";
 
@@ -60,6 +60,19 @@ class DocumentRepository extends BaseRepository<UploadedDocument> {
   }
 }
 
+// RefreshToken — durable, rotating session credentials (only the hash is stored).
+class RefreshTokenRepository extends BaseRepository<RefreshToken> {
+  constructor() {
+    super(prisma, "refreshToken");
+  }
+  findByHash(tokenHash: string): Promise<RefreshToken | null> {
+    return this.delegate.findUnique({ where: { tokenHash } });
+  }
+  revokeById(id: string): Promise<RefreshToken> {
+    return this.delegate.update({ where: { id }, data: { revokedAt: new Date() } });
+  }
+}
+
 export { BaseRepository };
 export const userRepository = new UserRepository();
 export const chatRepository = new ChatRepository();
@@ -67,3 +80,4 @@ export const leadRepository = new LeadRepository();
 export const policyRepository = new PolicyRepository();
 export const companyRepository = new CompanyRepository();
 export const documentRepository = new DocumentRepository();
+export const refreshTokenRepository = new RefreshTokenRepository();

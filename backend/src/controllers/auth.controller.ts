@@ -1,23 +1,44 @@
 import { authService } from "../services/auth.service";
 import catchAsync from "../utils/catchAsync";
-import { setAuthCookie, clearAuthCookie } from "../utils/cookies";
+import {
+  setAuthCookie,
+  clearAuthCookie,
+  setRefreshCookie,
+  clearRefreshCookie,
+  readRefreshFromCookies,
+} from "../utils/cookies";
 import { sendSuccess } from "../utils/apiResponse";
 
 const register = catchAsync(async (req, res) => {
-  const { user, token } = await authService.register(req.body);
-  setAuthCookie(res, token);
-  sendSuccess(res, 201, { user }, { token });
+  const { user, accessToken, refreshToken } = await authService.register(req.body);
+  setAuthCookie(res, accessToken);
+  setRefreshCookie(res, refreshToken);
+  // `token` (access) stays at the top level for backward compatibility.
+  sendSuccess(res, 201, { user }, { token: accessToken });
 });
 
 const login = catchAsync(async (req, res) => {
-  const { user, token } = await authService.login(req.body);
-  setAuthCookie(res, token);
-  sendSuccess(res, 200, { user }, { token });
+  const { user, accessToken, refreshToken } = await authService.login(req.body);
+  setAuthCookie(res, accessToken);
+  setRefreshCookie(res, refreshToken);
+  sendSuccess(res, 200, { user }, { token: accessToken });
 });
 
-const logout = catchAsync(async (_req, res) => {
-  // Clear the auth cookie so the session cannot be reused from the browser.
+// Exchange the refresh cookie for a fresh access token (rotates the refresh
+// token). The refresh token itself is the credential — no access token needed.
+const refresh = catchAsync(async (req, res) => {
+  const { accessToken, refreshToken } = await authService.refresh(readRefreshFromCookies(req));
+  setAuthCookie(res, accessToken);
+  setRefreshCookie(res, refreshToken);
+  sendSuccess(res, 200, undefined, { token: accessToken, message: "Token refreshed." });
+});
+
+const logout = catchAsync(async (req, res) => {
+  // Revoke the refresh token server-side, then clear both cookies so the
+  // session cannot be reused from the browser.
+  await authService.revokeRefreshToken(readRefreshFromCookies(req));
   clearAuthCookie(res);
+  clearRefreshCookie(res);
   sendSuccess(res, 200, undefined, { message: "Logged out." });
 });
 
@@ -28,4 +49,4 @@ const getMe = catchAsync(async (req, res) => {
   sendSuccess(res, 200, { user: userWithoutPassword });
 });
 
-export { register, login, logout, getMe };
+export { register, login, refresh, logout, getMe };

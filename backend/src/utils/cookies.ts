@@ -10,9 +10,13 @@ import type { Request, Response } from "express";
 import env from "../config/env";
 
 export const COOKIE_NAME = "aegis_token";
+// Refresh cookie is scoped to /api so it is only sent to the auth endpoints
+// (covers both /api/auth/refresh and /api/v1/auth/refresh).
+export const REFRESH_COOKIE_NAME = "aegis_refresh";
+const REFRESH_COOKIE_PATH = "/api";
 
 // Convert a JWT "expiresIn" style value ("30d", "12h", "3600") to milliseconds.
-function expiresInToMs(value: string): number {
+export function expiresInToMs(value: string): number {
   if (!value) return 30 * 24 * 60 * 60 * 1000; // default 30d
   const m = String(value).match(/^(\d+)([smhd])?$/);
   if (!m) return 30 * 24 * 60 * 60 * 1000;
@@ -30,7 +34,7 @@ export function setAuthCookie(res: Response, token: string): void {
     httpOnly: true, // not accessible to document.cookie / JS
     secure: env.COOKIE_SECURE, // HTTPS-only when enabled
     sameSite,
-    maxAge: expiresInToMs(env.JWT_EXPIRES_IN),
+    maxAge: expiresInToMs(env.ACCESS_TOKEN_EXPIRES_IN),
     path: "/",
   });
 }
@@ -44,17 +48,43 @@ export function clearAuthCookie(res: Response): void {
   });
 }
 
+export function setRefreshCookie(res: Response, token: string): void {
+  res.cookie(REFRESH_COOKIE_NAME, token, {
+    httpOnly: true,
+    secure: env.COOKIE_SECURE,
+    sameSite,
+    maxAge: expiresInToMs(env.REFRESH_TOKEN_EXPIRES_IN),
+    path: REFRESH_COOKIE_PATH,
+  });
+}
+
+export function clearRefreshCookie(res: Response): void {
+  res.clearCookie(REFRESH_COOKIE_NAME, {
+    httpOnly: true,
+    secure: env.COOKIE_SECURE,
+    sameSite,
+    path: REFRESH_COOKIE_PATH,
+  });
+}
+
+export function readRefreshFromCookies(req: Request): string | null {
+  return readCookie(req, REFRESH_COOKIE_NAME);
+}
+
 // Minimal cookie-header parser so we don't need the cookie-parser dependency.
-export function readTokenFromCookies(req: Request): string | null {
+function readCookie(req: Request, name: string): string | null {
   const header = req.headers?.cookie;
   if (!header) return null;
   for (const part of header.split(";")) {
     const idx = part.indexOf("=");
     if (idx === -1) continue;
-    const key = part.slice(0, idx).trim();
-    if (key === COOKIE_NAME) {
+    if (part.slice(0, idx).trim() === name) {
       return decodeURIComponent(part.slice(idx + 1).trim());
     }
   }
   return null;
+}
+
+export function readTokenFromCookies(req: Request): string | null {
+  return readCookie(req, COOKIE_NAME);
 }

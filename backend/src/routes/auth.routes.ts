@@ -9,6 +9,9 @@ const router = express.Router();
 
 router.post("/register", authLimiter, validateBody(registerSchema), authController.register);
 router.post("/login", authLimiter, validateBody(loginSchema), authController.login);
+// The refresh cookie is the credential here (not the access token), so no
+// `protect` — but the auth throttle still applies.
+router.post("/refresh", authLimiter, authController.refresh);
 router.post("/logout", authController.logout);
 router.get("/me", protect, authController.getMe);
 

@@ -1,13 +1,33 @@
 import bcrypt from "bcrypt";
+import crypto from "crypto";
 import jwt from "jsonwebtoken";
-import { userRepository } from "../repositories";
+import { userRepository, refreshTokenRepository } from "../repositories";
 import env from "../config/env";
 import { AUTH } from "../config/constants";
 import AppError from "../utils/appError";
 import { audit } from "../config/logger";
+import { expiresInToMs } from "../utils/cookies";
 
-const signToken = (id: string): string =>
-  jwt.sign({ id }, env.JWT_SECRET, { expiresIn: env.JWT_EXPIRES_IN } as jwt.SignOptions);
+const signAccessToken = (id: string): string =>
+  jwt.sign({ id }, env.JWT_SECRET, { expiresIn: env.ACCESS_TOKEN_EXPIRES_IN } as jwt.SignOptions);
+
+// Only the SHA-256 hash of the opaque refresh token is ever persisted.
+const hashToken = (raw: string): string => crypto.createHash("sha256").update(raw).digest("hex");
+
+/** Mint a new opaque refresh token, persist its hash, return the raw value. */
+async function issueRefreshToken(userId: string): Promise<string> {
+  const raw = crypto.randomBytes(48).toString("base64url");
+  await refreshTokenRepository.create({
+    tokenHash: hashToken(raw),
+    userId,
+    expiresAt: new Date(Date.now() + expiresInToMs(env.REFRESH_TOKEN_EXPIRES_IN)),
+  });
+  return raw;
+}
+
+async function issueTokens(userId: string): Promise<{ accessToken: string; refreshToken: string }> {
+  return { accessToken: signAccessToken(userId), refreshToken: await issueRefreshToken(userId) };
+}
 
 // Pre-computed bcrypt hash of a random string. A login for a non-existent email
 // still runs a comparison against this dummy so success/failure take the same
@@ -21,7 +41,7 @@ export const authService = {
   /**
    * Public self-service registration. `role` is intentionally never read from
    * input — it is always "customer" (no privilege escalation via mass-assignment).
-   * Returns the created user + a signed token; the caller sets the cookie.
+   * Returns the created user + access & refresh tokens; the caller sets cookies.
    */
   async register(input: { name: string; email: string; password: string }) {
     const existing = await userRepository.findByEmail(input.email);
@@ -33,9 +53,9 @@ export const authService = {
       { select: PUBLIC_USER_SELECT }
     );
 
-    const token = signToken(user.id);
+    const tokens = await issueTokens(user.id);
     audit.info({ event: "register", userId: user.id, email: input.email }, "account registered");
-    return { user, token };
+    return { user, ...tokens };
   },
 
   async login(input: { email: string; password: string }) {
@@ -49,11 +69,41 @@ export const authService = {
       throw new AppError("Incorrect email address or password.", 401);
     }
 
-    const token = signToken(user.id);
+    const tokens = await issueTokens(user.id);
     audit.info({ event: "login.success", userId: user.id }, "login succeeded");
 
     const { password: _pw, ...userWithoutPassword } = user;
     void _pw;
-    return { user: userWithoutPassword, token };
+    return { user: userWithoutPassword, ...tokens };
+  },
+
+  /**
+   * Exchange a valid refresh token for a fresh access + refresh pair. Rotation:
+   * the presented token is revoked and a new one issued, so a stolen-and-reused
+   * refresh token is detectable and short-lived.
+   */
+  async refresh(rawRefresh: string | null) {
+    if (!rawRefresh) throw new AppError("Missing refresh token. Please log in again.", 401);
+
+    const record = await refreshTokenRepository.findByHash(hashToken(rawRefresh));
+    if (!record || record.revokedAt || record.expiresAt < new Date()) {
+      audit.warn({ event: "refresh.rejected" }, "refresh token rejected");
+      throw new AppError("Invalid or expired session. Please log in again.", 401);
+    }
+
+    await refreshTokenRepository.revokeById(record.id); // rotate: single-use
+    const tokens = await issueTokens(record.userId);
+    audit.info({ event: "refresh.success", userId: record.userId }, "token refreshed");
+    return { userId: record.userId, ...tokens };
+  },
+
+  /** Best-effort revoke on logout so the refresh token can't be reused. */
+  async revokeRefreshToken(rawRefresh: string | null) {
+    if (!rawRefresh) return;
+    const record = await refreshTokenRepository.findByHash(hashToken(rawRefresh));
+    if (record && !record.revokedAt) {
+      await refreshTokenRepository.revokeById(record.id);
+      audit.info({ event: "logout", userId: record.userId }, "session revoked");
+    }
   },
 };
