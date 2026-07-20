@@ -1,4 +1,9 @@
+import crypto from "crypto";
+import fs from "fs/promises";
 import { documentRepository } from "../repositories";
+import { auditService } from "./audit.service";
+import { scanFile } from "../utils/fileScan";
+import AppError from "../utils/appError";
 import type { PageParams } from "../utils/pagination";
 
 interface DocumentInput {
@@ -15,8 +20,37 @@ interface ListParams extends PageParams {
 }
 
 export const uploadService = {
-  create(input: DocumentInput) {
-    return documentRepository.create({ ...input });
+  /**
+   * Persist an uploaded document after (1) a pluggable malware scan and (2)
+   * content-hash duplicate detection. The multer file is already on disk, so a
+   * rejected upload is removed to avoid orphaned files.
+   */
+  async create(input: DocumentInput) {
+    const { filepath, ownerId } = input;
+
+    const scan = await scanFile(filepath);
+    if (!scan.clean) {
+      await fs.unlink(filepath).catch(() => {});
+      auditService.record({ actorId: ownerId, action: "document.rejected", metadata: { reason: scan.reason ?? "scan" } });
+      throw new AppError("The uploaded file failed a security scan.", 400, "VALIDATION_ERROR");
+    }
+
+    const contentHash = crypto.createHash("sha256").update(await fs.readFile(filepath)).digest("hex");
+    const duplicate = await documentRepository.findDuplicate(ownerId, contentHash);
+    if (duplicate) {
+      await fs.unlink(filepath).catch(() => {}); // don't keep the duplicate on disk
+      throw new AppError("This document has already been uploaded.", 409, "CONFLICT");
+    }
+
+    const doc = await documentRepository.create({ ...input, contentHash });
+    auditService.record({
+      actorId: ownerId,
+      action: "document.uploaded",
+      entity: "UploadedDocument",
+      entityId: doc.id,
+      metadata: { filename: input.filename, sizeBytes: input.sizeBytes },
+    });
+    return doc;
   },
 
   /**

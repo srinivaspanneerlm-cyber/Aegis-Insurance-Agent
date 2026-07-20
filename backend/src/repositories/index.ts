@@ -58,6 +58,11 @@ class DocumentRepository extends BaseRepository<UploadedDocument> {
   constructor() {
     super(prisma, "uploadedDocument");
   }
+  // Duplicate detection: a prior, non-deleted upload by the same owner with the
+  // same content hash.
+  findDuplicate(ownerId: string | null, contentHash: string): Promise<UploadedDocument | null> {
+    return this.delegate.findFirst({ where: { ownerId, contentHash, deletedAt: null } });
+  }
 }
 
 // RefreshToken — durable, rotating session credentials (only the hash is stored).

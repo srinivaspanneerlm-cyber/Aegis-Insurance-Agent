@@ -166,12 +166,13 @@ model UploadedDocument {
   id         String    @id @default(uuid())
   filename   String
   filepath   String
-  ownerId    String? // scopes documents to their uploader (closes the upload IDOR)
-  mimeType   String?
-  sizeBytes  Int?
-  uploadedAt DateTime  @default(now())
-  updatedAt  DateTime  @default(now()) @updatedAt
-  deletedAt  DateTime?
+  ownerId     String? // scopes documents to their uploader (closes the upload IDOR)
+  mimeType    String?
+  sizeBytes   Int?
+  contentHash String? // SHA-256 of the file bytes — used for duplicate detection
+  uploadedAt  DateTime  @default(now())
+  updatedAt   DateTime  @default(now()) @updatedAt
+  deletedAt   DateTime?
 
   owner User? @relation(fields: [ownerId], references: [id], onDelete: SetNull)
 
@@ -179,6 +180,8 @@ model UploadedDocument {
   @@index([deletedAt])
   // Admin document listing (getUploadedDocuments) sorts all rows by uploadedAt.
   @@index([uploadedAt])
+  // Duplicate detection: look up a prior upload by the same owner + content hash.
+  @@index([ownerId, contentHash])
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
