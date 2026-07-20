@@ -11,6 +11,7 @@ const createChatMessage = catchAsync(async (req, res) => {
     session_id: req.body.session_id,
     userId: req.user?.id || null,
     userName: req.user ? req.user.name : "Sri",
+    requestId: req.id as string,
   });
   sendSuccess(res, 201, result);
 });
@@ -59,6 +60,7 @@ const streamChatMessage = async (req: Request, res: Response): Promise<void> => 
       forceTransferTo: force_transfer_to,
       declinedDomains: declined_domains,
       signal: upstreamAbort.signal,
+      requestId: req.id as string,
     });
 
     upstream.on("error", () => res.end());

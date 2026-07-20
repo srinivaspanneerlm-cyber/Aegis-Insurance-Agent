@@ -3,12 +3,18 @@ import { chatRepository } from "../repositories";
 import env from "../config/env";
 import { createHttpClient } from "../utils/httpClient";
 import { AI_CLIENT, HISTORY } from "../config/constants";
+import { logger } from "../config/logger";
 
 // Shared secret sent on every backend -> AI microservice call. When set, the
 // AI service rejects requests that do not present a matching key.
 const internalHeaders: Record<string, string> = env.AI_INTERNAL_API_KEY
   ? { "X-Internal-Api-Key": env.AI_INTERNAL_API_KEY }
   : {};
+
+// Propagate the request correlation id downstream so a chat request can be
+// traced across the backend and the AI engine's logs.
+const headersFor = (requestId?: string): Record<string, string> =>
+  requestId ? { ...internalHeaders, "X-Request-Id": requestId } : internalHeaders;
 
 // Dedicated client with a centralised timeout. Retries are intentionally 0: the
 // AI dispatch is non-idempotent (it mutates conversation memory), so a retry
@@ -47,7 +53,8 @@ const getResponseFromAIService = async (
   userName = "Sri",
   productType: string | null = null,
   sessionId: string | null = null,
-  userId: string | null = null
+  userId: string | null = null,
+  requestId?: string
 ): Promise<AIResponse> => {
   const aiServiceUrl = env.AI_SERVICE_URL;
 
@@ -66,7 +73,7 @@ const getResponseFromAIService = async (
       message: c.message,
     }));
   } catch (err) {
-    console.error("[AI Service] Prisma history fetch error:", (err as Error).message);
+    logger.error({ requestId, err }, "[AI Service] history fetch failed");
   }
 
   try {
@@ -79,7 +86,7 @@ const getResponseFromAIService = async (
     };
 
     const response = await aiHttp.post(aiServiceUrl, payload, {
-      headers: internalHeaders,
+      headers: headersFor(requestId),
     });
     const data = response.data;
 
@@ -94,8 +101,11 @@ const getResponseFromAIService = async (
       transfer_to_name: data.transfer_to_name || null,
       session_id: data.session_id || sessionId || null,
     };
-  } catch {
-    console.warn("[AI Service] Python microservice offline — using resilient fallback");
+  } catch (err) {
+    logger.warn(
+      { requestId, err: (err as Error).message },
+      "[AI Service] engine unavailable — using resilient fallback"
+    );
     const reply = _buildFallbackReply(userMessage, userName, productType, history);
     return {
       reply,
@@ -330,6 +340,7 @@ interface OpenAIStreamParams {
   forceTransferTo?: string | null;
   declinedDomains?: string[];
   signal?: AbortSignal;
+  requestId?: string;
 }
 
 /**
@@ -355,6 +366,7 @@ const openAIStream = ({
   forceTransferTo = null,
   declinedDomains = [],
   signal,
+  requestId,
 }: OpenAIStreamParams): Promise<Readable> =>
   aiStreamHttp
     .post(
@@ -368,7 +380,7 @@ const openAIStream = ({
         force_transfer_to: forceTransferTo,
         declined_domains: declinedDomains,
       },
-      { headers: internalHeaders, responseType: "stream", signal }
+      { headers: headersFor(requestId), responseType: "stream", signal }
     )
     .then((response) => response.data as Readable);
 

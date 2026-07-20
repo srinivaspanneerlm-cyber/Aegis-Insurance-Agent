@@ -9,6 +9,7 @@ interface CreateMessageInput {
   session_id?: string;
   userId: string | null;
   userName: string;
+  requestId?: string;
 }
 
 export const chatService = {
@@ -17,7 +18,7 @@ export const chatService = {
    * persist the advisor reply. The two writes intentionally straddle the AI
    * call (not one transaction) so the customer's message survives an AI failure.
    */
-  async createMessage({ message, product_type, session_id, userId, userName }: CreateMessageInput) {
+  async createMessage({ message, product_type, session_id, userId, userName, requestId }: CreateMessageInput) {
     const sessionIdToStore = session_id || null;
 
     const customerMessage = await chatRepository.create({
@@ -25,7 +26,7 @@ export const chatService = {
     });
 
     const aiResult = await aiService.getResponseFromAIService(
-      message, userName, product_type, session_id, userId
+      message, userName, product_type, session_id, userId, requestId
     );
 
     const replyText = typeof aiResult === "string" ? aiResult : aiResult.reply || "";
