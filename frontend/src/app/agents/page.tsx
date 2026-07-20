@@ -10,6 +10,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { useTheme } from "@/context/ThemeContext";
+import { PLANS_PER_CATEGORY } from "@/lib/platformFacts";
 
 interface Agent {
   id: string;
@@ -36,7 +37,7 @@ export default function AgentsPage() {
       role: "Senior Health Insurance Advisor",
       specialization: "Health",
       rating: 4.9,
-      familiesGuided: "10,000+ Families Guided",
+      familiesGuided: `${PLANS_PER_CATEGORY} curated plans`,
       experience: 12,
       avatar: "👩‍💼",
       badge: "AI-Assisted Protection Expert",
@@ -48,7 +49,7 @@ export default function AgentsPage() {
       role: "Elite Motor Coverage Specialist",
       specialization: "Motor",
       rating: 4.8,
-      familiesGuided: "8,500+ Vehicles Guided",
+      familiesGuided: `${PLANS_PER_CATEGORY} curated plans`,
       experience: 8,
       avatar: "👨‍💼",
       badge: "AI Premium Audit Specialist",
@@ -60,7 +61,7 @@ export default function AgentsPage() {
       role: "Global Travel Risk Assessor",
       specialization: "Travel",
       rating: 4.9,
-      familiesGuided: "6,200+ Travelers Shielded",
+      familiesGuided: `${PLANS_PER_CATEGORY} curated plans`,
       experience: 10,
       avatar: "👨‍✈️",
       badge: "AI Route Risk Specialist",
@@ -72,7 +73,7 @@ export default function AgentsPage() {
       role: "Premier Property Asset Guard",
       specialization: "Property",
       rating: 4.7,
-      familiesGuided: "4,500+ Properties Insured",
+      familiesGuided: `${PLANS_PER_CATEGORY} curated plans`,
       experience: 7,
       avatar: "👩‍🔬",
       badge: "AI Asset Protection Master",

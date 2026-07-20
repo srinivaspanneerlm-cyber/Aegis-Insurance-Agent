@@ -108,7 +108,7 @@ export default function FloatingAI() {
                 {/* Secure Badge */}
                 <div className="flex items-center gap-2 justify-center text-[10px] text-slate-500 font-medium">
                   <Shield className="w-3.5 h-3.5 text-emerald-500" />
-                  <span>Secure AES-256 Encrypted Connection</span>
+                  <span>Private to your account — never shared with agents</span>
                 </div>
               </motion.div>
             )}

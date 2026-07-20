@@ -8,8 +8,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Aegis AI | Premium AI-Powered Family Protection & Insurance Advisor",
-  description: "Protect your family's future with India's most trusted AI insurance advisor. Aegis evaluates 1,000+ policies in seconds to provide customized protection recommendations with 99.2% claim support success.",
+  title: "Aegis AI | AI-Powered Family Protection & Insurance Advisor",
+  description: "Understand insurance before you buy it. Aegis pairs specialist AI advisors with a curated catalogue of health, motor, travel and home policies, and explains each recommendation in plain language.",
   keywords: "insurance, AI advisor, health insurance, term life, vehicle insurance, family protection, premium fintech",
 };
 

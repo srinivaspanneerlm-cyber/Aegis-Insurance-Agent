@@ -4,68 +4,40 @@ import { useState } from "react";
 import { Star, Heart, Car, Plane, Home as HomeIcon, Shield, Sparkles, User } from "lucide-react";
 import { motion } from "framer-motion";
 import { useTheme } from "@/context/ThemeContext";
+import { PLACEHOLDER_NOTICE, PLACEHOLDER_REVIEWS } from "@/lib/placeholders";
+import PlaceholderNotice from "@/components/shared/PlaceholderNotice";
 
-interface TestimonialItem {
-  name: string;
-  category: string;
-  categoryIcon: React.ReactNode;
-  advisor: string;
-  rating: number;
-  feedback: string;
-  avatarBg: string;
-}
+/** Presentation only — the review copy itself lives in `lib/placeholders`. */
+const CATEGORY_STYLE: Record<string, { icon: React.ReactNode; avatarBg: string }> = {
+  "Health Insurance": {
+    icon: <Heart className="w-3.5 h-3.5 text-rose-500" />,
+    avatarBg: "from-rose-500/20 to-purple-650/20",
+  },
+  "Motor Insurance": {
+    icon: <Car className="w-3.5 h-3.5 text-cyan-500" />,
+    avatarBg: "from-cyan-500/20 to-indigo-500/20",
+  },
+  "Travel Insurance": {
+    icon: <Plane className="w-3.5 h-3.5 text-emerald-500" />,
+    avatarBg: "from-emerald-500/20 to-teal-500/20",
+  },
+  "Home Insurance": {
+    icon: <HomeIcon className="w-3.5 h-3.5 text-purple-500" />,
+    avatarBg: "from-purple-500/20 to-pink-500/20",
+  },
+};
 
 export default function Testimonials() {
   const { theme } = useTheme();
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
 
-  const testimonials: TestimonialItem[] = [
-    {
-      name: "Arun Kumar",
-      category: "Health Insurance User",
-      categoryIcon: <Heart className="w-3.5 h-3.5 text-rose-500" />,
-      advisor: "Sarah AI",
-      rating: 5,
-      feedback: "The AI advisor explained family insurance more clearly than any traditional agent.",
-      avatarBg: "from-rose-500/20 to-purple-650/20"
-    },
-    {
-      name: "Vignesh R",
-      category: "Motor Insurance User",
-      categoryIcon: <Car className="w-3.5 h-3.5 text-cyan-500" />,
-      advisor: "Alex AI",
-      rating: 5,
-      feedback: "Alex AI helped me select the perfect motor insurance plan within minutes.",
-      avatarBg: "from-cyan-500/20 to-indigo-500/20"
-    },
-    {
-      name: "Priya S",
-      category: "Travel Insurance User",
-      categoryIcon: <Plane className="w-3.5 h-3.5 text-emerald-500" />,
-      advisor: "Ethan AI",
-      rating: 5,
-      feedback: "The AI consultation experience felt futuristic and extremely personalized.",
-      avatarBg: "from-emerald-500/20 to-teal-500/20"
-    },
-    {
-      name: "Kavya M",
-      category: "Property Insurance User",
-      categoryIcon: <HomeIcon className="w-3.5 h-3.5 text-purple-500" />,
-      advisor: "Emma AI",
-      rating: 5,
-      feedback: "I finally understood insurance properly because of the AI conversation system.",
-      avatarBg: "from-purple-500/20 to-pink-500/20"
-    },
-    {
-      name: "Sivamaran J",
-      category: "Chief AI Advisor",
-      categoryIcon: <Shield className="w-3.5 h-3.5 text-cyan-400" />,
-      advisor: "Sri AI",
-      rating: 5,
-      feedback: "Executing automated risk-checks with Sri AI saved hours of paperwork.",
-      avatarBg: "from-cyan-400/20 to-purple-500/20"
-    }
-  ];
+  const testimonials = PLACEHOLDER_REVIEWS.map((review) => ({
+    ...review,
+    categoryIcon: CATEGORY_STYLE[review.category]?.icon ?? (
+      <Shield className="w-3.5 h-3.5 text-cyan-400" />
+    ),
+    avatarBg: CATEGORY_STYLE[review.category]?.avatarBg ?? "from-cyan-400/20 to-purple-500/20",
+  }));
 
   // Double testimonials array to ensure smooth infinite marquee scroll
   const scrollTestimonials = [...testimonials, ...testimonials];
@@ -102,8 +74,8 @@ export default function Testimonials() {
                 : "bg-purple-50 border-purple-100 text-purple-800"
             }`}
           >
-            <Sparkles className="w-3.5 h-3.5 animate-pulse" />
-            <span>AI Trust Network</span>
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>How the advisors help</span>
           </motion.span>
 
           <motion.h2
@@ -115,21 +87,24 @@ export default function Testimonials() {
               theme === "dark" ? "text-white" : "text-navy-950"
             }`}
           >
-            Trusted by Thousands of{" "}
+            Coverage explained by a{" "}
             <span className="bg-gradient-to-r from-purple-500 via-indigo-400 to-cyan-400 bg-clip-text text-transparent">
-              AI-Guided Users
+              specialist advisor
             </span>
           </motion.h2>
 
-          <motion.p
+          <motion.div
             initial={{ opacity: 0, y: 15 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ delay: 0.2 }}
-            className="text-slate-400 text-xs sm:text-sm font-semibold max-w-xl mx-auto leading-relaxed"
+            className="flex justify-center"
           >
-            Real people are discovering optimized, transparent coverage and bypassing traditional agent cold calls completely.
-          </motion.p>
+            <PlaceholderNotice
+              message={PLACEHOLDER_NOTICE}
+              tone={theme === "dark" ? "dark" : "light"}
+            />
+          </motion.div>
         </div>
       </div>
 

@@ -35,7 +35,7 @@ export default function Footer() {
             </span>
           </div>
           <p className="text-[13.5px] leading-relaxed text-slate-400 pr-4">
-            Aegis AI leverages enterprise machine learning and emotional protection frameworks to secure over 50,000+ families across the country with 99.2% claim support success.
+            Aegis AI pairs specialist AI advisors with a curated policy catalogue so families can understand what they are buying before they buy it — in plain language, at their own pace.
           </p>
           <div className="flex flex-col gap-2.5 mt-2 text-[13.5px] text-slate-400">
             <div className="flex items-center gap-2">

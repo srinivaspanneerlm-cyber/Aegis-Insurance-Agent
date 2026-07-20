@@ -2,6 +2,7 @@
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { usePurchase } from "@/context/PurchaseContext";
+import { NOT_DISCLOSED } from "@/lib/platformFacts";
 import {
   ShieldCheck, Star, AlertTriangle,
   TrendingUp, Plus, ArrowRight, ArrowLeftRight, Zap,
@@ -70,8 +71,8 @@ export default function PolicyPage() {
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {[
             { label: "Coverage", value: plan.coverage, icon: ShieldCheck },
-            { label: "Claim Ratio", value: plan.claimSettlementRatio || "99.1%", icon: TrendingUp },
-            { label: "Risk Level", value: plan.riskLevel || "Low Risk", icon: Star },
+            { label: "Claim Ratio", value: plan.claimSettlementRatio || NOT_DISCLOSED, icon: TrendingUp },
+            { label: "Risk Level", value: plan.riskLevel || NOT_DISCLOSED, icon: Star },
           ].map(({ label, value, icon: Icon }) => (
             <div key={label} className="bg-white/5 rounded-xl p-3 text-center border border-white/5">
               <Icon className="w-4 h-4 text-white/30 mx-auto mb-1" />
@@ -94,10 +95,10 @@ export default function PolicyPage() {
         </h3>
         <div>
           <InfoRow label="Policy Duration"  value="1 Year (Renewable)" accent />
-          <InfoRow label="Waiting Period"   value={plan.waitingPeriod as string || "30 days initial"} />
+          <InfoRow label="Waiting Period"   value={plan.waitingPeriod as string || NOT_DISCLOSED} />
           {plan.hospitalNetwork && <InfoRow label="Network"          value={plan.hospitalNetwork as string} accent />}
           {plan.premiumBreakdown && <InfoRow label="Premium Breakdown" value={plan.premiumBreakdown as string} />}
-          <InfoRow label="Executive Approval" value={plan.executiveApproval as string || "Approved"} accent />
+          <InfoRow label="Executive Approval" value={plan.executiveApproval as string || NOT_DISCLOSED} accent />
         </div>
       </motion.div>
 

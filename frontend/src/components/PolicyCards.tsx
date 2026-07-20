@@ -6,6 +6,7 @@ import { Check, ShieldAlert, Sparkles, Heart, Crown, LucideIcon } from "lucide-r
 import { motion } from "framer-motion";
 import { policyService } from "@/services/api";
 import type { PolicyRecord } from "@/types/domain";
+import { NOT_DISCLOSED } from "@/lib/platformFacts";
 
 interface PolicyCardsProps {
   selectedPlan: string;
@@ -41,7 +42,7 @@ export default function PolicyCards({ selectedPlan, onSelectPlan, onScrollToForm
       coverage: "₹25 Lakh Cover",
       monthlyPrice: 390,
       yearlyPrice: 4200,
-      claimRatio: "98.8% Claim Ratio",
+      claimRatio: NOT_DISCLOSED,
       benefits: [
         "1,500+ Network Hospitals",
         "Free Annual Health Checkup",
@@ -59,7 +60,7 @@ export default function PolicyCards({ selectedPlan, onSelectPlan, onScrollToForm
       coverage: "₹1 Crore Cover",
       monthlyPrice: 850,
       yearlyPrice: 9180,
-      claimRatio: "99.2% Claim Ratio",
+      claimRatio: NOT_DISCLOSED,
       benefits: [
         "Unlimited Cashless Network Beds",
         "Day-1 Pre-Existing Illness Cover",
@@ -78,7 +79,7 @@ export default function PolicyCards({ selectedPlan, onSelectPlan, onScrollToForm
       coverage: "₹5 Crore Cover",
       monthlyPrice: 2100,
       yearlyPrice: 22680,
-      claimRatio: "99.6% Claim Ratio",
+      claimRatio: NOT_DISCLOSED,
       benefits: [
         "Global Critical Air Evacuation",
         "Worldwide Medical Treatment",
@@ -122,7 +123,7 @@ export default function PolicyCards({ selectedPlan, onSelectPlan, onScrollToForm
               coverage: policy.coverage,
               monthlyPrice: policy.premium,
               yearlyPrice: Math.round(policy.premium * 12 * 0.9),
-              claimRatio: "99.0% Claim Ratio",
+              claimRatio: NOT_DISCLOSED,
               benefits: [
                 "Full Cashless Hospital Network access",
                 "Instant claim filing dispatch desk",

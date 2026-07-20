@@ -2,6 +2,7 @@
 
 import { Scale, ChevronRight } from "lucide-react";
 import type { PlanDetails } from "./types";
+import { NOT_DISCLOSED } from "@/lib/platformFacts";
 
 interface CompareTabProps {
   plan: PlanDetails;
@@ -50,26 +51,26 @@ export function CompareTab({ plan, onProceed, onProceedAlternative }: CompareTab
               </tr>
               <tr>
                 <td className="py-4.5 px-4 text-slate-400 font-bold uppercase text-[10px]">Settlement Ratio</td>
-                <td className="py-4.5 px-4 text-emerald-400 font-black bg-cyan-500/5 border-x border-white/5">{plan.claimSettlementRatio || "99.1%"}</td>
-                <td className="py-4.5 px-4 text-slate-350">{plan.alternativePlan.claimSettlementRatio || "98.4%"}</td>
+                <td className="py-4.5 px-4 text-emerald-400 font-black bg-cyan-500/5 border-x border-white/5">{plan.claimSettlementRatio || NOT_DISCLOSED}</td>
+                <td className="py-4.5 px-4 text-slate-350">{plan.alternativePlan.claimSettlementRatio || NOT_DISCLOSED}</td>
               </tr>
               <tr>
                 <td className="py-4.5 px-4 text-slate-400 font-bold uppercase text-[10px]">Risk Profiling</td>
-                <td className="py-4.5 px-4 bg-cyan-500/5 border-x border-white/5 text-white">{plan.riskLevel || "Low Risk"}</td>
-                <td className="py-4.5 px-4 text-slate-350">{plan.alternativePlan.riskLevel || "Low Risk"}</td>
+                <td className="py-4.5 px-4 bg-cyan-500/5 border-x border-white/5 text-white">{plan.riskLevel || NOT_DISCLOSED}</td>
+                <td className="py-4.5 px-4 text-slate-350">{plan.alternativePlan.riskLevel || NOT_DISCLOSED}</td>
               </tr>
               <tr>
                 <td className="py-4.5 px-4 text-slate-400 font-bold uppercase text-[10px]">Empanelled Network</td>
-                <td className="py-4.5 px-4 bg-cyan-500/5 border-x border-white/5 text-white">{plan.hospitalNetwork || "12,000+ centers"}</td>
-                <td className="py-4.5 px-4 text-slate-350">{plan.alternativePlan.hospitalNetwork || "8,500+ clinics"}</td>
+                <td className="py-4.5 px-4 bg-cyan-500/5 border-x border-white/5 text-white">{plan.hospitalNetwork || NOT_DISCLOSED}</td>
+                <td className="py-4.5 px-4 text-slate-350">{plan.alternativePlan.hospitalNetwork || NOT_DISCLOSED}</td>
               </tr>
               <tr>
                 <td className="py-4.5 px-4 text-slate-400 font-bold uppercase text-[10px]">Exclusions Shield</td>
                 <td className="py-4.5 px-4 bg-cyan-500/5 border-x border-white/5 text-slate-300">
-                  {plan.exclusions?.slice(0, 2).join(", ") || "Cosmetic, Combat injury"}
+                  {plan.exclusions?.slice(0, 2).join(", ") || NOT_DISCLOSED}
                 </td>
                 <td className="py-4.5 px-4 text-slate-350">
-                  {plan.alternativePlan.exclusions?.slice(0, 2).join(", ") || "Cosmetic treatments"}
+                  {plan.alternativePlan.exclusions?.slice(0, 2).join(", ") || NOT_DISCLOSED}
                 </td>
               </tr>
               <tr className="border-t border-white/10">

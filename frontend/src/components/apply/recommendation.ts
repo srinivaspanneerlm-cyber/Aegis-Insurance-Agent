@@ -1,3 +1,4 @@
+import { NOT_DISCLOSED } from "@/lib/platformFacts";
 /**
  * Guided-underwriting recommendation logic for the Apply flow.
  *
@@ -36,7 +37,7 @@ export function computeRecommendation({
       name: "Aegis Global Elite Shield",
       coverage: "₹5 Crore Cashless Cover",
       premium: "₹2,100 / mo",
-      claimRatio: "99.6% Claims Settled",
+      claimRatio: NOT_DISCLOSED,
       icon: "crown",
       reason: "Highest match for global travel or comprehensive multi-country private medical cover, featuring absolute medevac routing locks.",
       benefits: [
@@ -53,7 +54,7 @@ export function computeRecommendation({
       name: "Family Shield Term Life",
       coverage: "₹2 Crore Guaranteed Payout",
       premium: "₹990 / mo",
-      claimRatio: "99.2% Claims Settled",
+      claimRatio: NOT_DISCLOSED,
       icon: "shield",
       reason: "Best tailored for single professional breadwinners seeking guaranteed generational asset security.",
       benefits: [
@@ -70,7 +71,7 @@ export function computeRecommendation({
       name: "Aegis Essential Shield",
       coverage: "₹25 Lakh Cashless Cover",
       premium: "₹390 / mo",
-      claimRatio: "98.8% Claims Settled",
+      claimRatio: NOT_DISCLOSED,
       icon: "heart",
       reason: "Cost-optimized policy for young applicants seeking high-value baseline hospital locks.",
       benefits: [
@@ -86,7 +87,7 @@ export function computeRecommendation({
     name: "Aegis Supreme Health Shield",
     coverage: "₹1 Crore Cashless Cover",
     premium: "₹850 / mo",
-    claimRatio: "99.2% Claims Settled",
+    claimRatio: NOT_DISCLOSED,
     icon: "sparkles",
     reason: "Optimized comprehensive health protection for growing nuclear families without any room rent co-pays.",
     benefits: [

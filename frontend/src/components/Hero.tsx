@@ -2,6 +2,11 @@
 
 import { motion } from "framer-motion";
 import { Sparkles, ShieldCheck, Heart, ArrowRight } from "lucide-react";
+import {
+  CURATED_PLANS,
+  INSURANCE_CATEGORIES,
+  PLATFORM_FACTS,
+} from "@/lib/platformFacts";
 
 interface HeroProps {
   onScrollToChat: () => void;
@@ -49,7 +54,7 @@ export default function Hero({ onScrollToChat, onScrollToForm }: HeroProps) {
             transition={{ duration: 0.5, delay: 0.2 }}
             className="text-lg md:text-xl text-slate-600 leading-relaxed max-w-2xl"
           >
-            Say goodbye to confusing agent pitches. Aegis evaluates 1,000+ policies in seconds to engineer the ultimate personalized, low-cost safety net tailored for your family.
+            Say goodbye to confusing agent pitches. Aegis compares {CURATED_PLANS} curated policies across {INSURANCE_CATEGORIES} categories and explains, in plain language, which one actually fits your family.
           </motion.p>
 
           {/* Action CTAs */}
@@ -83,22 +88,18 @@ export default function Hero({ onScrollToChat, onScrollToForm }: HeroProps) {
             transition={{ duration: 0.6, delay: 0.4 }}
             className="grid grid-cols-2 sm:grid-cols-4 gap-6 pt-10 border-t border-slate-100 mt-4"
           >
-            <div>
-              <h3 className="text-2xl font-bold text-navy-900">50,000+</h3>
-              <p className="text-[12.5px] text-slate-500 font-medium mt-1">Families Protected</p>
-            </div>
-            <div>
-              <h3 className="text-2xl font-bold text-navy-900">99.2%</h3>
-              <p className="text-[12.5px] text-slate-500 font-medium mt-1">Claim Support Success</p>
-            </div>
-            <div>
-              <h3 className="text-2xl font-bold text-navy-900">₹500Cr+</h3>
-              <p className="text-[12.5px] text-slate-500 font-medium mt-1">Claims Supported</p>
-            </div>
-            <div>
-              <h3 className="text-2xl font-bold text-cyan-600">24/7</h3>
-              <p className="text-[12.5px] text-slate-500 font-medium mt-1">Active AI Support</p>
-            </div>
+            {PLATFORM_FACTS.map((fact, i) => (
+              <div key={fact.label}>
+                <h3
+                  className={`text-2xl font-bold ${
+                    i === PLATFORM_FACTS.length - 1 ? "text-cyan-600" : "text-navy-900"
+                  }`}
+                >
+                  {fact.value}
+                </h3>
+                <p className="text-[12.5px] text-slate-500 font-medium mt-1">{fact.label}</p>
+              </div>
+            ))}
           </motion.div>
         </div>
 

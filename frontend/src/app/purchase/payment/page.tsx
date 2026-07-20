@@ -244,11 +244,9 @@ export default function PaymentPage() {
 
       {/* Security badges */}
       <div className="flex items-center justify-center gap-4 text-xs text-white/20">
-        <span>🔒 256-bit SSL</span>
+        <span>🔒 Encrypted checkout</span>
         <span>·</span>
-        <span>PCI-DSS Certified</span>
-        <span>·</span>
-        <span>IRDAI Licensed</span>
+        <span>Card details are never stored by Aegis</span>
       </div>
 
       <motion.button

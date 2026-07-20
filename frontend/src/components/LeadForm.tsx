@@ -127,7 +127,7 @@ export default function LeadForm({ initialPlanSelection }: LeadFormProps) {
                 <div className="space-y-2">
                   <h3 className="text-2xl font-bold text-navy-900 tracking-tight">Profile Approved!</h3>
                   <span className="inline-block bg-emerald-100 text-emerald-700 font-extrabold text-[10px] uppercase tracking-widest py-1 px-3.5 rounded-full">
-                    99.2% Claim Track Qualified
+                    Advisor Matched
                   </span>
                 </div>
 

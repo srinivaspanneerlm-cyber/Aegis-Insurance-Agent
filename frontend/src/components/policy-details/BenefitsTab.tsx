@@ -2,6 +2,7 @@
 
 import { Calculator, CheckCircle, Zap, ChevronRight } from "lucide-react";
 import type { PlanDetails } from "./types";
+import { NOT_DISCLOSED } from "@/lib/platformFacts";
 
 interface Rider {
   id: string;
@@ -58,15 +59,15 @@ export function BenefitsTab({
               <>
                 <div>
                   <p className="text-[9px] text-slate-500 uppercase font-black">Insured Declared Value (IDV)</p>
-                  <p className="text-white font-mono mt-0.5">{plan.idvValue || "₹8,50,000"}</p>
+                  <p className="text-white font-mono mt-0.5">{plan.idvValue || NOT_DISCLOSED}</p>
                 </div>
                 <div>
                   <p className="text-[9px] text-slate-500 uppercase font-black">Own Damage Cover</p>
-                  <p className="text-white mt-0.5">{plan.ownDamageCover || "₹12,500/year"}</p>
+                  <p className="text-white mt-0.5">{plan.ownDamageCover || NOT_DISCLOSED}</p>
                 </div>
                 <div>
                   <p className="text-[9px] text-slate-500 uppercase font-black">Third Party Cover</p>
-                  <p className="text-white mt-0.5">{plan.thirdPartyCover || "₹3,500/year"}</p>
+                  <p className="text-white mt-0.5">{plan.thirdPartyCover || NOT_DISCLOSED}</p>
                 </div>
               </>
             )}
@@ -74,15 +75,15 @@ export function BenefitsTab({
               <>
                 <div>
                   <p className="text-[9px] text-slate-500 uppercase font-black">Destination</p>
-                  <p className="text-white mt-0.5">{plan.destination || "International"}</p>
+                  <p className="text-white mt-0.5">{plan.destination || NOT_DISCLOSED}</p>
                 </div>
                 <div>
                   <p className="text-[9px] text-slate-500 uppercase font-black">Medical Coverage</p>
-                  <p className="text-white font-mono mt-0.5">{plan.medicalCoverage || "$100,000"}</p>
+                  <p className="text-white font-mono mt-0.5">{plan.medicalCoverage || NOT_DISCLOSED}</p>
                 </div>
                 <div>
                   <p className="text-[9px] text-slate-500 uppercase font-black">Emergency Evacuation</p>
-                  <p className="text-white font-mono mt-0.5">{plan.emergencyEvacuation || "$50,000"}</p>
+                  <p className="text-white font-mono mt-0.5">{plan.emergencyEvacuation || NOT_DISCLOSED}</p>
                 </div>
               </>
             )}
@@ -90,15 +91,15 @@ export function BenefitsTab({
               <>
                 <div>
                   <p className="text-[9px] text-slate-500 uppercase font-black">Property Coverage</p>
-                  <p className="text-white font-mono mt-0.5">{plan.propertyCoverage || "₹50,00,000"}</p>
+                  <p className="text-white font-mono mt-0.5">{plan.propertyCoverage || NOT_DISCLOSED}</p>
                 </div>
                 <div>
                   <p className="text-[9px] text-slate-500 uppercase font-black">Structure Cover</p>
-                  <p className="text-white font-mono mt-0.5">{plan.structureCover || "₹80 Lakhs"}</p>
+                  <p className="text-white font-mono mt-0.5">{plan.structureCover || NOT_DISCLOSED}</p>
                 </div>
                 <div>
                   <p className="text-[9px] text-slate-500 uppercase font-black">Contents Cover</p>
-                  <p className="text-white font-mono mt-0.5">{plan.contentsCover || "₹20 Lakhs"}</p>
+                  <p className="text-white font-mono mt-0.5">{plan.contentsCover || NOT_DISCLOSED}</p>
                 </div>
               </>
             )}

@@ -6,6 +6,7 @@ import {
   Car, Globe, Home, Shield, Activity,
 } from "lucide-react";
 import type { RecommendationData } from "./types";
+import { NOT_DISCLOSED } from "@/lib/platformFacts";
 
 // ── Recommendation Card ────────────────────────────────────────────────────────
 
@@ -76,8 +77,8 @@ export const RecommendationCard = memo(function RecommendationCard({
         {/* Core metrics */}
         <div className="grid grid-cols-3 gap-2 bg-slate-900/50 p-3 rounded-xl border border-white/5">
           {[
-            { label: "Claim Ratio", value: data.claimSettlementRatio || "99.1%", color: "text-emerald-400" },
-            { label: "Risk Tier",   value: data.riskLevel || "Low Risk",           color: riskColor },
+            { label: "Claim Ratio", value: data.claimSettlementRatio || NOT_DISCLOSED, color: "text-emerald-400" },
+            { label: "Risk Tier",   value: data.riskLevel || NOT_DISCLOSED,           color: riskColor },
             { label: "Confidence",  value: `${data.confidenceScore || 0.98}/1.0`,  color: "text-cyan-400" },
           ].map(({ label: l, value, color }) => (
             <div key={l} className="text-center py-1">
@@ -91,38 +92,38 @@ export const RecommendationCard = memo(function RecommendationCard({
         {cat === "motor" && (
           <div className="bg-slate-950/50 p-3 rounded-xl border border-white/5 space-y-2 text-xs font-semibold text-slate-300">
             <div className="grid grid-cols-2 gap-3">
-              <div><p className="text-[8px] text-slate-500 uppercase font-black mb-0.5">IDV</p><p className="font-mono">{data.idvValue || "₹8,50,000"}</p></div>
-              <div className="text-right"><p className="text-[8px] text-slate-500 uppercase font-black mb-0.5">OD / TP</p><p className="font-mono">{data.ownDamageCover || "₹12,500"} / {data.thirdPartyCover || "₹3,500"}</p></div>
+              <div><p className="text-[8px] text-slate-500 uppercase font-black mb-0.5">IDV</p><p className="font-mono">{data.idvValue || NOT_DISCLOSED}</p></div>
+              <div className="text-right"><p className="text-[8px] text-slate-500 uppercase font-black mb-0.5">OD / TP</p><p className="font-mono">{data.ownDamageCover || NOT_DISCLOSED} / {data.thirdPartyCover || NOT_DISCLOSED}</p></div>
             </div>
             <div className="flex gap-2 flex-wrap text-[9px] text-blue-400 uppercase font-black pt-1 border-t border-white/5">
-              <span>{data.zeroDep || "Zero Dep"}</span><span className="text-white/10">·</span>
-              <span>{data.roadsideAssistance || "Roadside"}</span><span className="text-white/10">·</span>
-              <span>{data.engineProtection || "Engine Shield"}</span>
+              <span>{data.zeroDep || NOT_DISCLOSED}</span><span className="text-white/10">·</span>
+              <span>{data.roadsideAssistance || NOT_DISCLOSED}</span><span className="text-white/10">·</span>
+              <span>{data.engineProtection || NOT_DISCLOSED}</span>
             </div>
           </div>
         )}
         {cat === "travel" && (
           <div className="bg-slate-950/50 p-3 rounded-xl border border-white/5 space-y-2 text-xs font-semibold text-slate-300">
             <div className="grid grid-cols-2 gap-3">
-              <div><p className="text-[8px] text-slate-500 uppercase font-black mb-0.5">Destination</p><p>{data.destination || "International"}</p></div>
-              <div className="text-right"><p className="text-[8px] text-slate-500 uppercase font-black mb-0.5">Medical / Evac</p><p className="font-mono">{data.medicalCoverage || "$100K"} / {data.emergencyEvacuation || "$50K"}</p></div>
+              <div><p className="text-[8px] text-slate-500 uppercase font-black mb-0.5">Destination</p><p>{data.destination || NOT_DISCLOSED}</p></div>
+              <div className="text-right"><p className="text-[8px] text-slate-500 uppercase font-black mb-0.5">Medical / Evac</p><p className="font-mono">{data.medicalCoverage || NOT_DISCLOSED} / {data.emergencyEvacuation || NOT_DISCLOSED}</p></div>
             </div>
             <div className="flex gap-2 flex-wrap text-[9px] text-amber-400 uppercase font-black pt-1 border-t border-white/5">
-              <span>Cancel: {data.tripCancellation || "$2,500"}</span><span className="text-white/10">·</span>
-              <span>Baggage: {data.baggageLoss || "$1,000"}</span>
+              <span>Cancel: {data.tripCancellation || NOT_DISCLOSED}</span><span className="text-white/10">·</span>
+              <span>Baggage: {data.baggageLoss || NOT_DISCLOSED}</span>
             </div>
           </div>
         )}
         {cat === "property" && (
           <div className="bg-slate-950/50 p-3 rounded-xl border border-white/5 space-y-2 text-xs font-semibold text-slate-300">
             <div className="grid grid-cols-2 gap-3">
-              <div><p className="text-[8px] text-slate-500 uppercase font-black mb-0.5">Structure</p><p className="font-mono">{data.structureCover || "₹80L"}</p></div>
-              <div className="text-right"><p className="text-[8px] text-slate-500 uppercase font-black mb-0.5">Contents</p><p className="font-mono">{data.contentsCover || "₹20L"}</p></div>
+              <div><p className="text-[8px] text-slate-500 uppercase font-black mb-0.5">Structure</p><p className="font-mono">{data.structureCover || NOT_DISCLOSED}</p></div>
+              <div className="text-right"><p className="text-[8px] text-slate-500 uppercase font-black mb-0.5">Contents</p><p className="font-mono">{data.contentsCover || NOT_DISCLOSED}</p></div>
             </div>
             <div className="flex gap-2 flex-wrap text-[9px] text-emerald-400 uppercase font-black pt-1 border-t border-white/5">
-              <span>{data.fireProtection || "Fire"}</span><span className="text-white/10">·</span>
-              <span>{data.naturalDisasterCover || "Disaster"}</span><span className="text-white/10">·</span>
-              <span>{data.theftCover || "Theft"}</span>
+              <span>{data.fireProtection || NOT_DISCLOSED}</span><span className="text-white/10">·</span>
+              <span>{data.naturalDisasterCover || NOT_DISCLOSED}</span><span className="text-white/10">·</span>
+              <span>{data.theftCover || NOT_DISCLOSED}</span>
             </div>
           </div>
         )}

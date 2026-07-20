@@ -8,6 +8,7 @@ import {
 import { motion } from "framer-motion";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { PLANS_PER_CATEGORY } from "@/lib/platformFacts";
 
 export default function PoliciesPage() {
   const specializedAdvisors = [
@@ -18,7 +19,7 @@ export default function PoliciesPage() {
       desc: "Underwrites smart vehicle shields, zero depreciation limits, roadside hazard recoveries, and custom garage network clearances.",
       icon: <Car className="w-7 h-7 text-cyan-400" />,
       bot: "Alex",
-      metrics: "98.8% Settlement Rate",
+      metrics: `${PLANS_PER_CATEGORY} plans compared`,
       parameters: ["Vehicle Age & Model", "Mileage Index", "Roadside Recovery Level", "Primary Usage Profile"],
       color: "from-blue-600/10 to-cyan-500/10 hover:border-cyan-400/40 text-cyan-300 shadow-[0_0_20px_rgba(6,182,212,0.03)]"
     },
@@ -29,7 +30,7 @@ export default function PoliciesPage() {
       desc: "Compiles premium medical coverage layers, custom family safety multipliers, cashless beds access, and zero co-pay rules.",
       icon: <Heart className="w-7 h-7 text-purple-400" />,
       bot: "Sarah",
-      metrics: "99.2% Settlement Rate",
+      metrics: `${PLANS_PER_CATEGORY} plans compared`,
       parameters: ["Household Size & Ages", "Critical Care Options", "Room-Rent Limits", "Pre-Existing Disclosures"],
       color: "from-purple-650/10 to-indigo-500/10 hover:border-purple-400/40 text-purple-300 shadow-[0_0_20px_rgba(168,85,247,0.03)]"
     },
@@ -40,7 +41,7 @@ export default function PoliciesPage() {
       desc: "Verifies worldwide mobility hazards, evacuation coordinates, baggage disruptions, and adventure sports underwriting.",
       icon: <Plane className="w-7 h-7 text-rose-400" />,
       bot: "Ethan",
-      metrics: "99.6% Settlement Rate",
+      metrics: `${PLANS_PER_CATEGORY} plans compared`,
       parameters: ["Destination Coordinates", "Itinerary Duration", "Adventure Sports Cover", "Air Evacuation Class"],
       color: "from-rose-600/10 to-amber-500/10 hover:border-rose-400/40 text-rose-300 shadow-[0_0_20px_rgba(244,63,94,0.03)]"
     },
@@ -51,7 +52,7 @@ export default function PoliciesPage() {
       desc: "Safeguards structural holdings, fire reconstruction limits, interior valuable contents, and temporary relocation credits.",
       icon: <HomeIcon className="w-7 h-7 text-emerald-400" />,
       bot: "Emma",
-      metrics: "99.0% Settlement Rate",
+      metrics: `${PLANS_PER_CATEGORY} plans compared`,
       parameters: ["Structural Dimensions", "Construction Age", "Content Valuation", "Location Hazard Index"],
       color: "from-emerald-600/10 to-teal-500/10 hover:border-emerald-400/40 text-emerald-300 shadow-[0_0_20px_rgba(16,185,129,0.03)]"
     }

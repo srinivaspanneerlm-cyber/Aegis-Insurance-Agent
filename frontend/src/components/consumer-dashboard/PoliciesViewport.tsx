@@ -7,6 +7,7 @@ import { useTheme } from "@/context/ThemeContext";
 import { Pagination } from "@/components/shared/Pagination";
 import type { PageInfo } from "@/types/domain";
 import type { DashboardPolicy } from "./types";
+import { NOT_DISCLOSED } from "@/lib/platformFacts";
 
 interface PoliciesViewportProps {
   activePoliciesList: DashboardPolicy[];
@@ -64,7 +65,7 @@ export function PoliciesViewport({
             <div className="flex flex-wrap items-center gap-6 text-left">
               <div className="space-y-1">
                 <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider block">Coverage Scope</span>
-                <span className={`text-sm font-extrabold block ${theme === "dark" ? "text-white" : "text-navy-900"}`}>{plan.coverage || "₹1 Crore Cover"}</span>
+                <span className={`text-sm font-extrabold block ${theme === "dark" ? "text-white" : "text-navy-900"}`}>{plan.coverage || NOT_DISCLOSED}</span>
               </div>
               <div className="space-y-1">
                 <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider block">Rate Guarantee</span>
@@ -72,7 +73,7 @@ export function PoliciesViewport({
               </div>
               <div className="space-y-1">
                 <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider block">Claim Settlement</span>
-                <span className="text-sm font-extrabold text-emerald-450 block">99.2% Settled</span>
+                <span className="text-sm font-extrabold text-emerald-450 block">{NOT_DISCLOSED}</span>
               </div>
             </div>
 

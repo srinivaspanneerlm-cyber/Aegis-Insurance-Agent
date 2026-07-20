@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { usePurchase, extractPremiumAmount, calculateGST } from "@/context/PurchaseContext";
+import { NOT_DISCLOSED } from "@/lib/platformFacts";
 import {
   ShieldCheck, User, FileCheck, Tag, CheckSquare,
   ArrowRight, IndianRupee, Gift,
@@ -131,8 +132,8 @@ export default function ReviewPage() {
         <Row label="Plan Name" value={plan.planName} accent />
         <Row label="Category" value={(plan.category || "").replace("-", " ").replace(/\b\w/g, c => c.toUpperCase())} />
         <Row label="Coverage" value={plan.coverage} />
-        <Row label="Claim Settlement Ratio" value={plan.claimSettlementRatio || "99.1%"} />
-        <Row label="Risk Level" value={plan.riskLevel || "Low Risk"} />
+        <Row label="Claim Settlement Ratio" value={plan.claimSettlementRatio || NOT_DISCLOSED} />
+        <Row label="Risk Level" value={plan.riskLevel || NOT_DISCLOSED} />
         {plan.waitingPeriod && <Row label="Waiting Period" value={plan.waitingPeriod as string} />}
       </Section>
 
