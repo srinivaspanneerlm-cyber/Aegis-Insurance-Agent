@@ -8,24 +8,24 @@ Phase 4 work.
 |---|---|
 | **Scope** | 32 pages · 135 `.tsx` files · 20,373 lines |
 | **Baseline commit** | `00cbbd6` |
-| **Last updated** | 2026-07-21 (after Step 4.1.1) |
+| **Last updated** | 2026-07-21 (after Step 4.1.2) |
 
 ---
 
 ## Phase Progress
 
 ```
-Phase 4.1  UI Architecture      ███░░░░░░░░░░░░░░░░░  1 of 4 steps
+Phase 4.1  UI Architecture      ██████████░░░░░░░░░░  2 of 4 steps
 Phase 4.2  UX Engineering       ░░░░░░░░░░░░░░░░░░░░  0 of 4 steps
 Phase 4.3  Visual Engineering   ░░░░░░░░░░░░░░░░░░░░  0 of 5 steps
 ──────────────────────────────────────────────────────────────────
-PHASE 4 OVERALL                 █▓░░░░░░░░░░░░░░░░░░  1 of 13 steps
+PHASE 4 OVERALL                 ███░░░░░░░░░░░░░░░░░  2 of 13 steps
 ```
 
 | Step | Title | Status | Commit |
 |---|---|---|---|
 | **4.1.1** | Trust integrity — remove unverified claims | ✅ **Done** | `fix(frontend): stop presenting unverified claims as fact` |
-| 4.1.2 | Design tokens (color/spacing/radius/elevation) | ⬜ Not started | — |
+| **4.1.2** | Design tokens (color/spacing/radius/elevation) | ✅ **Done** | `feat(frontend): establish design-token layer` |
 | 4.1.3 | Theme migration — 211 JS ternaries → `dark:` | ⬜ Not started | — |
 | 4.1.4 | Component primitives (Button/Input/Card/Skeleton/EmptyState/…) | ⬜ Not started | — |
 | 4.2.1 | Accessibility pass — labels, landmarks, focus, ARIA, reduced-motion | ⬜ Not started | — |
@@ -46,13 +46,18 @@ PHASE 4 OVERALL                 █▓░░░░░░░░░░░░░░
 |---|---:|---:|---:|
 | Accessibility | 32 | **32** | 90 |
 | Consumer Trust | 40 | **82** ▲42 | 90 |
-| Design System | 45 | **47** ▲2 | 90 |
+| Design System | 45 | **56** ▲11 | 90 |
 | Performance | 55 | **56** ▲1 | 85 |
 | UX | 58 | **58** | 88 |
 | UI Quality | 65 | **65** | 90 |
-| Frontend Architecture | 68 | **69** ▲1 | 90 |
-| **Enterprise Readiness (FE)** | 52 | **58** ▲6 | 90 |
-| **Production Readiness (FE)** | 55 | **61** ▲6 | 92 |
+| Frontend Architecture | 68 | **71** ▲3 | 90 |
+| **Enterprise Readiness (FE)** | 52 | **60** ▲8 | 90 |
+| **Production Readiness (FE)** | 55 | **62** ▲7 | 92 |
+
+> Design System / Architecture gains are from the **token layer being
+> established and wired** (`darkMode: class`), not yet from adoption — the 878
+> `slate-*`, 355 `text-[Npx]`, and 211 theme ternaries still stand and retire in
+> Steps 4.1.3–4.1.4.
 
 ---
 
@@ -208,6 +213,74 @@ Low. Copy and fallback literals only — no logic, routing, or state changed. Th
 guard test caught 3 sites the manual scan missed (`FloatingAI`,
 `purchase/payment`, `apply/recommendation`), which is the argument for keeping
 it. Rollback: revert that commit.
+
+---
+
+### Step 4.1.2 — Design Tokens ✅
+
+**Commit:** `feat(frontend): establish design-token layer` · **Landed:** 2026-07-21
+
+#### Current Issue
+A design system existed in `tailwind.config.ts` but the app bypassed it: **500**
+arbitrary `[Npx]` values (355 of them sub-12px font sizes: `text-[9px]` ×126,
+`text-[10px]` ×118, `text-[8px]` ×35, `text-[11px]` ×41), **35** `rounded-[32px]`
+card radii, **878** raw `slate-*` usages, and **211** per-component
+`theme === "dark" ? …` JS ternaries. Critically, `darkMode` was **unset**
+(defaulting to `media`), so Tailwind's `dark:` variant was disconnected from the
+`.dark` class the `ThemeContext` already toggles on `<html>` — the two theme
+mechanisms could not meet.
+
+#### Recommended Solution
+Establish the token layer the remaining UI-architecture steps migrate onto.
+**Additive only** — no existing utility was redefined, so there is no visual
+change; adoption is Steps 4.1.3 (theme ternaries → `dark:` + semantic colors)
+and 4.1.4 (primitives).
+
+**Token contract**
+
+| Category | Tokens | Backed by |
+|---|---|---|
+| Theme wiring | `darkMode: "class"` | `.dark` on `<html>` (ThemeContext) |
+| Surfaces | `surface`, `surface-raised`, `surface-sunken`, `surface-overlay` | CSS vars (light/dark) |
+| Borders | `line`, `line-strong` | CSS vars |
+| Text | `content`, `content-muted`, `content-subtle`, `content-inverted` | CSS vars |
+| Brand | `brand`, `brand-strong`, `accent`, `accent-strong` | CSS vars |
+| Typography | `text-3xs` (8px), `text-2xs` (10px) | `fontSize` scale |
+| Radius | `rounded-4xl` (32px), `rounded-5xl` (36px) | `borderRadius` scale |
+| Elevation | `shadow-elevation-1…4` | `boxShadow` scale |
+
+Colors resolve per theme through CSS variables in `globals.css` (`:root` = light,
+`.dark` = dark), mapped to the existing navy / royal / cyan / slate palette so the
+design language is unchanged. So a call site writes `bg-surface text-content`
+once instead of a `theme === "dark"` ternary.
+
+#### Files Modified
+| File | Reason |
+|---|---|
+| `frontend/tailwind.config.ts` | `darkMode: "class"`; semantic color aliases; `fontSize` / `borderRadius` / `boxShadow` (elevation) scales |
+| `frontend/src/app/globals.css` | Semantic color CSS variables for light (`:root`) and dark (`.dark`) |
+
+#### Deliberately Not Changed
+| Item | Why |
+|---|---|
+| 878 `slate-*`, 355 `text-[Npx]`, 211 theme ternaries | Adoption is Steps 4.1.3–4.1.4; this step only lays the foundation |
+| Existing `boxShadow` `premium*` / `glow*`, `--background` / `--foreground` | Still referenced app-wide; left intact so nothing shifts |
+| Opacity modifiers on token colors (`bg-surface/50`) | CSS vars hold hex, not RGB channels — alpha modifiers unsupported by design; use `rgba()` where needed |
+
+#### Verification
+| Check | Result |
+|---|---|
+| `tsc --noEmit` | ✅ 0 errors |
+| JIT compile probe | ✅ all 11 sampled token utilities emit CSS |
+| `vitest` | ✅ 181/181 |
+| `next lint` | ✅ 0 errors (pre-existing warnings unchanged) |
+| `next build` | ✅ exit 0, static prerender clean |
+
+#### Risk & Rollback
+Very low. Purely additive config + CSS variables; no call site changed, no
+existing utility redefined. The one behavioural wire is `darkMode: "class"`,
+which is safe because the app already toggles `.dark` and has ~0 `dark:`
+utilities today. Rollback: revert that commit.
 
 ---
 
