@@ -2,7 +2,6 @@
 
 import { ChevronRight } from "lucide-react";
 import { motion } from "framer-motion";
-import { useTheme } from "@/context/ThemeContext";
 import type { DashboardMessage } from "./types";
 
 interface AdvisorViewportProps {
@@ -17,26 +16,20 @@ interface AdvisorViewportProps {
 export function AdvisorViewport({
   chatMessages, isTyping, chatInput, setChatInput, handleSendMessage,
 }: AdvisorViewportProps) {
-  const { theme } = useTheme();
-
   return (
     <motion.div
       key="advisor"
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -15 }}
-      className={`border shadow-2xl rounded-[32px] p-6 sm:p-8 text-left space-y-6 ${
-        theme === "dark" ? "bg-slate-900/40 border-white/5" : "bg-white border-slate-200"
-      }`}
+      className={`border shadow-2xl rounded-[32px] p-6 sm:p-8 text-left space-y-6 bg-white border-slate-200 dark:bg-slate-900/40 dark:border-white/5`}
     >
       <div className="border-b border-white/5 pb-4">
-        <h3 className={`font-black text-base ${theme === "dark" ? "text-white" : "text-navy-950"}`}>Aegis Premium AI Consultant</h3>
+        <h3 className={`font-black text-base text-content`}>Aegis Premium AI Consultant</h3>
         <p className="text-xs text-slate-400 mt-1 font-medium">Empathetic underwriter intelligence matching risk packages automatically.</p>
       </div>
 
-      <div className={`border rounded-3xl p-6 min-h-[380px] flex flex-col justify-between ${
-        theme === "dark" ? "bg-white/[0.01] border-white/5" : "bg-slate-50 border-slate-150"
-      }`}>
+      <div className={`border rounded-3xl p-6 min-h-[380px] flex flex-col justify-between bg-slate-50 border-slate-150 dark:bg-white/[0.01] dark:border-white/5`}>
         <div className="flex-grow space-y-5 overflow-y-auto max-h-[250px] pr-2 mb-6">
           {chatMessages.map((msg) => {
             const isAI = msg.sender === "ai";
@@ -52,7 +45,7 @@ export function AdvisorViewport({
                 </div>
                 <div className={`p-4 rounded-2xl text-[12px] leading-relaxed font-semibold ${
                   isAI
-                    ? (theme === "dark" ? "bg-white/[0.02] border border-white/5 text-slate-350 shadow-sm" : "bg-white border border-slate-200 text-slate-700 shadow-sm")
+                    ? ("bg-white border border-slate-200 text-slate-700 shadow-sm dark:bg-white/[0.02] dark:border dark:border-white/5 dark:text-slate-350 dark:shadow-sm")
                     : "bg-purple-650 text-white"
                 }`}>
                   {msg.text}
@@ -66,9 +59,7 @@ export function AdvisorViewport({
               <div className="w-8 h-8 rounded-lg bg-purple-650/20 border border-purple-500/20 flex items-center justify-center font-bold text-xs text-purple-300">
                 S
               </div>
-              <div className={`p-4 rounded-2xl flex items-center gap-1.5 shadow-sm border ${
-                theme === "dark" ? "bg-white/[0.02] border-white/5" : "bg-white border border-slate-200"
-              }`}>
+              <div className={`p-4 rounded-2xl flex items-center gap-1.5 shadow-sm border bg-white border border-slate-200 dark:bg-white/[0.02] dark:border-white/5`}>
                 <span className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
                 <span className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
                 <span className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
@@ -77,17 +68,13 @@ export function AdvisorViewport({
           )}
         </div>
 
-        <form onSubmit={handleSendMessage} className={`flex gap-2 border rounded-2xl p-2.5 ${
-          theme === "dark" ? "bg-white/[0.02] border-white/10" : "bg-white border-slate-200"
-        }`}>
+        <form onSubmit={handleSendMessage} className={`flex gap-2 border rounded-2xl p-2.5 bg-white border-slate-200 dark:bg-white/[0.02] dark:border-white/10`}>
           <input
             type="text"
             value={chatInput}
             onChange={(e) => setChatInput(e.target.value)}
             placeholder="Ask Aegis about life legacy cover, auto shields, or health extensions..."
-            className={`flex-1 bg-transparent px-3 outline-none text-[12px] font-semibold ${
-              theme === "dark" ? "text-white placeholder-slate-500" : "text-navy-950 placeholder-slate-400"
-            }`}
+            className={`flex-1 bg-transparent px-3 outline-none text-[12px] font-semibold text-navy-950 placeholder-slate-400 dark:text-white dark:placeholder-slate-500`}
           />
           <button
             type="submit"

@@ -2,13 +2,11 @@
 
 import { Sparkles, ShieldCheck } from "lucide-react";
 import { motion } from "framer-motion";
-import { useTheme } from "@/context/ThemeContext";
 import { glassCardClass } from "./aboutTheme";
 
 /** Side-by-side Vision and Mission cards. Anchor target for the hero CTA. */
 export function VisionMissionSection() {
-  const { theme } = useTheme();
-  const glass = glassCardClass(theme);
+  const glass = glassCardClass;
 
   return (
     <section id="vision" className="relative px-6 py-16 z-10">

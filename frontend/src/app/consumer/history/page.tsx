@@ -7,13 +7,12 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, Clock } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { useTheme } from "@/context/ThemeContext";
 import { chatService } from "@/services/api";
 import { ChatLog } from "@/types/domain";
 
 export default function ConsumerHistoryPage() {
   const { loading, isAuthenticated } = useAuth();
-  const { theme } = useTheme();
+
   const router = useRouter();
   const [history, setHistory] = useState<ChatLog[]>([]);
 
@@ -50,7 +49,7 @@ export default function ConsumerHistoryPage() {
     );
   }
 
-  const wrapperClass = theme === "dark" ? "bg-slate-950 text-white" : "bg-slate-50 text-navy-900";
+  const wrapperClass = "bg-surface text-content";
 
   return (
     <div className={`min-h-screen relative flex flex-col justify-between overflow-hidden transition-colors duration-300 ${wrapperClass}`}>

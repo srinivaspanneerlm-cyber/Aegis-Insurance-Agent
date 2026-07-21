@@ -2,7 +2,6 @@
 
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { useTheme } from "@/context/ThemeContext";
 import { AmbientBackground } from "@/components/shared/AmbientBackground";
 import {
   wrapperClass,
@@ -14,11 +13,10 @@ import {
 } from "@/components/contact";
 
 export default function ContactPage() {
-  const { theme } = useTheme();
   const chat = useContactChat();
 
   return (
-    <div className={`min-h-screen relative flex flex-col justify-between overflow-hidden transition-colors duration-300 ${wrapperClass(theme)}`}>
+    <div className={`min-h-screen relative flex flex-col justify-between overflow-hidden transition-colors duration-300 ${wrapperClass}`}>
       <Navbar />
       <AmbientBackground variant="contact" />
       <ContactHero onOpenChat={chat.openChat} />

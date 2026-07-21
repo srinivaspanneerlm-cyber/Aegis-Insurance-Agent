@@ -1,7 +1,6 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useTheme } from "@/context/ThemeContext";
 import { BrandLogo } from "./navbar/BrandLogo";
 import { SearchBar } from "./navbar/SearchBar";
 import { ThemeToggle } from "./navbar/ThemeToggle";
@@ -13,11 +12,7 @@ interface NavbarProps {
 }
 
 export default function Navbar({ onLoginClick }: NavbarProps) {
-  const { theme } = useTheme();
-
-  const navBgClass = theme === "dark"
-    ? "bg-slate-950/75 border-b border-white/5 backdrop-blur-xl"
-    : "bg-white/90 border-b border-slate-200/60 backdrop-blur-xl shadow-sm";
+  const navBgClass = "bg-white/90 border-b border-slate-200/60 backdrop-blur-xl shadow-sm dark:bg-slate-950/75 dark:border-b dark:border-white/5 dark:backdrop-blur-xl dark:shadow-none";
 
   return (
     <motion.nav

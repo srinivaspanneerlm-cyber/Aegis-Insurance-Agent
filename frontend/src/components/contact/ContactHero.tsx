@@ -3,12 +3,9 @@
 import Link from "next/link";
 import { Sparkles, MessageSquare, Clock } from "lucide-react";
 import { motion } from "framer-motion";
-import { useTheme } from "@/context/ThemeContext";
 
 /** Contact page hero: Sri AI intro copy with the holographic advisor card. */
 export function ContactHero({ onOpenChat }: { onOpenChat: () => void }) {
-  const { theme } = useTheme();
-
   return (
     <section className="relative pt-36 pb-12 flex-grow flex items-center justify-center z-10">
       <div className="max-w-7xl w-full mx-auto px-6 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
@@ -42,11 +39,7 @@ export function ContactHero({ onOpenChat }: { onOpenChat: () => void }) {
             <button
               type="button"
               onClick={onOpenChat}
-              className={`py-3.5 px-7 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg flex items-center justify-center gap-2 border transition-all cursor-pointer ${
-                theme === "dark"
-                  ? "bg-white hover:bg-slate-100 text-slate-950 border-white/10"
-                  : "bg-navy-900 hover:bg-navy-950 text-white border-navy-900"
-              }`}
+              className={`py-3.5 px-7 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg flex items-center justify-center gap-2 border transition-all cursor-pointer bg-navy-900 hover:bg-navy-950 text-white border-navy-900 dark:bg-white dark:hover:bg-slate-100 dark:text-slate-950 dark:border-white/10`}
             >
               <MessageSquare className="w-4 h-4" />
               <span>Talk With Sri AI</span>
@@ -54,9 +47,7 @@ export function ContactHero({ onOpenChat }: { onOpenChat: () => void }) {
 
             <Link
               href="/policies"
-              className={`py-3.5 px-6 rounded-2xl font-bold text-xs uppercase tracking-wider border transition-all ${
-                theme === "dark" ? "bg-white/5 hover:bg-white/10 text-white border-white/10" : "bg-white hover:bg-slate-100 text-slate-700 border-slate-200"
-              }`}
+              className={`py-3.5 px-6 rounded-2xl font-bold text-xs uppercase tracking-wider border transition-all bg-white hover:bg-slate-100 text-slate-700 border-slate-200 dark:bg-white/5 dark:hover:bg-white/10 dark:text-white dark:border-white/10`}
             >
               Policies Gateway
             </Link>
@@ -71,16 +62,12 @@ export function ContactHero({ onOpenChat }: { onOpenChat: () => void }) {
             <motion.div
               animate={{ rotate: -360 }}
               transition={{ repeat: Infinity, duration: 35, ease: "linear" }}
-              className={`absolute w-[90%] h-[90%] rounded-full border border-dashed opacity-10 ${
-                theme === "dark" ? "border-purple-400" : "border-indigo-400"
-              }`}
+              className={`absolute w-[90%] h-[90%] rounded-full border border-dashed opacity-10 border-indigo-400 dark:border-purple-400`}
             />
             <motion.div
               animate={{ rotate: 360 }}
               transition={{ repeat: Infinity, duration: 25, ease: "linear" }}
-              className={`absolute w-[70%] h-[70%] rounded-full border border-double opacity-20 ${
-                theme === "dark" ? "border-cyan-400" : "border-purple-400"
-              }`}
+              className={`absolute w-[70%] h-[70%] rounded-full border border-double opacity-20 border-purple-400 dark:border-cyan-400`}
             />
 
             {/* Glowing Background Light Shaft */}
@@ -90,11 +77,7 @@ export function ContactHero({ onOpenChat }: { onOpenChat: () => void }) {
             <motion.div
               animate={{ y: [0, -12, 0] }}
               transition={{ repeat: Infinity, duration: 5, ease: "easeInOut" }}
-              className={`relative w-64 p-6 rounded-[32px] border-2 flex flex-col items-center justify-center transition-all ${
-                theme === "dark"
-                  ? "bg-slate-900/80 border-purple-500/40 text-purple-300 shadow-[0_0_40px_rgba(168,85,247,0.25)]"
-                  : "bg-white border-purple-300 text-purple-700 shadow-[0_15px_30px_rgba(168,85,247,0.1)]"
-              }`}
+              className={`relative w-64 p-6 rounded-[32px] border-2 flex flex-col items-center justify-center transition-all bg-white border-purple-300 text-purple-700 shadow-[0_15px_30px_rgba(168,85,247,0.1)] dark:bg-slate-900/80 dark:border-purple-500/40 dark:text-purple-300 dark:shadow-[0_0_40px_rgba(168,85,247,0.25)]`}
             >
               {/* Hologram Avatar Orb */}
               <div className="w-20 h-20 rounded-full border-2 border-dashed border-purple-400 p-1 flex items-center justify-center relative mb-4">

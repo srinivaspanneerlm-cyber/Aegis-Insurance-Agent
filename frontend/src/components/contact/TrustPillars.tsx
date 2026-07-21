@@ -2,7 +2,6 @@
 
 import { ShieldCheck, Users, Clock, Cpu, Shield } from "lucide-react";
 import { motion } from "framer-motion";
-import { useTheme } from "@/context/ThemeContext";
 import { glassCardClass } from "./contactTheme";
 
 /** Trust / communication-protocol pillars shown near the page footer. */
@@ -15,8 +14,7 @@ const PILLARS = [
 
 /** "AI Communication Protocols" trust-seal grid. */
 export function TrustPillars() {
-  const { theme } = useTheme();
-  const glass = glassCardClass(theme);
+  const glass = glassCardClass;
 
   return (
     <section className="relative px-6 py-12 z-10">

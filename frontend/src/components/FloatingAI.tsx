@@ -4,12 +4,10 @@ import { useState, useEffect } from "react";
 import { Sparkles, X, Heart, Car, Shield, Award, Plane, ArrowRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import { useTheme } from "@/context/ThemeContext";
 
 export default function FloatingAI() {
   const [isOpen, setIsOpen] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
-  const { theme } = useTheme();
 
   // Delay visibility so it appears elegantly after page load
   useEffect(() => {
@@ -26,23 +24,17 @@ export default function FloatingAI() {
   ];
 
   // Theme styling computed
-  const cardClass = theme === "dark"
-    ? "glass-card-dark-premium border-white/10 text-white"
-    : "bg-white border-slate-200 shadow-2xl rounded-3xl text-slate-800";
+  const cardClass = "bg-white border-slate-200 shadow-2xl rounded-3xl text-slate-800 dark:glass-card-dark-premium dark:border-white/10 dark:text-white dark:shadow-none";
 
-  const bubbleClass = theme === "dark"
-    ? "bg-white/5 border-white/5 text-slate-200"
-    : "bg-slate-100 border-slate-200/80 text-slate-700";
+  const bubbleClass = "bg-slate-100 border-slate-200/80 text-slate-700 dark:bg-white/5 dark:border-white/5 dark:text-slate-200";
 
-  const itemClass = theme === "dark"
-    ? "bg-white/5 hover:bg-white/10 border-white/5 hover:border-white/20 text-white"
-    : "bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700 shadow-sm";
+  const itemClass = "bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700 shadow-sm dark:bg-white/5 dark:hover:bg-white/10 dark:border-white/5 dark:hover:border-white/20 dark:text-white dark:shadow-none";
 
   return (
     <AnimatePresence>
       {isVisible && (
         <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
-          
+
           {/* Expanded Consultation Card */}
           <AnimatePresence>
             {isOpen && (
@@ -56,9 +48,7 @@ export default function FloatingAI() {
                 {/* Close Button */}
                 <button
                   onClick={() => setIsOpen(false)}
-                  className={`absolute top-4 right-4 p-1.5 rounded-full transition-colors cursor-pointer ${
-                    theme === "dark" ? "bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white" : "bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-900"
-                  }`}
+                  className={`absolute top-4 right-4 p-1.5 rounded-full transition-colors cursor-pointer bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-900 dark:bg-white/5 dark:hover:bg-white/10 dark:text-slate-400 dark:hover:text-white`}
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
@@ -72,7 +62,7 @@ export default function FloatingAI() {
                     <span className="absolute bottom-[-1px] right-[-1px] w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-slate-900" />
                   </div>
                   <div>
-                    <h4 className={`font-bold text-sm ${theme === "dark" ? "text-white" : "text-navy-900"}`}>Aegis Protection Vault</h4>
+                    <h4 className={`font-bold text-sm text-content`}>Aegis Protection Vault</h4>
                     <p className="text-[10px] text-slate-500 font-bold tracking-wider uppercase">Active AI Concierge</p>
                   </div>
                 </div>

@@ -3,34 +3,24 @@
 import Link from "next/link";
 import { User, LogOut } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import { useTheme } from "@/context/ThemeContext";
 
 /** Login trigger, or the console/sign-out pair when authenticated. */
 export function AuthButtons({ onLoginClick }: { onLoginClick?: () => void }) {
   const { isAuthenticated, logout, user } = useAuth();
-  const { theme } = useTheme();
 
   if (isAuthenticated) {
     return (
       <div className="flex items-center gap-3">
         <Link
           href={user?.role === "admin" ? "/admin" : "/dashboard"}
-          className={`py-2 px-4 rounded-full text-xs font-black uppercase tracking-wider transition-all border ${
-            theme === "dark"
-              ? "bg-white/[0.03] border-cyan-400/30 text-cyan-300 hover:bg-white/[0.08]"
-              : "bg-slate-100 border-slate-250 text-royal-600 hover:bg-slate-200"
-          }`}
+          className={`py-2 px-4 rounded-full text-xs font-black uppercase tracking-wider transition-all border bg-slate-100 border-slate-250 text-royal-600 hover:bg-slate-200 dark:bg-white/[0.03] dark:border-cyan-400/30 dark:text-cyan-300 dark:hover:bg-white/[0.08]`}
         >
           <span>Console</span>
         </Link>
 
         <button
           onClick={logout}
-          className={`flex items-center gap-1.5 text-[9px] font-black uppercase tracking-wider py-2 px-3.5 rounded-full border transition-all cursor-pointer ${
-            theme === "dark"
-              ? "bg-white/5 border-white/10 text-slate-300 hover:text-rose-400"
-              : "bg-white border-slate-200 text-slate-600 hover:text-rose-600"
-          }`}
+          className={`flex items-center gap-1.5 text-[9px] font-black uppercase tracking-wider py-2 px-3.5 rounded-full border transition-all cursor-pointer bg-white border-slate-200 text-slate-600 hover:text-rose-600 dark:bg-white/5 dark:border-white/10 dark:text-slate-300 dark:hover:text-rose-400`}
         >
           <LogOut className="w-3.5 h-3.5 text-rose-500" />
           <span className="hidden sm:inline">Sign Out</span>

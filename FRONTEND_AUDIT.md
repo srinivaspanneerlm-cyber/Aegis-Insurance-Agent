@@ -19,14 +19,14 @@ Phase 4.1  UI Architecture      ██████████░░░░░░
 Phase 4.2  UX Engineering       ░░░░░░░░░░░░░░░░░░░░  0 of 4 steps
 Phase 4.3  Visual Engineering   ░░░░░░░░░░░░░░░░░░░░  0 of 5 steps
 ──────────────────────────────────────────────────────────────────
-PHASE 4 OVERALL                 ███░░░░░░░░░░░░░░░░░  2 of 13 steps
+PHASE 4 OVERALL                 ████░░░░░░░░░░░░░░░░  3 of 13 steps
 ```
 
 | Step | Title | Status | Commit |
 |---|---|---|---|
 | **4.1.1** | Trust integrity — remove unverified claims | ✅ **Done** | `fix(frontend): stop presenting unverified claims as fact` |
 | **4.1.2** | Design tokens (color/spacing/radius/elevation) | ✅ **Done** | `feat(frontend): establish design-token layer` |
-| 4.1.3 | Theme migration — 211 JS ternaries → `dark:` | ⬜ Not started | — |
+| **4.1.3** | Theme migration — JS ternaries → `dark:` + semantic tokens | ✅ **Done** | `refactor(frontend): migrate theme ternaries to dark: variant + tokens` |
 | 4.1.4 | Component primitives (Button/Input/Card/Skeleton/EmptyState/…) | ⬜ Not started | — |
 | 4.2.1 | Accessibility pass — labels, landmarks, focus, ARIA, reduced-motion | ⬜ Not started | — |
 | 4.2.2 | State coverage — error/not-found/loading, skeletons, empty states | ⬜ Not started | — |
@@ -46,18 +46,20 @@ PHASE 4 OVERALL                 ███░░░░░░░░░░░░░
 |---|---:|---:|---:|
 | Accessibility | 32 | **32** | 90 |
 | Consumer Trust | 40 | **82** ▲42 | 90 |
-| Design System | 45 | **56** ▲11 | 90 |
+| Design System | 45 | **68** ▲23 | 90 |
 | Performance | 55 | **56** ▲1 | 85 |
 | UX | 58 | **58** | 88 |
 | UI Quality | 65 | **65** | 90 |
-| Frontend Architecture | 68 | **71** ▲3 | 90 |
-| **Enterprise Readiness (FE)** | 52 | **60** ▲8 | 90 |
-| **Production Readiness (FE)** | 55 | **62** ▲7 | 92 |
+| Frontend Architecture | 68 | **78** ▲10 | 90 |
+| **Enterprise Readiness (FE)** | 52 | **64** ▲12 | 90 |
+| **Production Readiness (FE)** | 55 | **66** ▲11 | 92 |
 
-> Design System / Architecture gains are from the **token layer being
-> established and wired** (`darkMode: class`), not yet from adoption — the 878
-> `slate-*`, 355 `text-[Npx]`, and 211 theme ternaries still stand and retire in
-> Steps 4.1.3–4.1.4.
+> Design System / Architecture gains now reflect **token/`dark:` adoption**
+> (Step 4.1.3): the **226 theme ternaries dropped to 18** (all legitimate
+> conditional renders / logic / props, not styling), **`dark:` usage 5 → 394**,
+> and 63 sites moved onto the semantic tokens. `slate-*` and `text-[Npx]` still
+> stand (opacity-bearing surfaces can't be tokens per 4.1.2) and retire further
+> in Step 4.1.4 primitives.
 
 ---
 
@@ -281,6 +283,61 @@ Very low. Purely additive config + CSS variables; no call site changed, no
 existing utility redefined. The one behavioural wire is `darkMode: "class"`,
 which is safe because the app already toggles `.dark` and has ~0 `dark:`
 utilities today. Rollback: revert that commit.
+
+---
+
+### Step 4.1.3 — Theme Migration ✅
+
+**First real adoption of the 4.1.2 token layer.** Migrated the runtime
+`theme === "dark" ? … : …` styling ternaries onto the Tailwind `dark:` variant
+and the semantic tokens. **226 → 18** theme references remain, all legitimate
+non-styling uses (conditional decoration renders, toggle/`if` logic, `variant`/
+`tone` props, `rgba()` SVG strokes, and dynamic per-variant class branches);
+**`dark:` usage 5 → 394**; **63** sites moved onto semantic tokens.
+
+**Conversion rules (auditable, applied by a shape-keyed transform over 111
+distinct ternary shapes):**
+- **Opacity-bearing / brand / accent / status / gradient colors → `dark:` with
+  exact hex** (pixel-identical). Tokens hold opaque hex and can't take opacity
+  modifiers (4.1.2 constraint), so translucent surfaces stay raw.
+- **Shadow negation:** where the light branch set a shadow the dark branch
+  lacked, appended `dark:shadow-none` (and `dark:hover:shadow-none`) so dark
+  stays shadowless as before.
+- **4 high-frequency opaque shapes normalized onto tokens** (intentional, minor
+  design-language shift — not pixel-identical, documented below):
+  - page wrapper `bg-slate-950 text-white / bg-slate-50 text-navy-900` →
+    `bg-surface text-content` (×8)
+  - primary text `text-white / text-navy-900` and `/ text-navy-950` →
+    `text-content` (×45; dark #fff → slate-100, imperceptible)
+  - muted `text-slate-400 / text-slate-600` → `text-content-muted` (×2, exact)
+
+**Helper modules** (`shared/themeClasses`, `contact/contactTheme`,
+`apply/applyTheme`) converted from `(theme) ⇒ string` functions to static
+`dark:` strings / `isSelected`-only functions; all call sites updated and the
+now-dead `useTheme()`/`theme` destructures removed from 43 files.
+
+**Deliberately retained as JS (not styling ternaries):** the ~10 conditional
+renders / logic / prop values above, plus `LoginCard` (2) and `QuickActionDesks`
+(1) whose branches interpolate per-variant runtime tokens (`${v.cardBorderDark}`,
+`${act.color}`) that themselves differ by theme — cleanly converting these needs
+the `VARIANTS`/`act` config reworked to bake in `dark:`, a **4.1.4** concern.
+
+**`darkMode: "class"` makes `dark:` safer than the old JS:** styling now follows
+the `.dark` class set on `<html>` before paint (the app already gates render
+with `visibility:hidden` until mounted), removing the state-dependent flash risk.
+
+**Files:** 56 changed (+314 / −733). **Verification:** tsc 0 · vitest 181/181 ·
+lint 0 errors · production build clean · JIT probe confirmed `bg-surface`,
+`text-content`, `text-content-muted`, `dark:glass-card-dark-premium` (arbitrary
+variant on a custom `@layer` utility), and `dark:` arbitrary-opacity utilities
+all emit into the compiled CSS, with `--surface` resolving `#fff` (light) /
+`#0b0f19` (dark).
+
+**Risk & rollback:** Low for the 90%+ pixel-identical `dark:` conversions;
+the 4 token normalizations are intentional minor shifts (see above). Unit tests
+don't cover visuals — a **manual light/dark visual QA pass** on the marketing
+pages, apply flow, and dashboard is recommended before release. Rollback: revert
+this commit.
 
 ---
 

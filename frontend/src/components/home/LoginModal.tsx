@@ -4,7 +4,6 @@ import { useState } from "react";
 import Link from "next/link";
 import { X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useTheme } from "@/context/ThemeContext";
 import { useAuth } from "@/context/AuthContext";
 import { WelcomeCard } from "./login/WelcomeCard";
 import { LoginCard } from "./login/LoginCard";
@@ -23,7 +22,6 @@ interface LoginModalProps {
  * has to; login itself is delegated to `AuthContext`.
  */
 export function LoginModal({ isOpen, onClose }: LoginModalProps) {
-  const { theme } = useTheme();
   const { login, loading } = useAuth();
 
   // Consumer Login Form values
@@ -111,9 +109,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
             {/* Close trigger button */}
             <button
               onClick={onClose}
-              className={`absolute right-0 -top-12 p-2.5 rounded-xl border transition-colors cursor-pointer ${
-                theme === "dark" ? "bg-white/5 border-white/10 text-white hover:bg-white/15" : "bg-white border-slate-200 text-slate-700 hover:bg-slate-100"
-              }`}
+              className={`absolute right-0 -top-12 p-2.5 rounded-xl border transition-colors cursor-pointer bg-white border-slate-200 text-slate-700 hover:bg-slate-100 dark:bg-white/5 dark:border-white/10 dark:text-white dark:hover:bg-white/15`}
             >
               <X className="w-5 h-5" />
             </button>

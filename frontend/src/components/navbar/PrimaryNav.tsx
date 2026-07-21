@@ -3,13 +3,11 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useTheme } from "@/context/ThemeContext";
 import { menuItems } from "./navData";
 import { MegaMenu } from "./MegaMenu";
 
 /** Secondary navigation row with the product mega-menu trigger. */
 export function PrimaryNav() {
-  const { theme } = useTheme();
   const pathname = usePathname();
 
   const [isMegaMenuOpen, setIsMegaMenuOpen] = useState(false);
@@ -33,9 +31,7 @@ export function PrimaryNav() {
     };
   }, []);
 
-  const secondNavBgClass = theme === "dark"
-    ? "bg-slate-900/50 border-t border-white/5"
-    : "bg-slate-100/50 border-t border-slate-200/50";
+  const secondNavBgClass = "bg-slate-100/50 border-t border-slate-200/50 dark:bg-slate-900/50 dark:border-t dark:border-white/5";
 
   return (
     <div className={`py-2.5 relative ${secondNavBgClass}`}>
@@ -55,8 +51,8 @@ export function PrimaryNav() {
                   onClick={() => setIsMegaMenuOpen(!isMegaMenuOpen)}
                   className={`flex items-center gap-1.5 text-[11px] font-black uppercase tracking-widest transition-all hover:scale-105 duration-200 relative group cursor-pointer bg-transparent border-0 outline-none ${
                     isActive
-                      ? theme === "dark" ? "text-cyan-400" : "text-purple-600"
-                      : theme === "dark" ? "text-slate-400 hover:text-slate-200" : "text-slate-600 hover:text-slate-900"
+                      ? "text-purple-600 dark:text-cyan-400"
+                      : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200"
                   }`}
                 >
                   {item.icon}
@@ -65,7 +61,7 @@ export function PrimaryNav() {
                   {/* Active/Hover Line */}
                   <span className={`absolute -bottom-3.5 left-0 right-0 h-[2px] rounded-full transition-all duration-300 ${
                     isActive || isMegaMenuOpen
-                      ? theme === "dark" ? "bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.5)]" : "bg-purple-600"
+                      ? "bg-purple-600 dark:bg-cyan-400 dark:shadow-[0_0_8px_rgba(34,211,238,0.5)]"
                       : "bg-transparent group-hover:bg-slate-500/30"
                   }`} />
                 </button>
@@ -82,8 +78,8 @@ export function PrimaryNav() {
               href={item.href}
               className={`flex items-center gap-1.5 text-[11px] font-black uppercase tracking-widest transition-all hover:scale-105 duration-200 relative group ${
                 isActive
-                  ? theme === "dark" ? "text-cyan-400" : "text-purple-600"
-                  : theme === "dark" ? "text-slate-400 hover:text-slate-200" : "text-slate-600 hover:text-slate-900"
+                  ? "text-purple-600 dark:text-cyan-400"
+                  : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200"
               }`}
             >
               {item.icon}
@@ -92,7 +88,7 @@ export function PrimaryNav() {
               {/* Active/Hover Line */}
               <span className={`absolute -bottom-3.5 left-0 right-0 h-[2px] rounded-full transition-all duration-300 ${
                 isActive
-                  ? theme === "dark" ? "bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.5)]" : "bg-purple-600"
+                  ? "bg-purple-600 dark:bg-cyan-400 dark:shadow-[0_0_8px_rgba(34,211,238,0.5)]"
                   : "bg-transparent group-hover:bg-slate-500/30"
               }`} />
             </Link>

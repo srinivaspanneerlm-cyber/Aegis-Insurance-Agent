@@ -3,7 +3,6 @@
 import { RefObject } from "react";
 import { ShieldCheck, Send } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useTheme } from "@/context/ThemeContext";
 import {
   chatBgClass, advisorBubbleClass, userBubbleClass, inputClass,
 } from "./contactTheme";
@@ -26,8 +25,7 @@ export function VaultChatRoom({
   isChatOpen, toggleChat, messages, isTyping,
   inputVal, setInputVal, handleSendMessage, chatEndRef, chatConsoleRef,
 }: VaultChatRoomProps) {
-  const { theme } = useTheme();
-  const advisorBubble = advisorBubbleClass(theme);
+  const advisorBubble = advisorBubbleClass;
 
   return (
     <section ref={chatConsoleRef} className="relative px-6 py-12 z-10">
@@ -57,7 +55,7 @@ export function VaultChatRoom({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 15 }}
               transition={{ duration: 0.3 }}
-              className={`rounded-[32px] border overflow-hidden flex flex-col ${chatBgClass(theme)}`}
+              className={`rounded-[32px] border overflow-hidden flex flex-col ${chatBgClass}`}
             >
               {/* Console header */}
               <div className="p-6 border-b border-white/5 bg-white/[0.01] flex items-center justify-between">
@@ -97,7 +95,7 @@ export function VaultChatRoom({
                       )}
                       <div className="max-w-[80%] space-y-1">
                         <div className={`p-4 rounded-[22px] border text-xs font-semibold leading-relaxed whitespace-pre-line shadow-sm ${
-                          isUser ? userBubbleClass(theme) : advisorBubble
+                          isUser ? userBubbleClass : advisorBubble
                         }`}>
                           {m.text}
                         </div>
@@ -144,7 +142,7 @@ export function VaultChatRoom({
                     value={inputVal}
                     onChange={(e) => setInputVal(e.target.value)}
                     placeholder="Ask Sri AI about vault clearance, platform workflows..."
-                    className={`flex-grow py-3 px-4 rounded-xl border outline-none text-xs font-semibold transition-all ${inputClass(theme)}`}
+                    className={`flex-grow py-3 px-4 rounded-xl border outline-none text-xs font-semibold transition-all ${inputClass}`}
                   />
                   <button
                     type="submit"

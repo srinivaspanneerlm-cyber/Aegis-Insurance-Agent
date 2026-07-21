@@ -1,7 +1,6 @@
 "use client";
 
 import { Check } from "lucide-react";
-import { useTheme } from "@/context/ThemeContext";
 import { glassCardClass } from "./aboutTheme";
 
 /** Three differentiators explaining why Aegis AI exists. */
@@ -13,8 +12,7 @@ const REASONS = [
 
 /** "Why Aegis AI Exists" purpose section. */
 export function WhyAegisSection() {
-  const { theme } = useTheme();
-  const glass = glassCardClass(theme);
+  const glass = glassCardClass;
 
   return (
     <section className="relative px-6 py-12 z-10">
@@ -24,7 +22,7 @@ export function WhyAegisSection() {
           <h2 className="text-3xl font-black tracking-tight leading-none text-white">Why Aegis AI Exists</h2>
         </div>
 
-        <p className={`text-sm sm:text-base leading-relaxed font-semibold max-w-2xl mx-auto ${theme === "dark" ? "text-slate-400" : "text-slate-600"}`}>
+        <p className={`text-sm sm:text-base leading-relaxed font-semibold max-w-2xl mx-auto text-content-muted`}>
           Traditional insurance systems are often confusing, slow, and form-heavy. Aegis AI transforms the experience through intelligent AI conversations that guide users naturally toward the right protection solutions.
         </p>
 

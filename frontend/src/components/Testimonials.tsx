@@ -47,7 +47,7 @@ export default function Testimonials() {
 
   return (
     <section className="relative py-24 overflow-hidden z-10">
-      
+
       {/* Holographic ambient background lights */}
       {theme === "dark" ? (
         <>
@@ -61,18 +61,14 @@ export default function Testimonials() {
       )}
 
       <div className="max-w-7xl w-full mx-auto px-6 mb-16 text-center">
-        
+
         {/* Cinematic Header */}
         <div className="space-y-4">
           <motion.span
             initial={{ opacity: 0, y: 10 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className={`inline-flex items-center gap-1.5 py-1 px-3.5 rounded-full text-[10px] font-black uppercase tracking-widest border transition-all ${
-              theme === "dark" 
-                ? "bg-purple-950/30 border-purple-500/20 text-purple-400" 
-                : "bg-purple-50 border-purple-100 text-purple-800"
-            }`}
+            className={`inline-flex items-center gap-1.5 py-1 px-3.5 rounded-full text-[10px] font-black uppercase tracking-widest border transition-all bg-purple-50 border-purple-100 text-purple-800 dark:bg-purple-950/30 dark:border-purple-500/20 dark:text-purple-400`}
           >
             <Sparkles className="w-3.5 h-3.5" />
             <span>How the advisors help</span>
@@ -83,9 +79,7 @@ export default function Testimonials() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ delay: 0.1 }}
-            className={`text-3xl sm:text-5xl font-black tracking-tight leading-tight ${
-              theme === "dark" ? "text-white" : "text-navy-950"
-            }`}
+            className={`text-3xl sm:text-5xl font-black tracking-tight leading-tight text-content`}
           >
             Coverage explained by a{" "}
             <span className="bg-gradient-to-r from-purple-500 via-indigo-400 to-cyan-400 bg-clip-text text-transparent">
@@ -110,14 +104,10 @@ export default function Testimonials() {
 
       {/* INFINITE SCROLL CAROUSEL MARQUEE */}
       <div className="w-full relative flex items-center overflow-hidden py-8">
-        
+
         {/* Left & Right cinematic blur fading overlays */}
-        <div className={`absolute left-0 top-0 bottom-0 w-32 z-20 pointer-events-none bg-gradient-to-r ${
-          theme === "dark" ? "from-slate-950 to-transparent" : "from-slate-50 to-transparent"
-        }`} />
-        <div className={`absolute right-0 top-0 bottom-0 w-32 z-20 pointer-events-none bg-gradient-to-l ${
-          theme === "dark" ? "from-slate-950 to-transparent" : "from-slate-50 to-transparent"
-        }`} />
+        <div className={`absolute left-0 top-0 bottom-0 w-32 z-20 pointer-events-none bg-gradient-to-r from-slate-50 to-transparent dark:from-slate-950 dark:to-transparent`} />
+        <div className={`absolute right-0 top-0 bottom-0 w-32 z-20 pointer-events-none bg-gradient-to-l from-slate-50 to-transparent dark:from-slate-950 dark:to-transparent`} />
 
         <div className="flex w-[200%] gap-6 animate-marquee hover:[animation-play-state:paused] whitespace-nowrap">
           {scrollTestimonials.map((item, idx) => {
@@ -140,9 +130,7 @@ export default function Testimonials() {
                   theme === "dark" ? darkModeClass : lightModeClass
                 } ${
                   isHovered 
-                    ? theme === "dark"
-                      ? "border-purple-500/40 shadow-[0_0_40px_rgba(168,85,247,0.15)] scale-[1.02]"
-                      : "border-purple-400/40 shadow-2xl scale-[1.02]"
+                    ? "border-purple-400/40 shadow-2xl scale-[1.02] dark:border-purple-500/40 dark:shadow-[0_0_40px_rgba(168,85,247,0.15)] dark:scale-[1.02]"
                     : ""
                 }`}
               >
@@ -157,14 +145,10 @@ export default function Testimonials() {
                   {/* Category & Ratings header */}
                   <div className="flex items-center justify-between border-b border-white/5 pb-4">
                     <div className="flex items-center gap-2">
-                      <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${
-                        theme === "dark" ? "bg-white/5" : "bg-slate-100"
-                      }`}>
+                      <div className={`w-7 h-7 rounded-lg flex items-center justify-center bg-slate-100 dark:bg-white/5`}>
                         {item.categoryIcon}
                       </div>
-                      <span className={`text-[9.5px] font-black uppercase tracking-wider ${
-                        theme === "dark" ? "text-slate-350" : "text-slate-650"
-                      }`}>
+                      <span className={`text-[9.5px] font-black uppercase tracking-wider text-slate-650 dark:text-slate-350`}>
                         {item.category}
                       </span>
                     </div>
@@ -178,9 +162,7 @@ export default function Testimonials() {
                   </div>
 
                   {/* Customer Feedback */}
-                  <p className={`text-xs sm:text-sm font-semibold leading-relaxed ${
-                    theme === "dark" ? "text-slate-300" : "text-slate-700"
-                  } whitespace-normal`}>
+                  <p className={`text-xs sm:text-sm font-semibold leading-relaxed text-slate-700 dark:text-slate-300 whitespace-normal`}>
                     &ldquo;{item.feedback}&rdquo;
                   </p>
                 </div>
@@ -201,11 +183,7 @@ export default function Testimonials() {
                   </div>
 
                   {/* Advisor Consultation Tag */}
-                  <span className={`py-1.5 px-3 rounded-xl text-[9px] font-black uppercase tracking-wider border flex items-center gap-1.5 transition-all ${
-                    theme === "dark" 
-                      ? "bg-purple-950/40 border-purple-500/20 text-purple-300" 
-                      : "bg-purple-50 border-purple-100 text-purple-800"
-                  }`}>
+                  <span className={`py-1.5 px-3 rounded-xl text-[9px] font-black uppercase tracking-wider border flex items-center gap-1.5 transition-all bg-purple-50 border-purple-100 text-purple-800 dark:bg-purple-950/40 dark:border-purple-500/20 dark:text-purple-300`}>
                     <span>🤖</span>
                     <span>{item.advisor}</span>
                   </span>

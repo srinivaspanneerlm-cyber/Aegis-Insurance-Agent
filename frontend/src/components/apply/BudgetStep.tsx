@@ -2,7 +2,6 @@
 
 import { Check, ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
-import { useTheme } from "@/context/ThemeContext";
 import { descClass, labelClass, budgetBtnClass, priorityBtnClass } from "./applyTheme";
 
 interface BudgetStepProps {
@@ -16,8 +15,6 @@ interface BudgetStepProps {
 
 /** Step 2 — pick a premium budget tier and priority add-ons. */
 export function BudgetStep({ budgetTier, setBudgetTier, priorities, togglePriority, onBack, onNext }: BudgetStepProps) {
-  const { theme } = useTheme();
-
   return (
     <motion.div
       key="step2"
@@ -27,13 +24,13 @@ export function BudgetStep({ budgetTier, setBudgetTier, priorities, togglePriori
       className="space-y-6 text-left"
     >
       <div className="space-y-2">
-        <h2 className={`text-2xl sm:text-3xl font-extrabold tracking-tight ${theme === "dark" ? "text-white" : "text-navy-900"}`}>Underwriting Core Metrics</h2>
-        <p className={`text-xs font-semibold leading-relaxed ${descClass(theme)}`}>Establish your financial guidelines and select primary liability priorities.</p>
+        <h2 className={`text-2xl sm:text-3xl font-extrabold tracking-tight text-content`}>Underwriting Core Metrics</h2>
+        <p className={`text-xs font-semibold leading-relaxed ${descClass}`}>Establish your financial guidelines and select primary liability priorities.</p>
       </div>
 
       {/* Budget Selector */}
       <div className="space-y-3">
-        <label className={`text-[10px] font-bold uppercase tracking-widest block ${labelClass(theme)}`}>Target Monthly Premium Tier:</label>
+        <label className={`text-[10px] font-bold uppercase tracking-widest block ${labelClass}`}>Target Monthly Premium Tier:</label>
         <div className="grid grid-cols-3 gap-3">
           {[
             { id: "basic", label: "Core Guard", price: "₹300 - ₹500" },
@@ -43,7 +40,7 @@ export function BudgetStep({ budgetTier, setBudgetTier, priorities, togglePriori
             <button
               key={t.id}
               onClick={() => setBudgetTier(t.id)}
-              className={`p-3.5 rounded-xl border text-center transition-all cursor-pointer ${budgetBtnClass(theme, budgetTier === t.id)}`}
+              className={`p-3.5 rounded-xl border text-center transition-all cursor-pointer ${budgetBtnClass(budgetTier === t.id)}`}
             >
               <span className="text-xs font-black block leading-none">{t.label}</span>
               <span className="text-[9px] font-bold opacity-75 mt-1.5 inline-block">{t.price}</span>
@@ -54,7 +51,7 @@ export function BudgetStep({ budgetTier, setBudgetTier, priorities, togglePriori
 
       {/* Priorities Tags Selection */}
       <div className="space-y-3">
-        <label className={`text-[10px] font-bold uppercase tracking-widest block ${labelClass(theme)}`}>Premium Priority Add-Ons:</label>
+        <label className={`text-[10px] font-bold uppercase tracking-widest block ${labelClass}`}>Premium Priority Add-Ons:</label>
         <div className="flex flex-col gap-2">
 
           {[
@@ -68,10 +65,10 @@ export function BudgetStep({ budgetTier, setBudgetTier, priorities, togglePriori
               <button
                 key={p.id}
                 onClick={() => togglePriority(p.id)}
-                className={`p-3.5 rounded-xl border flex items-center justify-between text-left transition-all cursor-pointer ${priorityBtnClass(theme, isChecked)}`}
+                className={`p-3.5 rounded-xl border flex items-center justify-between text-left transition-all cursor-pointer ${priorityBtnClass(isChecked)}`}
               >
                 <div className="pr-4 leading-normal">
-                  <span className={`text-xs font-bold block ${theme === "dark" ? "text-white" : "text-navy-900"}`}>{p.title}</span>
+                  <span className={`text-xs font-bold block text-content`}>{p.title}</span>
                   <span className="text-[9px] font-semibold text-slate-500 mt-0.5 inline-block">{p.desc}</span>
                 </div>
                 <div className={`w-5 h-5 rounded-md flex items-center justify-center border transition-all ${
@@ -89,17 +86,13 @@ export function BudgetStep({ budgetTier, setBudgetTier, priorities, togglePriori
       <div className="flex gap-4">
         <button
           onClick={onBack}
-          className={`py-4 px-6 border rounded-2xl font-bold text-xs uppercase tracking-widest transition-colors cursor-pointer ${
-            theme === "dark" ? "border-white/10 hover:bg-white/5 text-slate-400" : "border-slate-200 bg-white text-slate-600 hover:bg-slate-100 shadow-sm"
-          }`}
+          className={`py-4 px-6 border rounded-2xl font-bold text-xs uppercase tracking-widest transition-colors cursor-pointer border-slate-200 bg-white text-slate-600 hover:bg-slate-100 shadow-sm dark:border-white/10 dark:hover:bg-white/5 dark:text-slate-400 dark:shadow-none`}
         >
           Back
         </button>
         <button
           onClick={onNext}
-          className={`flex-grow py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-2xl flex items-center justify-center gap-2 transition-all cursor-pointer ${
-            theme === "dark" ? "bg-white hover:bg-slate-100 text-slate-950" : "bg-navy-900 hover:bg-navy-950 text-white"
-          }`}
+          className={`flex-grow py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-2xl flex items-center justify-center gap-2 transition-all cursor-pointer bg-navy-900 hover:bg-navy-950 text-white dark:bg-white dark:hover:bg-slate-100 dark:text-slate-950`}
         >
           <span>Proceed to Verification</span>
           <ArrowRight className="w-4 h-4" />

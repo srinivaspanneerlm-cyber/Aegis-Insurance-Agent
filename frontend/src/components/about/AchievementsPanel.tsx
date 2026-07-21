@@ -1,7 +1,6 @@
 "use client";
 
 import { ShieldCheck, Award, Star, Cpu, Users } from "lucide-react";
-import { useTheme } from "@/context/ThemeContext";
 import { AnimatedCounter } from "@/components/shared/AnimatedCounter";
 
 /** Headline stats shown in the achievements strip. `decimals` renders tenths. */
@@ -15,22 +14,16 @@ const ACHIEVEMENTS = [
 
 /** Statistics/achievements panel with animated counters. */
 export function AchievementsPanel() {
-  const { theme } = useTheme();
-
   return (
     <section className="relative px-6 py-10 z-10">
-      <div className={`max-w-7xl mx-auto p-6 rounded-[28px] border flex flex-col md:flex-row items-center justify-between gap-6 transition-all duration-300 ${
-        theme === "dark"
-          ? "bg-slate-950/60 border-white/5 shadow-2xl"
-          : "bg-white border-slate-200 shadow-premium"
-      }`}>
+      <div className={`max-w-7xl mx-auto p-6 rounded-[28px] border flex flex-col md:flex-row items-center justify-between gap-6 transition-all duration-300 bg-white border-slate-200 shadow-premium dark:bg-slate-950/60 dark:border-white/5 dark:shadow-2xl`}>
         {ACHIEVEMENTS.map((stat, idx) => (
           <div key={idx} className="flex items-center gap-4 text-left w-full md:w-auto justify-start md:justify-center border-r last:border-0 border-white/5 pr-4 last:pr-0">
             <div className={`w-10 h-10 rounded-xl flex items-center justify-center border ${stat.color}`}>
               {stat.icon}
             </div>
             <div>
-              <h3 className={`text-xl font-mono font-black ${theme === "dark" ? "text-white" : "text-navy-900"} leading-none`}>
+              <h3 className={`text-xl font-mono font-black text-content leading-none`}>
                 <AnimatedCounter value={stat.value} suffix={stat.suffix} decimals={stat.decimals} incrementDivisor={60} minStepMs={30} />
               </h3>
               <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mt-1.5 block">

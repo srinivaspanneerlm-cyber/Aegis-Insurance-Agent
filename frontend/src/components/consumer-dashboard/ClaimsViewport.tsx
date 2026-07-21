@@ -2,7 +2,6 @@
 
 import { Check } from "lucide-react";
 import { motion } from "framer-motion";
-import { useTheme } from "@/context/ThemeContext";
 
 /** Claim tracking steps (nav: "claims"). */
 const CLAIM_STEPS = [
@@ -14,32 +13,26 @@ const CLAIM_STEPS = [
 
 /** Secure claim safe-track portal. */
 export function ClaimsViewport() {
-  const { theme } = useTheme();
-
   return (
     <motion.div
       key="claims"
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -15 }}
-      className={`border shadow-2xl rounded-[32px] p-6 sm:p-8 text-left space-y-6 ${
-        theme === "dark" ? "bg-slate-900/40 border-white/5" : "bg-white border-slate-200"
-      }`}
+      className={`border shadow-2xl rounded-[32px] p-6 sm:p-8 text-left space-y-6 bg-white border-slate-200 dark:bg-slate-900/40 dark:border-white/5`}
     >
       <div className="border-b border-white/5 pb-4">
-        <h3 className={`font-black text-base ${theme === "dark" ? "text-white" : "text-navy-950"}`}>Secure Claim Safe-Track Portal</h3>
+        <h3 className={`font-black text-base text-content`}>Secure Claim Safe-Track Portal</h3>
         <p className="text-xs text-slate-400 mt-1 font-medium">Evaluating underwritten claims with decentralized authorization.</p>
       </div>
 
-      <div className={`p-6 border rounded-3xl space-y-6 ${
-        theme === "dark" ? "bg-white/[0.01] border-white/5" : "bg-slate-50 border-slate-150"
-      }`}>
+      <div className={`p-6 border rounded-3xl space-y-6 bg-slate-50 border-slate-150 dark:bg-white/[0.01] dark:border-white/5`}>
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/5 pb-4">
           <div>
             <span className="text-[9px] text-cyan-400 font-extrabold uppercase tracking-widest bg-cyan-950/40 border border-cyan-800/40 py-1 px-3.5 rounded-full inline-block leading-none">
               Admitted under Hospital Shield
             </span>
-            <h4 className={`text-base font-black mt-2 ${theme === "dark" ? "text-white" : "text-navy-950"}`}>Cashless Inpatient Claim #AEG-CLM-901</h4>
+            <h4 className={`text-base font-black mt-2 text-content`}>Cashless Inpatient Claim #AEG-CLM-901</h4>
           </div>
           <div className="text-left sm:text-right">
             <p className="text-xs text-slate-500 font-bold uppercase tracking-wider">Target Settlement</p>
@@ -49,9 +42,7 @@ export function ClaimsViewport() {
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 relative">
           {CLAIM_STEPS.map((st) => (
-            <div key={st.step} className={`p-4 border rounded-2xl flex flex-col justify-between text-left space-y-3 relative group ${
-              theme === "dark" ? "bg-slate-900/60 border-white/5" : "bg-white border-slate-200"
-            }`}>
+            <div key={st.step} className={`p-4 border rounded-2xl flex flex-col justify-between text-left space-y-3 relative group bg-white border-slate-200 dark:bg-slate-900/60 dark:border-white/5`}>
               <div className="flex items-center justify-between">
                 <div className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs ${
                   st.status === "done"
@@ -69,7 +60,7 @@ export function ClaimsViewport() {
                 </span>
               </div>
               <div>
-                <p className={`text-[11px] font-extrabold leading-tight ${theme === "dark" ? "text-white" : "text-navy-900"}`}>{st.label}</p>
+                <p className={`text-[11px] font-extrabold leading-tight text-content`}>{st.label}</p>
                 <p className="text-[9px] text-slate-500 mt-1 font-semibold leading-none">{st.desc}</p>
               </div>
             </div>

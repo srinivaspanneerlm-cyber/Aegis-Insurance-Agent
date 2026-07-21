@@ -1,7 +1,6 @@
 "use client";
 
 import { Shield, Cpu, Sparkles, Activity, Lock, PhoneCall } from "lucide-react";
-import { useTheme } from "@/context/ThemeContext";
 import { glassCardClass } from "./contactTheme";
 
 /**
@@ -19,8 +18,7 @@ const CATEGORIES = [
 
 /** Grid of quick-access support cards that seed a chat message on click. */
 export function SupportCategories({ onQuickAccess }: { onQuickAccess: (topic: string) => void }) {
-  const { theme } = useTheme();
-  const glass = glassCardClass(theme);
+  const glass = glassCardClass;
 
   return (
     <section className="relative px-6 py-12 z-10">

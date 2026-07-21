@@ -6,11 +6,10 @@ import { useRouter } from "next/navigation";
 import { User, Mail, Database, ArrowLeft, Key } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { useTheme } from "@/context/ThemeContext";
 
 export default function ConsumerProfilePage() {
   const { user, loading, isAuthenticated } = useAuth();
-  const { theme } = useTheme();
+
   const router = useRouter();
 
   useEffect(() => {
@@ -31,7 +30,7 @@ export default function ConsumerProfilePage() {
     );
   }
 
-  const wrapperClass = theme === "dark" ? "bg-slate-950 text-white" : "bg-slate-50 text-navy-900";
+  const wrapperClass = "bg-surface text-content";
 
   return (
     <div className={`min-h-screen relative flex flex-col justify-between overflow-hidden transition-colors duration-300 ${wrapperClass}`}>
@@ -49,7 +48,7 @@ export default function ConsumerProfilePage() {
 
           <div className="p-8 sm:p-10 rounded-[32px] border bg-slate-900/60 border-white/5 backdrop-blur-xl shadow-2xl relative text-left">
             <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-purple-500 via-indigo-500 to-cyan-500" />
-            
+
             <div className="flex items-center gap-4 border-b border-white/5 pb-6 mb-6">
               <div className="w-14 h-14 rounded-2xl bg-purple-950 text-purple-400 border border-purple-800/30 flex items-center justify-center">
                 <User className="w-7 h-7" />

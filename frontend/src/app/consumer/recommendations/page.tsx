@@ -6,11 +6,10 @@ import { useRouter } from "next/navigation";
 import { Heart, Car, Sparkles, ArrowLeft, ArrowRight } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { useTheme } from "@/context/ThemeContext";
 
 export default function ConsumerRecommendationsPage() {
   const { loading, isAuthenticated } = useAuth();
-  const { theme } = useTheme();
+
   const router = useRouter();
 
   useEffect(() => {
@@ -31,7 +30,7 @@ export default function ConsumerRecommendationsPage() {
     );
   }
 
-  const wrapperClass = theme === "dark" ? "bg-slate-950 text-white" : "bg-slate-50 text-navy-900";
+  const wrapperClass = "bg-surface text-content";
 
   return (
     <div className={`min-h-screen relative flex flex-col justify-between overflow-hidden transition-colors duration-300 ${wrapperClass}`}>

@@ -21,7 +21,7 @@ function ApplyForm() {
   const flow = useApplyFlow();
 
   return (
-    <div className={`min-h-screen relative flex flex-col justify-between transition-colors duration-300 ${wrapperClass(theme)}`}>
+    <div className={`min-h-screen relative flex flex-col justify-between transition-colors duration-300 ${wrapperClass}`}>
       <Navbar />
 
       {/* Decorative Glows */}
@@ -38,18 +38,14 @@ function ApplyForm() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className={`border p-8 sm:p-12 relative overflow-hidden ${mainCardClass(theme)}`}
+            className={`border p-8 sm:p-12 relative overflow-hidden ${mainCardClass}`}
           >
             {/* Glow bar */}
             <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-royal-500 via-royal-600 to-cyan-400" />
 
             {/* Top Indicator */}
-            <div className={`flex items-center justify-between mb-8 pb-4 border-b ${
-              theme === "dark" ? "border-white/5" : "border-slate-150"
-            }`}>
-              <span className={`text-[10px] font-black uppercase tracking-widest py-1 px-3.5 rounded-lg ${
-                theme === "dark" ? "text-cyan-400 bg-cyan-400/10 border border-cyan-400/20" : "text-royal-600 bg-royal-50 border border-royal-100"
-              }`}>
+            <div className={`flex items-center justify-between mb-8 pb-4 border-b border-slate-150 dark:border-white/5`}>
+              <span className={`text-[10px] font-black uppercase tracking-widest py-1 px-3.5 rounded-lg text-royal-600 bg-royal-50 border border-royal-100 dark:text-cyan-400 dark:bg-cyan-400/10 dark:border dark:border-cyan-400/20`}>
                 Sovereign AI Underwriter
               </span>
               <span className="text-xs font-bold text-slate-400">Step {flow.step} of 4</span>

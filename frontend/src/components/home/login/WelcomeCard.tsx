@@ -1,20 +1,15 @@
 "use client";
 
 import { User, ArrowRight, Crown } from "lucide-react";
-import { useTheme } from "@/context/ThemeContext";
 
 /** Left column: welcome copy and the consumer/admin login-type rows. */
 export function WelcomeCard() {
-  const { theme } = useTheme();
-
   return (
     <div className="lg:col-span-4 flex flex-col">
-      <div className={`p-8 rounded-[32px] border flex-grow flex flex-col justify-between relative overflow-hidden text-left ${
-        theme === "dark" ? "bg-slate-900/60 border-white/5 shadow-2xl" : "bg-white border-slate-200 shadow-lg"
-      }`}>
+      <div className={`p-8 rounded-[32px] border flex-grow flex flex-col justify-between relative overflow-hidden text-left bg-white border-slate-200 shadow-lg dark:bg-slate-900/60 dark:border-white/5 dark:shadow-2xl`}>
         <div className="space-y-6">
           <div className="space-y-2">
-            <h3 className={`text-xl font-black flex items-center gap-2 ${theme === "dark" ? "text-white" : "text-navy-900"}`}>
+            <h3 className={`text-xl font-black flex items-center gap-2 text-content`}>
               <span>Welcome to Aegis AI</span>
               <span>👋</span>
             </h3>
@@ -26,11 +21,7 @@ export function WelcomeCard() {
           {/* Selection rows */}
           <div className="space-y-3 pt-2">
             {/* Consumer row */}
-            <div className={`p-4 rounded-2xl border flex items-center justify-between transition-all ${
-              theme === "dark"
-                ? "bg-purple-950/20 border-purple-500/20 text-purple-300"
-                : "bg-purple-50 border-purple-100 text-purple-800"
-            }`}>
+            <div className={`p-4 rounded-2xl border flex items-center justify-between transition-all bg-purple-50 border-purple-100 text-purple-800 dark:bg-purple-950/20 dark:border-purple-500/20 dark:text-purple-300`}>
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-xl bg-purple-500/20 flex items-center justify-center">
                   <User className="w-4.5 h-4.5" />
@@ -46,11 +37,7 @@ export function WelcomeCard() {
             </div>
 
             {/* Admin row */}
-            <div className={`p-4 rounded-2xl border flex items-center justify-between transition-all ${
-              theme === "dark"
-                ? "bg-cyan-950/20 border-cyan-500/20 text-cyan-300"
-                : "bg-cyan-50 border-cyan-100 text-cyan-800"
-            }`}>
+            <div className={`p-4 rounded-2xl border flex items-center justify-between transition-all bg-cyan-50 border-cyan-100 text-cyan-800 dark:bg-cyan-950/20 dark:border-cyan-500/20 dark:text-cyan-300`}>
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-xl bg-cyan-500/20 flex items-center justify-center">
                   <Crown className="w-4.5 h-4.5" />

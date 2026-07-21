@@ -90,8 +90,8 @@ export default function AgentsPage() {
     return matchesSearch && matchesFilter;
   });
 
-  const wrapperClass = theme === "dark" ? "bg-slate-950 text-white" : "bg-slate-50 text-navy-900";
-  const headerBgClass = theme === "dark" ? "bg-slate-900/60 border-white/5" : "bg-white border-slate-200 shadow-sm";
+  const wrapperClass = "bg-surface text-content";
+  const headerBgClass = "bg-white border-slate-200 shadow-sm dark:bg-slate-900/60 dark:border-white/5 dark:shadow-none";
 
   return (
     <div className={`min-h-screen relative flex flex-col justify-between overflow-hidden transition-colors duration-300 ${wrapperClass}`}>
@@ -108,7 +108,7 @@ export default function AgentsPage() {
       {/* MAIN CONTAINER */}
       <section className="relative pt-44 pb-24 z-10 flex-grow">
         <div className="max-w-7xl mx-auto px-6">
-          
+
           {/* Page Heading */}
           <div className="text-center mb-16 space-y-4">
             <span className="text-xs font-semibold uppercase tracking-wider text-purple-400 bg-purple-500/10 border border-purple-500/20 rounded-full py-1.5 px-4 inline-block">
@@ -127,7 +127,7 @@ export default function AgentsPage() {
 
           {/* Interactive Search & Filter Controls (LinkedIn + SaaS design) */}
           <div className={`p-5 rounded-[24px] border mb-10 flex flex-col md:flex-row items-center justify-between gap-5 transition-all ${headerBgClass}`}>
-            
+
             {/* Search Input */}
             <div className="relative w-full md:w-80">
               <input
@@ -135,11 +135,7 @@ export default function AgentsPage() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search agent, role or skill..."
-                className={`w-full py-2.5 pl-10 pr-4 rounded-xl text-xs font-semibold outline-none border transition-all ${
-                  theme === "dark" 
-                    ? "bg-white/[0.04] border-white/10 text-white placeholder-slate-400 focus:bg-slate-900 focus:border-purple-400" 
-                    : "bg-slate-100 border-slate-200 text-slate-800 placeholder-slate-400 focus:bg-white focus:border-purple-650"
-                }`}
+                className={`w-full py-2.5 pl-10 pr-4 rounded-xl text-xs font-semibold outline-none border transition-all bg-slate-100 border-slate-200 text-slate-800 placeholder-slate-400 focus:bg-white focus:border-purple-650 dark:bg-white/[0.04] dark:border-white/10 dark:text-white dark:placeholder-slate-400 dark:focus:bg-slate-900 dark:focus:border-purple-400`}
               />
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
             </div>
@@ -153,9 +149,7 @@ export default function AgentsPage() {
                   className={`py-2 px-4 rounded-full text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
                     activeFilter === spec
                       ? "bg-gradient-to-r from-purple-600 to-indigo-650 text-white shadow-md border border-purple-500/20"
-                      : theme === "dark"
-                      ? "bg-white/[0.03] border-white/5 text-slate-400 hover:text-white"
-                      : "bg-slate-100 border-slate-200 text-slate-600 hover:bg-slate-200"
+                      : "bg-slate-100 border-slate-200 text-slate-600 hover:bg-slate-200 dark:bg-white/[0.03] dark:border-white/5 dark:text-slate-400 dark:hover:text-white"
                   }`}
                 >
                   {spec} Experts
@@ -177,13 +171,9 @@ export default function AgentsPage() {
                   exit={{ opacity: 0, y: -20 }}
                   whileHover={{ y: -8 }}
                   transition={{ duration: 0.4 }}
-                  className={`p-6 rounded-[28px] border flex flex-col justify-between text-left transition-all relative overflow-hidden group ${
-                    theme === "dark"
-                      ? "bg-slate-900/40 border-white/5 shadow-2xl hover:border-purple-500/30"
-                      : "bg-white border-slate-200 shadow-premium hover:shadow-premium-hover hover:border-purple-400"
-                  }`}
+                  className={`p-6 rounded-[28px] border flex flex-col justify-between text-left transition-all relative overflow-hidden group bg-white border-slate-200 shadow-premium hover:shadow-premium-hover hover:border-purple-400 dark:bg-slate-900/40 dark:border-white/5 dark:shadow-2xl dark:hover:border-purple-500/30 dark:hover:shadow-2xl`}
                 >
-                  
+
                   {/* Glowing light bars on card corners */}
                   <div className="absolute top-0 left-0 w-8 h-[2px] bg-gradient-to-r from-purple-500 to-cyan-500 opacity-0 group-hover:opacity-100 transition-opacity" />
                   <div className="absolute top-0 left-0 w-[2px] h-8 bg-gradient-to-b from-purple-500 to-cyan-500 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -191,16 +181,14 @@ export default function AgentsPage() {
                   <div>
                     {/* Top row: Agent avatar & Rating */}
                     <div className="flex items-center justify-between mb-5">
-                      <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-3xl border ${
-                        theme === "dark" ? "bg-white/5 border-white/10" : "bg-purple-50 border-purple-100"
-                      }`}>
+                      <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-3xl border bg-purple-50 border-purple-100 dark:bg-white/5 dark:border-white/10`}>
                         {agent.avatar}
                       </div>
 
                       <div className="flex flex-col items-end">
                         <div className="flex items-center gap-1">
                           <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
-                          <span className={`text-xs font-black ${theme === "dark" ? "text-white" : "text-navy-900"}`}>{agent.rating}</span>
+                          <span className={`text-xs font-black text-content`}>{agent.rating}</span>
                         </div>
                         <span className="text-[9px] text-slate-500 font-bold uppercase mt-0.5">{agent.experience} yrs exp</span>
                       </div>
@@ -213,7 +201,7 @@ export default function AgentsPage() {
                         <span>{agent.badge}</span>
                       </div>
 
-                      <h3 className={`text-base font-black tracking-tight ${theme === "dark" ? "text-white" : "text-navy-900"}`}>
+                      <h3 className={`text-base font-black tracking-tight text-content`}>
                         {agent.name}
                       </h3>
                       <p className="text-[11px] text-slate-500 font-bold uppercase">
@@ -234,11 +222,7 @@ export default function AgentsPage() {
                         {agent.skills.map((skill, index) => (
                           <span 
                             key={index}
-                            className={`text-[8.5px] font-semibold px-2 py-1 rounded-md border ${
-                              theme === "dark" 
-                                ? "bg-white/[0.02] border-white/5 text-slate-300" 
-                                : "bg-slate-50 border-slate-200 text-slate-700"
-                            }`}
+                            className={`text-[8.5px] font-semibold px-2 py-1 rounded-md border bg-slate-50 border-slate-200 text-slate-700 dark:bg-white/[0.02] dark:border-white/5 dark:text-slate-300`}
                           >
                             {skill}
                           </span>
@@ -260,9 +244,7 @@ export default function AgentsPage() {
 
                     <Link
                       href={`/apply?advisor=${encodeURIComponent(agent.name)}`}
-                      className={`flex items-center gap-1 text-[10.5px] font-black uppercase tracking-widest transition-all cursor-pointer ${
-                        theme === "dark" ? "text-cyan-400 hover:text-cyan-300" : "text-purple-600 hover:text-purple-700"
-                      }`}
+                      className={`flex items-center gap-1 text-[10.5px] font-black uppercase tracking-widest transition-all cursor-pointer text-purple-600 hover:text-purple-700 dark:text-cyan-400 dark:hover:text-cyan-300`}
                     >
                       <span>Consult</span>
                       <ArrowRight className="w-3.5 h-3.5" />

@@ -5,7 +5,6 @@ import { AnimatePresence } from "framer-motion";
 import Navbar from "@/components/Navbar";
 import { Spinner } from "@/components/shared/Spinner";
 import Footer from "@/components/Footer";
-import { useTheme } from "@/context/ThemeContext";
 import {
   useConsumerDashboard,
   DashboardAmbient,
@@ -19,7 +18,6 @@ import {
 } from "@/components/consumer-dashboard";
 
 export default function ConsumerDashboard() {
-  const { theme } = useTheme();
   const dash = useConsumerDashboard();
 
   if (dash.isBooting) {
@@ -39,7 +37,7 @@ export default function ConsumerDashboard() {
     );
   }
 
-  const wrapperClass = theme === "dark" ? "bg-slate-950 text-white" : "bg-slate-50 text-navy-900";
+  const wrapperClass = "bg-surface text-content";
 
   return (
     <div className={`min-h-screen relative flex flex-col justify-between overflow-hidden transition-colors duration-300 ${wrapperClass}`}>

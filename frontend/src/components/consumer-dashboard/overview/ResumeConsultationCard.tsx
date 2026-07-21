@@ -2,27 +2,22 @@
 
 import { MessageSquare, ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
-import { useTheme } from "@/context/ThemeContext";
 import type { NavId } from "../types";
 import { cardVariants } from "./variants";
 
 /** Prompt to resume the AI consultation; routes into the advisor. */
 export function ResumeConsultationCard({ setActiveNav }: { setActiveNav: (nav: NavId) => void }) {
-  const { theme } = useTheme();
-
   return (
     <motion.div
       variants={cardVariants}
-      className={`rounded-[24px] border p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all duration-300 ${
-        theme === "dark" ? "bg-slate-900/30 border-white/5 hover:border-purple-550/20" : "bg-white border-slate-200 shadow-premium"
-      }`}
+      className={`rounded-[24px] border p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all duration-300 bg-white border-slate-200 shadow-premium dark:bg-slate-900/30 dark:border-white/5 dark:hover:border-purple-550/20 dark:shadow-none`}
     >
       <div className="flex items-center gap-3.5 text-left">
         <div className="w-9 h-9 rounded-xl bg-purple-950/40 text-purple-400 flex items-center justify-center border border-purple-800/30 flex-shrink-0">
           <MessageSquare className="w-5 h-5 text-purple-400" />
         </div>
         <div>
-          <p className={`text-xs font-black ${theme === "dark" ? "text-white" : "text-navy-950"}`}>Continue Your AI Consultation</p>
+          <p className={`text-xs font-black text-content`}>Continue Your AI Consultation</p>
           <p className="text-[11.5px] text-slate-500 font-semibold mt-0.5">Resume your family health protection session with Sarah AI.</p>
         </div>
       </div>

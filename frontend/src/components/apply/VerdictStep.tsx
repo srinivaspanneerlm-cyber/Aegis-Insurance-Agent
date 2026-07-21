@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { Sparkles, Check, Lock, ShieldCheck } from "lucide-react";
 import { motion } from "framer-motion";
-import { useTheme } from "@/context/ThemeContext";
 import { Spinner } from "@/components/shared/Spinner";
 import { descClass, finalCardBorder } from "./applyTheme";
 import type { Recommendation } from "./recommendation";
@@ -16,8 +15,6 @@ interface VerdictStepProps {
 
 /** Step 4 — underwriting spinner then the recommended-plan verdict card. */
 export function VerdictStep({ loading, underwritingVerdict, secureId }: VerdictStepProps) {
-  const { theme } = useTheme();
-
   return (
     <motion.div
       key="step4"
@@ -32,7 +29,7 @@ export function VerdictStep({ loading, underwritingVerdict, secureId }: VerdictS
             <Spinner className="absolute inset-0 border-cyan-400" />
             <Sparkles className="absolute inset-0 m-auto w-8 h-8 text-cyan-400 animate-pulse" />
           </div>
-          <h3 className={`font-extrabold text-base ${theme === "dark" ? "text-white" : "text-navy-900"}`}>Underwriting Dynamic Risk Parameters...</h3>
+          <h3 className={`font-extrabold text-base text-content`}>Underwriting Dynamic Risk Parameters...</h3>
           <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest animate-pulse">Running advanced actuarial ML rate locks</p>
         </div>
       ) : (
@@ -42,20 +39,18 @@ export function VerdictStep({ loading, underwritingVerdict, secureId }: VerdictS
           </div>
 
           <div className="text-center space-y-2 mb-6">
-            <h2 className={`text-2xl sm:text-3xl font-black ${theme === "dark" ? "text-white" : "text-navy-900"}`}>Actuarial Risk Qualified</h2>
-            <p className={`text-xs font-semibold leading-relaxed ${descClass(theme)}`}>Your sovereign security shield has been dynamically underwritten. Secure ID allocated successfully.</p>
+            <h2 className={`text-2xl sm:text-3xl font-black text-content`}>Actuarial Risk Qualified</h2>
+            <p className={`text-xs font-semibold leading-relaxed ${descClass}`}>Your sovereign security shield has been dynamically underwritten. Secure ID allocated successfully.</p>
           </div>
 
           {/* Recommendation Card */}
           <motion.div
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
-            className={`bg-white rounded-[32px] p-6 sm:p-8 text-slate-900 border-2 shadow-2xl relative overflow-hidden text-left ${finalCardBorder(theme)}`}
+            className={`bg-white rounded-[32px] p-6 sm:p-8 text-slate-900 border-2 shadow-2xl relative overflow-hidden text-left ${finalCardBorder}`}
           >
             {/* Highlighting badge */}
-            <div className={`absolute top-0 right-0 text-white font-black text-[9px] uppercase tracking-widest px-4 py-1.5 rounded-bl-2xl ${
-              theme === "dark" ? "bg-gradient-to-l from-royal-600 to-cyan-500" : "bg-navy-900"
-            }`}>
+            <div className={`absolute top-0 right-0 text-white font-black text-[9px] uppercase tracking-widest px-4 py-1.5 rounded-bl-2xl bg-navy-900 dark:bg-gradient-to-l dark:from-royal-600 dark:to-cyan-500`}>
               Bespoke AI Match
             </div>
 
@@ -122,11 +117,7 @@ export function VerdictStep({ loading, underwritingVerdict, secureId }: VerdictS
 
           <Link
             href="/"
-            className={`w-full py-4.5 font-black rounded-2xl text-xs uppercase tracking-widest text-center shadow-2xl block transition-all mt-4 border ${
-              theme === "dark"
-                ? "bg-white hover:bg-slate-100 text-slate-950 border-white/10"
-                : "bg-navy-900 hover:bg-navy-950 text-white border-navy-900"
-            }`}
+            className={`w-full py-4.5 font-black rounded-2xl text-xs uppercase tracking-widest text-center shadow-2xl block transition-all mt-4 border bg-navy-900 hover:bg-navy-950 text-white border-navy-900 dark:bg-white dark:hover:bg-slate-100 dark:text-slate-950 dark:border-white/10`}
           >
             Return to Secure Console
           </Link>

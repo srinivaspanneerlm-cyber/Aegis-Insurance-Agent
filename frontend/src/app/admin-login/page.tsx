@@ -11,11 +11,10 @@ import {
 import { motion } from "framer-motion";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { useTheme } from "@/context/ThemeContext";
 
 export default function AdminLoginPage() {
   const { login, loading, isAuthenticated, user } = useAuth();
-  const { theme } = useTheme();
+
   const router = useRouter();
 
   const [userId, setUserId] = useState("");
@@ -66,7 +65,7 @@ export default function AdminLoginPage() {
     setErrorMsg("Demo credentials synchronized. Press 'Authorize Access' to unlock dashboard.");
   };
 
-  const wrapperClass = theme === "dark" ? "bg-slate-950 text-white" : "bg-slate-900 text-white";
+  const wrapperClass = "bg-slate-900 text-white dark:bg-slate-950 dark:text-white";
 
   const inputClass = "bg-slate-950 border-cyan-500/20 text-cyan-200 placeholder-slate-650 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/10";
 
@@ -82,7 +81,7 @@ export default function AdminLoginPage() {
       {/* Main Content Grid */}
       <section className="relative pt-32 pb-20 flex-grow flex items-center justify-center z-10">
         <div className="max-w-6xl w-full mx-auto px-6 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-          
+
           {/* LEFT: ENTERPRISE COMMAND METRICS */}
           <div className="lg:col-span-7 text-left space-y-6">
             <span className="inline-flex items-center gap-1.5 text-cyan-400 bg-cyan-950/40 border border-cyan-800/40 py-1.5 px-4 rounded-full text-xs font-bold uppercase tracking-widest leading-none">
@@ -148,7 +147,7 @@ export default function AdminLoginPage() {
               )}
 
               <form onSubmit={handleSubmit} className="space-y-4 text-left">
-                
+
                 {/* Company User ID */}
                 <div className="space-y-1.5">
                   <label className="text-[9px] font-black uppercase tracking-widest text-slate-500 block">
@@ -182,7 +181,7 @@ export default function AdminLoginPage() {
                       className={`w-full py-3.5 pl-11 pr-11 rounded-xl border outline-none text-xs font-semibold transition-all ${inputClass}`}
                     />
                     <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-slate-500" />
-                    
+
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}

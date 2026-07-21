@@ -2,7 +2,6 @@
 
 import { Sparkles, ShieldCheck, Shield, Award, Cpu, Users, Heart } from "lucide-react";
 import { motion } from "framer-motion";
-import { useTheme } from "@/context/ThemeContext";
 import { glassCardClass } from "./aboutTheme";
 
 /** Core operating values rendered as a responsive card grid. */
@@ -17,8 +16,7 @@ const VALUES = [
 
 /** "Core Operating Values" grid section. */
 export function CompanyValuesSection() {
-  const { theme } = useTheme();
-  const glass = glassCardClass(theme);
+  const glass = glassCardClass;
 
   return (
     <section className="relative px-6 py-16 z-10">

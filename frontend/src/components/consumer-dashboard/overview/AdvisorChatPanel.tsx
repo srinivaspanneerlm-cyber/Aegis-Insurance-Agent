@@ -3,7 +3,6 @@
 import { RefObject } from "react";
 import { Sparkles, Clock, ChevronRight } from "lucide-react";
 import { motion } from "framer-motion";
-import { useTheme } from "@/context/ThemeContext";
 import type { DashboardMessage } from "../types";
 import { cardVariants } from "./variants";
 
@@ -20,14 +19,10 @@ interface AdvisorChatPanelProps {
 export function AdvisorChatPanel({
   chatMessages, isTyping, chatInput, setChatInput, handleSendMessage, chatEndRef,
 }: AdvisorChatPanelProps) {
-  const { theme } = useTheme();
-
   return (
     <motion.div
       variants={cardVariants}
-      className={`rounded-[32px] border p-6 sm:p-8 space-y-6 text-left relative overflow-hidden flex flex-col justify-between min-h-[460px] ${
-        theme === "dark" ? "bg-slate-900/40 border-white/5 shadow-2xl" : "bg-white border-slate-200 shadow-premium"
-      }`}
+      className={`rounded-[32px] border p-6 sm:p-8 space-y-6 text-left relative overflow-hidden flex flex-col justify-between min-h-[460px] bg-white border-slate-200 shadow-premium dark:bg-slate-900/40 dark:border-white/5 dark:shadow-2xl`}
     >
       <div className="flex items-center justify-between border-b border-white/5 pb-4 flex-shrink-0">
         <div className="flex items-center gap-3.5">
@@ -39,7 +34,7 @@ export function AdvisorChatPanel({
             <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-slate-900 rounded-full" />
           </div>
           <div>
-            <h3 className={`text-sm font-black leading-none ${theme === "dark" ? "text-white" : "text-navy-950"}`}>Sarah AI Advisor</h3>
+            <h3 className={`text-sm font-black leading-none text-content`}>Sarah AI Advisor</h3>
             {/* Glowing recommendation badge */}
             <span className="inline-flex items-center gap-1 text-[8.5px] text-purple-400 font-extrabold uppercase tracking-widest mt-1.5 leading-none">
               <span className="w-1.5 h-1.5 bg-purple-500 rounded-full animate-ping" />
@@ -54,9 +49,7 @@ export function AdvisorChatPanel({
       </div>
 
       {/* AI Advisor Speech Block (Memory and Recommendations) */}
-      <div className={`p-4.5 rounded-2xl border text-[12px] leading-relaxed font-semibold text-left ${
-        theme === "dark" ? "bg-purple-950/15 border-purple-500/20 text-slate-300" : "bg-purple-50/50 border-purple-100 text-slate-700"
-      }`}>
+      <div className={`p-4.5 rounded-2xl border text-[12px] leading-relaxed font-semibold text-left bg-purple-50/50 border-purple-100 text-slate-700 dark:bg-purple-950/15 dark:border-purple-500/20 dark:text-slate-300`}>
         <p className="flex items-start gap-2">
           <span className="text-purple-400 text-sm mt-0.5">✦</span>
           <span>
@@ -81,7 +74,7 @@ export function AdvisorChatPanel({
               </div>
               <div className={`p-4 rounded-2xl text-[12px] leading-relaxed font-semibold ${
                 isAI
-                  ? (theme === "dark" ? "bg-white/[0.02] border border-white/5 text-slate-300" : "bg-slate-50 border border-slate-150 text-slate-700")
+                  ? ("bg-slate-50 border border-slate-150 text-slate-700 dark:bg-white/[0.02] dark:border dark:border-white/5 dark:text-slate-300")
                   : "bg-purple-650 text-white shadow-sm"
               }`}>
                 {msg.text}
@@ -95,9 +88,7 @@ export function AdvisorChatPanel({
             <div className="w-8 h-8 rounded-lg bg-purple-650/20 text-purple-300 border border-purple-500/20 flex items-center justify-center font-bold text-xs">
               S
             </div>
-            <div className={`p-4 rounded-2xl flex items-center gap-1.5 shadow-sm border ${
-              theme === "dark" ? "bg-white/[0.02] border-white/5" : "bg-slate-50 border-slate-150"
-            }`}>
+            <div className={`p-4 rounded-2xl flex items-center gap-1.5 shadow-sm border bg-slate-50 border-slate-150 dark:bg-white/[0.02] dark:border-white/5`}>
               <span className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
               <span className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
               <span className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
@@ -108,17 +99,13 @@ export function AdvisorChatPanel({
       </div>
 
       {/* Chat input controls */}
-      <form onSubmit={handleSendMessage} className={`flex gap-2 border rounded-2xl p-2.5 flex-shrink-0 transition-colors duration-300 ${
-        theme === "dark" ? "bg-white/[0.02] border-white/10" : "bg-slate-100 border-slate-200"
-      }`}>
+      <form onSubmit={handleSendMessage} className={`flex gap-2 border rounded-2xl p-2.5 flex-shrink-0 transition-colors duration-300 bg-slate-100 border-slate-200 dark:bg-white/[0.02] dark:border-white/10`}>
         <input
           type="text"
           value={chatInput}
           onChange={(e) => setChatInput(e.target.value)}
           placeholder="Ask Sarah about coverage limits, vehicle riders, or claims matching..."
-          className={`flex-1 bg-transparent px-3 outline-none text-[12px] font-semibold ${
-            theme === "dark" ? "text-white placeholder-slate-500" : "text-navy-950 placeholder-slate-400"
-          }`}
+          className={`flex-1 bg-transparent px-3 outline-none text-[12px] font-semibold text-navy-950 placeholder-slate-400 dark:text-white dark:placeholder-slate-500`}
         />
         <button
           type="submit"

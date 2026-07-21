@@ -3,11 +3,9 @@
 import { useState, useEffect, useRef } from "react";
 import { Search } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useTheme } from "@/context/ThemeContext";
 
 /** Global search input with a ⌘K/Ctrl-K focus shortcut; routes to /policies. */
 export function SearchBar() {
-  const { theme } = useTheme();
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -31,9 +29,7 @@ export function SearchBar() {
     }
   };
 
-  const searchInputClass = theme === "dark"
-    ? "bg-white/[0.04] border-white/10 text-white placeholder-slate-400 focus:bg-slate-900/80 focus:border-royal-400 focus:ring-1 focus:ring-royal-500/20"
-    : "bg-slate-100 border-slate-200 text-slate-800 placeholder-slate-400 focus:bg-white focus:border-royal-650 focus:ring-4 focus:ring-royal-500/5";
+  const searchInputClass = "bg-slate-100 border-slate-200 text-slate-800 placeholder-slate-400 focus:bg-white focus:border-royal-650 focus:ring-4 focus:ring-royal-500/5 dark:bg-white/[0.04] dark:border-white/10 dark:text-white dark:placeholder-slate-400 dark:focus:bg-slate-900/80 dark:focus:border-royal-400 dark:focus:ring-1 dark:focus:ring-royal-500/20";
 
   return (
     <form onSubmit={handleSearchSubmit} className="flex-grow max-w-md hidden md:block relative">

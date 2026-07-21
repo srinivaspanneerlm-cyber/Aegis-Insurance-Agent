@@ -19,7 +19,7 @@ export function QuickActionDesks({ setActiveNav }: { setActiveNav: (nav: NavId) 
 
   return (
     <div className="space-y-4 text-left">
-      <h4 className={`font-black text-xs sm:text-sm uppercase tracking-widest ${theme === "dark" ? "text-slate-400" : "text-navy-950"}`}>
+      <h4 className={`font-black text-xs sm:text-sm uppercase tracking-widest text-navy-950 dark:text-slate-400`}>
         Instant Protection Desks
       </h4>
 
@@ -39,7 +39,7 @@ export function QuickActionDesks({ setActiveNav }: { setActiveNav: (nav: NavId) 
             <div className="w-10 h-10 rounded-xl bg-purple-950/40 text-purple-400 border border-purple-800/30 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
               {act.icon}
             </div>
-            <span className={`text-[10px] font-black uppercase tracking-widest leading-none ${theme === "dark" ? "text-slate-300" : "text-navy-950"}`}>
+            <span className={`text-[10px] font-black uppercase tracking-widest leading-none text-navy-950 dark:text-slate-300`}>
               {act.title}
             </span>
           </motion.button>

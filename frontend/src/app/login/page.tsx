@@ -22,7 +22,7 @@ export default function ConsumerLoginPage() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
-  
+
   // Google SSO simulated loading states
   const [googleLoading, setGoogleLoading] = useState(false);
 
@@ -67,15 +67,11 @@ export default function ConsumerLoginPage() {
   };
 
   // Theme styling computed
-  const wrapperClass = theme === "dark" ? "bg-slate-950 text-white" : "bg-slate-50 text-navy-900";
-  
-  const mainCardClass = theme === "dark"
-    ? "bg-slate-900/40 border-white/5 backdrop-blur-xl shadow-[0_30px_60px_rgba(0,0,0,0.4)]"
-    : "bg-white/95 border-slate-200/80 backdrop-blur-xl shadow-[0_20px_50px_rgba(15,23,42,0.08)]";
+  const wrapperClass = "bg-surface text-content";
 
-  const inputClass = theme === "dark"
-    ? "bg-white/[0.03] border-white/10 text-white placeholder-slate-500 focus:bg-slate-900/60 focus:border-purple-400 focus:ring-2 focus:ring-purple-500/10"
-    : "bg-slate-100 border-slate-200 text-slate-800 placeholder-slate-400 focus:bg-white focus:border-purple-650 focus:ring-4 focus:ring-purple-500/5";
+  const mainCardClass = "bg-white/95 border-slate-200/80 backdrop-blur-xl shadow-[0_20px_50px_rgba(15,23,42,0.08)] dark:bg-slate-900/40 dark:border-white/5 dark:backdrop-blur-xl dark:shadow-[0_30px_60px_rgba(0,0,0,0.4)]";
+
+  const inputClass = "bg-slate-100 border-slate-200 text-slate-800 placeholder-slate-400 focus:bg-white focus:border-purple-650 focus:ring-4 focus:ring-purple-500/5 dark:bg-white/[0.03] dark:border-white/10 dark:text-white dark:placeholder-slate-500 dark:focus:bg-slate-900/60 dark:focus:border-purple-400 dark:focus:ring-2 dark:focus:ring-purple-500/10";
 
   const GoogleIcon = () => (
     <svg className="w-5 h-5 mr-3 flex-shrink-0" viewBox="0 0 24 24">
@@ -107,7 +103,7 @@ export default function ConsumerLoginPage() {
       {/* Main Grid Content */}
       <section className="relative pt-32 pb-20 flex-grow flex items-center justify-center z-10">
         <div className="max-w-6xl w-full mx-auto px-6 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-          
+
           {/* LEFT: EMOTIONAL BRAND INTRO */}
           <div className="lg:col-span-6 text-left space-y-6">
             <span className="inline-flex items-center gap-1.5 text-purple-400 bg-purple-950/30 border border-purple-800/40 py-1.5 px-4 rounded-full text-xs font-bold uppercase tracking-widest leading-none">
@@ -121,15 +117,13 @@ export default function ConsumerLoginPage() {
                 protect what matters.
               </span>
             </h2>
-            
+
             <p className="text-slate-400 text-sm font-semibold max-w-md leading-relaxed">
               Log in to access your direct, commission-free insurance vault. Aegis AI helps you coordinate coverage matrices conversationally, protecting your family without dynamic markups.
             </p>
 
             {/* Quick Link to Admin Command Center */}
-            <div className={`p-4.5 rounded-[22px] border ${
-              theme === "dark" ? "bg-white/[0.02] border-white/5" : "bg-white border-slate-200/60 shadow-sm"
-            } max-w-md flex items-center justify-between`}>
+            <div className={`p-4.5 rounded-[22px] border bg-white border-slate-200/60 shadow-sm dark:bg-white/[0.02] dark:border-white/5 dark:shadow-none max-w-md flex items-center justify-between`}>
               <div className="text-left space-y-0.5">
                 <span className="text-[9px] text-cyan-400 font-extrabold uppercase tracking-widest block">Enterprise Console</span>
                 <p className="text-[11.5px] font-bold text-white">Security Officer Access Portal</p>
@@ -166,11 +160,7 @@ export default function ConsumerLoginPage() {
                 whileTap={{ scale: 0.99 }}
                 onClick={handleGoogleLoginSimulate}
                 disabled={googleLoading}
-                className={`w-full py-3.5 px-4 rounded-2xl flex items-center justify-center font-bold text-xs transition-all border shadow-sm cursor-pointer ${
-                  theme === "dark"
-                    ? "bg-white/[0.04] border-white/10 text-white hover:bg-white/[0.08]"
-                    : "bg-white border-slate-200 text-slate-800 hover:bg-slate-50"
-                }`}
+                className={`w-full py-3.5 px-4 rounded-2xl flex items-center justify-center font-bold text-xs transition-all border shadow-sm cursor-pointer bg-white border-slate-200 text-slate-800 hover:bg-slate-50 dark:bg-white/[0.04] dark:border-white/10 dark:text-white dark:hover:bg-white/[0.08]`}
               >
                 {googleLoading ? (
                   <div className="w-4 h-4 border-2 border-purple-500 border-t-transparent rounded-full animate-spin mr-3" />
@@ -181,11 +171,11 @@ export default function ConsumerLoginPage() {
               </motion.button>
 
               <div className="flex items-center my-6">
-                <div className={`flex-grow h-[1px] ${theme === "dark" ? "bg-white/10" : "bg-slate-200"}`} />
+                <div className={`flex-grow h-[1px] bg-slate-200 dark:bg-white/10`} />
                 <span className="px-3.5 text-[8.5px] text-slate-500 font-black uppercase tracking-widest">
                   Secure Credentials
                 </span>
-                <div className={`flex-grow h-[1px] ${theme === "dark" ? "bg-white/10" : "bg-slate-200"}`} />
+                <div className={`flex-grow h-[1px] bg-slate-200 dark:bg-white/10`} />
               </div>
 
               {errorMsg && (
@@ -199,7 +189,7 @@ export default function ConsumerLoginPage() {
               )}
 
               <form onSubmit={handleSubmit} className="space-y-4 text-left">
-                
+
                 {/* Email Address */}
                 <div className="space-y-1.5">
                   <label className="text-[9px] font-black uppercase tracking-widest text-slate-500 block">
@@ -233,7 +223,7 @@ export default function ConsumerLoginPage() {
                       className={`w-full py-3.5 pl-11 pr-11 rounded-xl border outline-none text-xs font-semibold transition-all ${inputClass}`}
                     />
                     <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-slate-500" />
-                    
+
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
@@ -264,9 +254,7 @@ export default function ConsumerLoginPage() {
                 </button>
               </form>
 
-              <div className={`mt-8 text-center border-t pt-6 ${
-                theme === "dark" ? "border-white/5" : "border-slate-150"
-              }`}>
+              <div className={`mt-8 text-center border-t pt-6 border-slate-150 dark:border-white/5`}>
                 <p className="text-xs font-semibold text-slate-500">
                   New to Aegis AI?{" "}
                   <Link href="/register" className="font-black hover:underline text-purple-400">

@@ -2,7 +2,6 @@
 
 import { LogOut, Menu, X, Zap } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useTheme } from "@/context/ThemeContext";
 import { NAV_ITEMS } from "./navItems";
 import type { NavId } from "./types";
 
@@ -19,21 +18,14 @@ interface DashboardSidebarProps {
 export function DashboardSidebar({
   activeNav, setActiveNav, sidebarOpen, setSidebarOpen, clientName, logout,
 }: DashboardSidebarProps) {
-  const { theme } = useTheme();
   const initial = clientName.charAt(0).toUpperCase();
 
   return (
     <>
       {/* SIDEBAR NAVIGATION PANEL (Redesigned & Premium) */}
-      <aside className={`hidden md:flex md:w-64 flex-col rounded-[32px] border p-6 text-left space-y-7 self-start transition-all duration-300 ${
-        theme === "dark"
-          ? "bg-slate-900/40 border-white/5 shadow-2xl backdrop-blur-xl"
-          : "bg-white/80 border-slate-200 shadow-premium backdrop-blur-xl"
-      }`}>
+      <aside className={`hidden md:flex md:w-64 flex-col rounded-[32px] border p-6 text-left space-y-7 self-start transition-all duration-300 bg-white/80 border-slate-200 shadow-premium backdrop-blur-xl dark:bg-slate-900/40 dark:border-white/5 dark:shadow-2xl dark:backdrop-blur-xl`}>
         {/* User Profile Badge with Pulse Node Indicator */}
-        <div className={`flex items-center gap-3.5 p-4 rounded-2xl border transition-all duration-300 relative overflow-hidden group ${
-          theme === "dark" ? "bg-white/[0.02] border-white/5" : "bg-slate-50 border-slate-150"
-        }`}>
+        <div className={`flex items-center gap-3.5 p-4 rounded-2xl border transition-all duration-300 relative overflow-hidden group bg-slate-50 border-slate-150 dark:bg-white/[0.02] dark:border-white/5`}>
           {/* Holographic flow on hover */}
           <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 to-cyan-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
@@ -48,7 +40,7 @@ export function DashboardSidebar({
           </div>
 
           <div className="overflow-hidden relative z-10 text-left">
-            <p className={`text-xs font-black truncate leading-none ${theme === "dark" ? "text-white" : "text-navy-950"}`}>{clientName}</p>
+            <p className={`text-xs font-black truncate leading-none text-content`}>{clientName}</p>
             <span className="text-[9px] text-cyan-400 font-extrabold uppercase tracking-widest mt-1.5 inline-flex items-center gap-1 leading-none">
               <Zap className="w-2.5 h-2.5 fill-cyan-400 animate-pulse" />
               <span>AI MATCHED</span>

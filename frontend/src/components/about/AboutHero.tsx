@@ -6,7 +6,6 @@ import {
   ArrowRight, Shield,
 } from "lucide-react";
 import { motion } from "framer-motion";
-import { useTheme } from "@/context/ThemeContext";
 
 /** Icons that orbit the holographic AI shield in the hero visual. */
 const ORBITING_BADGES = [
@@ -18,8 +17,6 @@ const ORBITING_BADGES = [
 
 /** About page hero: headline copy on the left, animated AI orb on the right. */
 export function AboutHero() {
-  const { theme } = useTheme();
-
   return (
     <section className="relative pt-36 pb-20 flex-grow flex items-center justify-center z-10">
       <div className="max-w-7xl w-full mx-auto px-6 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
@@ -46,11 +43,7 @@ export function AboutHero() {
           <div className="flex items-center gap-4 pt-2">
             <a
               href="#vision"
-              className={`py-3.5 px-7 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg flex items-center justify-center gap-2 border transition-all cursor-pointer ${
-                theme === "dark"
-                  ? "bg-white hover:bg-slate-100 text-slate-950 border-white/10"
-                  : "bg-navy-900 hover:bg-navy-950 text-white border-navy-900"
-              }`}
+              className={`py-3.5 px-7 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg flex items-center justify-center gap-2 border transition-all cursor-pointer bg-navy-900 hover:bg-navy-950 text-white border-navy-900 dark:bg-white dark:hover:bg-slate-100 dark:text-slate-950 dark:border-white/10`}
             >
               <span>Explore Our Vision</span>
               <ArrowRight className="w-4 h-4" />
@@ -58,9 +51,7 @@ export function AboutHero() {
 
             <Link
               href="/advisor"
-              className={`py-3.5 px-6 rounded-2xl font-bold text-xs uppercase tracking-wider border transition-all ${
-                theme === "dark" ? "bg-white/5 hover:bg-white/10 text-white border-white/10" : "bg-white hover:bg-slate-100 text-slate-700 border-slate-200"
-              }`}
+              className={`py-3.5 px-6 rounded-2xl font-bold text-xs uppercase tracking-wider border transition-all bg-white hover:bg-slate-100 text-slate-700 border-slate-200 dark:bg-white/5 dark:hover:bg-white/10 dark:text-white dark:border-white/10`}
             >
               Launch Consult
             </Link>
@@ -75,16 +66,12 @@ export function AboutHero() {
             <motion.div
               animate={{ rotate: 360 }}
               transition={{ repeat: Infinity, duration: 40, ease: "linear" }}
-              className={`absolute w-[85%] h-[85%] rounded-full border border-dashed opacity-10 ${
-                theme === "dark" ? "border-cyan-400" : "border-royal-500"
-              }`}
+              className={`absolute w-[85%] h-[85%] rounded-full border border-dashed opacity-10 border-royal-500 dark:border-cyan-400`}
             />
             <motion.div
               animate={{ rotate: -360 }}
               transition={{ repeat: Infinity, duration: 30, ease: "linear" }}
-              className={`absolute w-[65%] h-[65%] rounded-full border border-double opacity-20 ${
-                theme === "dark" ? "border-purple-400" : "border-indigo-400"
-              }`}
+              className={`absolute w-[65%] h-[65%] rounded-full border border-double opacity-20 border-indigo-400 dark:border-purple-400`}
             />
 
             {/* Glowing Background Light Shaft */}
@@ -94,11 +81,7 @@ export function AboutHero() {
             <motion.div
               animate={{ y: [0, -10, 0] }}
               transition={{ repeat: Infinity, duration: 6, ease: "easeInOut" }}
-              className={`relative w-48 h-48 rounded-[38px] flex flex-col items-center justify-center border-2 transition-all ${
-                theme === "dark"
-                  ? "bg-slate-900/70 border-cyan-500/40 text-cyan-300 shadow-[0_0_40px_rgba(6,182,212,0.3)]"
-                  : "bg-white border-royal-400 text-royal-650 shadow-[0_15px_30px_rgba(59,130,246,0.1)]"
-              }`}
+              className={`relative w-48 h-48 rounded-[38px] flex flex-col items-center justify-center border-2 transition-all bg-white border-royal-400 text-royal-650 shadow-[0_15px_30px_rgba(59,130,246,0.1)] dark:bg-slate-900/70 dark:border-cyan-500/40 dark:text-cyan-300 dark:shadow-[0_0_40px_rgba(6,182,212,0.3)]`}
             >
               <Shield className="w-24 h-24 stroke-[1.5]" />
               <span className="absolute text-4xl font-extrabold text-white mt-[-2px]">A</span>
@@ -118,11 +101,7 @@ export function AboutHero() {
                 animate={{ y: [badge.y, badge.y - 8, badge.y] }}
                 transition={{ repeat: Infinity, duration: 4.5, delay: badge.delay, ease: "easeInOut" }}
                 style={{ left: `calc(50% + ${badge.x}px - 20px)`, top: `calc(50% + ${badge.y}px - 20px)` }}
-                className={`absolute w-10 h-10 rounded-xl flex items-center justify-center border transition-all ${
-                  theme === "dark"
-                    ? "bg-slate-900 border-white/10 shadow-[0_0_15px_rgba(255,255,255,0.03)]"
-                    : "bg-white border-slate-200 shadow-premium"
-                }`}
+                className={`absolute w-10 h-10 rounded-xl flex items-center justify-center border transition-all bg-white border-slate-200 shadow-premium dark:bg-slate-900 dark:border-white/10 dark:shadow-[0_0_15px_rgba(255,255,255,0.03)]`}
               >
                 <div className={badge.color}>{badge.icon}</div>
               </motion.div>

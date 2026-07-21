@@ -12,14 +12,12 @@ export function ProtectionScoreCard() {
   return (
     <motion.div
       variants={cardVariants}
-      className={`rounded-[32px] border p-6 sm:p-7 shadow-2xl space-y-6 relative overflow-hidden transition-all duration-300 ${
-        theme === "dark" ? "bg-slate-900/40 border-white/5 shadow-purple-950/5" : "bg-white border-slate-200 shadow-premium"
-      }`}
+      className={`rounded-[32px] border p-6 sm:p-7 shadow-2xl space-y-6 relative overflow-hidden transition-all duration-300 bg-white border-slate-200 shadow-premium dark:bg-slate-900/40 dark:border-white/5 dark:shadow-purple-950/5`}
     >
       <div className="absolute top-[-30%] left-[-20%] w-40 h-40 rounded-full bg-cyan-500/5 blur-2xl pointer-events-none" />
 
       <div className="border-b border-white/5 pb-3">
-        <h4 className={`font-black text-xs sm:text-sm uppercase tracking-wider flex items-center gap-1.5 ${theme === "dark" ? "text-white" : "text-navy-950"}`}>
+        <h4 className={`font-black text-xs sm:text-sm uppercase tracking-wider flex items-center gap-1.5 text-content`}>
           <ShieldCheck className="w-4.5 h-4.5 text-purple-400" />
           <span>Protection Core Score</span>
         </h4>
@@ -55,13 +53,13 @@ export function ProtectionScoreCard() {
             </defs>
           </svg>
           <div className="absolute flex flex-col items-center justify-center text-center">
-            <span className={`text-3xl font-black tracking-tighter ${theme === "dark" ? "text-white" : "text-navy-950"}`}>82%</span>
+            <span className={`text-3xl font-black tracking-tighter text-content`}>82%</span>
             <span className="text-[8.5px] font-black text-cyan-400 uppercase tracking-widest mt-0.5">PROTECTED</span>
           </div>
         </div>
 
         <div className="text-center space-y-1 w-full px-2">
-          <p className={`text-[11.5px] font-bold ${theme === "dark" ? "text-slate-350" : "text-slate-600"}`}>
+          <p className={`text-[11.5px] font-bold text-slate-600 dark:text-slate-350`}>
             Your family health cover matches. Add Smart Auto Shield to complete 360° security.
           </p>
           <div className="flex justify-center gap-3 pt-3">

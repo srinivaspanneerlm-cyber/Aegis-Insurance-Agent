@@ -1,20 +1,17 @@
-import type { Theme } from "@/context/ThemeContext";
-
 /**
  * Theme-derived class strings shared across pages.
  *
- * `wrapperClass` and `glassCardClass` were defined identically in the About,
- * Contact, and Apply theme modules. They live here as the single source of
- * truth; the page-specific theme modules re-export these and add only their
- * own extras. Values are unchanged from the originals.
+ * Step 4.1.3 migrated these off the runtime `theme === "dark" ? …` ternary onto
+ * the semantic design tokens / Tailwind `dark:` variant (Step 4.1.2). The page
+ * wrapper now uses the `surface`/`content` tokens; the glass card keeps its
+ * exact per-theme values via `dark:` (its translucent surfaces can't be tokens,
+ * which hold opaque hex). No consumer needs to pass `theme` any more.
  */
 
-/** Page wrapper background/text for the current theme. */
-export const wrapperClass = (theme: Theme): string =>
-  theme === "dark" ? "bg-slate-950 text-white" : "bg-slate-50 text-navy-900";
+/** Page wrapper background/text — semantic tokens resolve per theme. */
+export const wrapperClass = "bg-surface text-content";
 
 /** Glassmorphic card surface used by the About/Contact section cards. */
-export const glassCardClass = (theme: Theme): string =>
-  theme === "dark"
-    ? "bg-slate-900/40 border-white/5 shadow-2xl text-slate-300"
-    : "bg-white border-slate-200/80 shadow-premium text-slate-700";
+export const glassCardClass =
+  "bg-white border-slate-200/80 shadow-premium text-slate-700 " +
+  "dark:bg-slate-900/40 dark:border-white/5 dark:shadow-2xl dark:text-slate-300";

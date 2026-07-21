@@ -107,7 +107,7 @@ export function LoginCard({
             <div className={`w-12 h-12 rounded-full ${v.iconWrap} text-white flex items-center justify-center shadow-lg mb-3`}>
               {v.icon}
             </div>
-            <h3 className={`text-base font-black ${theme === "dark" ? "text-white" : "text-navy-900"}`}>{v.title}</h3>
+            <h3 className={`text-base font-black text-content`}>{v.title}</h3>
             <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">{v.subtitle}</p>
           </div>
 
@@ -141,9 +141,9 @@ export function LoginCard({
 
           {/* Divider */}
           <div className="flex items-center">
-            <div className={`flex-grow h-[1px] ${theme === "dark" ? "bg-white/10" : "bg-slate-200"}`} />
+            <div className={`flex-grow h-[1px] bg-slate-200 dark:bg-white/10`} />
             <span className="px-3.5 text-[8.5px] text-slate-500 font-black uppercase tracking-widest">or</span>
-            <div className={`flex-grow h-[1px] ${theme === "dark" ? "bg-white/10" : "bg-slate-200"}`} />
+            <div className={`flex-grow h-[1px] bg-slate-200 dark:bg-white/10`} />
           </div>
 
           <form onSubmit={onSubmit} className="space-y-4">
@@ -156,9 +156,7 @@ export function LoginCard({
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder={v.emailPlaceholder}
-                  className={`w-full py-3 pl-10 pr-4 rounded-xl border outline-none text-xs font-semibold transition-all ${
-                    theme === "dark" ? "bg-white/[0.03] border-white/10 text-white focus:bg-slate-900/60" : "bg-slate-100 border-slate-200 text-slate-800 focus:bg-white"
-                  }`}
+                  className={`w-full py-3 pl-10 pr-4 rounded-xl border outline-none text-xs font-semibold transition-all bg-slate-100 border-slate-200 text-slate-800 focus:bg-white dark:bg-white/[0.03] dark:border-white/10 dark:text-white dark:focus:bg-slate-900/60`}
                 />
                 <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
               </div>
@@ -173,9 +171,7 @@ export function LoginCard({
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className={`w-full py-3 pl-10 pr-10 rounded-xl border outline-none text-xs font-semibold transition-all ${
-                    theme === "dark" ? "bg-white/[0.03] border-white/10 text-white focus:bg-slate-900/60" : "bg-slate-100 border-slate-200 text-slate-800 focus:bg-white"
-                  }`}
+                  className={`w-full py-3 pl-10 pr-10 rounded-xl border outline-none text-xs font-semibold transition-all bg-slate-100 border-slate-200 text-slate-800 focus:bg-white dark:bg-white/[0.03] dark:border-white/10 dark:text-white dark:focus:bg-slate-900/60`}
                 />
                 <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                 <button
