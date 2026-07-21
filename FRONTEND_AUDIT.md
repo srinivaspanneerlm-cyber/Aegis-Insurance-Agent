@@ -16,10 +16,10 @@ Phase 4 work.
 
 ```
 Phase 4.1  UI Architecture      ████████████████████  4 of 4 steps
-Phase 4.2  UX Engineering       ██████████░░░░░░░░░░  2 of 4 steps
+Phase 4.2  UX Engineering       ███████████████░░░░░  3 of 4 steps
 Phase 4.3  Visual Engineering   ░░░░░░░░░░░░░░░░░░░░  0 of 5 steps
 ──────────────────────────────────────────────────────────────────
-PHASE 4 OVERALL                 ████████░░░░░░░░░░░░  6 of 13 steps
+PHASE 4 OVERALL                 █████████░░░░░░░░░░░  7 of 13 steps
 ```
 
 | Step | Title | Status | Commit |
@@ -30,7 +30,7 @@ PHASE 4 OVERALL                 ████████░░░░░░░░
 | **4.1.4** | Component primitives (Button/Input/Card/Skeleton/EmptyState/…) | ✅ **Done** | `feat(frontend): component primitive library (ui/)` |
 | **4.2.1** | Accessibility pass — labels, landmarks, focus, ARIA, reduced-motion | ✅ **Done** | `feat(frontend): accessibility foundations — reduced-motion, focus, landmarks, ARIA` |
 | **4.2.2** | State coverage — error/not-found/loading, skeletons, empty states | ✅ **Done** | `feat(frontend): route state coverage — loading/error/not-found + empty states` |
-| 4.2.3 | AI experience — typing/thinking, suggested questions ⚠️ *needs sign-off* | ⬜ Not started | — |
+| **4.2.3** | AI experience — typing/thinking, suggested questions | ✅ **Done** | `feat(frontend): advisor starter questions (presentational)` |
 | 4.2.4 | Journey polish — nav, search, filters, confirmations | ⬜ Not started | — |
 | 4.3.1 | Landing page | ⬜ Not started | — |
 | 4.3.2 | Product / category pages | ⬜ Not started | — |
@@ -48,7 +48,7 @@ PHASE 4 OVERALL                 ████████░░░░░░░░
 | Consumer Trust | 40 | **82** ▲42 | 90 |
 | Design System | 45 | **74** ▲29 | 90 |
 | Performance | 55 | **56** ▲1 | 85 |
-| UX | 58 | **72** ▲14 | 88 |
+| UX | 58 | **75** ▲17 | 88 |
 | UI Quality | 65 | **69** ▲4 | 90 |
 | Frontend Architecture | 68 | **80** ▲12 | 90 |
 | **Enterprise Readiness (FE)** | 52 | **71** ▲19 | 90 |
@@ -477,6 +477,34 @@ route; Next validated the error/loading/global-error signatures).
 **Risk & rollback:** Low — new route files are additive; the three component edits
 swap an ad-hoc empty block for the primitive with no logic change. Rollback:
 revert this commit.
+
+---
+
+### Step 4.2.3 — AI Experience ✅ *(presentational-only, signed off)*
+
+**Scope was explicitly bounded** because this touches the advisor/voice surface
+that CLAUDE.md §2/§6 protect. The user authorised **presentational-only**; a
+name-checked guard confirmed the commit touches **none** of `useVoice` /
+`useStreaming` / `VoiceEngine` / `stream_service` / orchestrator / transfer.
+
+**Thinking/typing already existed** — `ThinkingEngine.tsx` renders live streaming
+reasoning steps off `useStreaming`, so the net-new is **starter questions**:
+- `lib/suggestedQuestions.ts` — 4 plain-language starters per advisor domain
+  (health / motor / travel / property / miscellaneous), mission-toned (educate,
+  no assumed jargon).
+- `SuggestedQuestions.tsx` — presentational chip row (accessible `<ul>` of
+  buttons, focus-visible); holds no chat state.
+- Wired into `advisor/page.tsx` **only additively**: shown before the user's first
+  turn (`!isStreaming && !connectingTo && !messages.some(user)`), and a click
+  calls the **existing** `sendToAdvisor(q)` — the workflow's public interface,
+  unchanged.
+
+**Files:** 4 changed (3 new + additive page render + a 4-case spec).
+**Verification:** tsc 0 · vitest 202/202 (+4) · lint 0 errors · production build
+clean · protected-path guard: **0 protected files touched**.
+
+**Risk & rollback:** Minimal — additive presentational UI calling an existing
+handler; no streaming/voice/transfer logic changed. Rollback: revert this commit.
 
 ---
 

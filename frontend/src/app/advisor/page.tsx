@@ -29,6 +29,8 @@ import AdvisorSidebar from "@/components/advisor/AdvisorSidebar";
 import { AdvisorBackdrop } from "@/components/advisor/AdvisorBackdrop";
 import { MessageTranscript } from "@/components/advisor/MessageTranscript";
 import { ChatComposer } from "@/components/advisor/ChatComposer";
+import { SuggestedQuestions } from "@/components/advisor/SuggestedQuestions";
+import { SUGGESTED_QUESTIONS } from "@/lib/suggestedQuestions";
 import { LeadFormModal } from "@/components/advisor/LeadFormModal";
 
 // ── Component ──────────────────────────────────────────────────────────────────
@@ -426,6 +428,15 @@ function AdvisorChat() {
             onVoicePlay={handleVoicePlay}
             chatEndRef={chatEndRef}
           />
+
+          {/* Starter chips: only before the user's first turn. Routes through the
+              existing send path — no streaming/voice logic touched. */}
+          {!isStreaming && !connectingTo && !messages.some((m) => m.sender === "user") && (
+            <SuggestedQuestions
+              questions={SUGGESTED_QUESTIONS[activeCategory]}
+              onSelect={(q) => sendToAdvisor(q)}
+            />
+          )}
 
           <ChatComposer
             previousAdvisorCategory={previousAdvisorCategory}
