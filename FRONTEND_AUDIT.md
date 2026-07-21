@@ -16,10 +16,10 @@ Phase 4 work.
 
 ```
 Phase 4.1  UI Architecture      ████████████████████  4 of 4 steps
-Phase 4.2  UX Engineering       █████░░░░░░░░░░░░░░░░  1 of 4 steps
+Phase 4.2  UX Engineering       ██████████░░░░░░░░░░  2 of 4 steps
 Phase 4.3  Visual Engineering   ░░░░░░░░░░░░░░░░░░░░  0 of 5 steps
 ──────────────────────────────────────────────────────────────────
-PHASE 4 OVERALL                 ███████░░░░░░░░░░░░░  5 of 13 steps
+PHASE 4 OVERALL                 ████████░░░░░░░░░░░░  6 of 13 steps
 ```
 
 | Step | Title | Status | Commit |
@@ -29,7 +29,7 @@ PHASE 4 OVERALL                 ███████░░░░░░░░░
 | **4.1.3** | Theme migration — JS ternaries → `dark:` + semantic tokens | ✅ **Done** | `refactor(frontend): migrate theme ternaries to dark: variant + tokens` |
 | **4.1.4** | Component primitives (Button/Input/Card/Skeleton/EmptyState/…) | ✅ **Done** | `feat(frontend): component primitive library (ui/)` |
 | **4.2.1** | Accessibility pass — labels, landmarks, focus, ARIA, reduced-motion | ✅ **Done** | `feat(frontend): accessibility foundations — reduced-motion, focus, landmarks, ARIA` |
-| 4.2.2 | State coverage — error/not-found/loading, skeletons, empty states | ⬜ Not started | — |
+| **4.2.2** | State coverage — error/not-found/loading, skeletons, empty states | ✅ **Done** | `feat(frontend): route state coverage — loading/error/not-found + empty states` |
 | 4.2.3 | AI experience — typing/thinking, suggested questions ⚠️ *needs sign-off* | ⬜ Not started | — |
 | 4.2.4 | Journey polish — nav, search, filters, confirmations | ⬜ Not started | — |
 | 4.3.1 | Landing page | ⬜ Not started | — |
@@ -48,11 +48,11 @@ PHASE 4 OVERALL                 ███████░░░░░░░░░
 | Consumer Trust | 40 | **82** ▲42 | 90 |
 | Design System | 45 | **74** ▲29 | 90 |
 | Performance | 55 | **56** ▲1 | 85 |
-| UX | 58 | **58** | 88 |
+| UX | 58 | **72** ▲14 | 88 |
 | UI Quality | 65 | **69** ▲4 | 90 |
 | Frontend Architecture | 68 | **80** ▲12 | 90 |
-| **Enterprise Readiness (FE)** | 52 | **69** ▲17 | 90 |
-| **Production Readiness (FE)** | 55 | **70** ▲15 | 92 |
+| **Enterprise Readiness (FE)** | 52 | **71** ▲19 | 90 |
+| **Production Readiness (FE)** | 55 | **73** ▲18 | 92 |
 
 > Design System / Architecture gains reflect **token/`dark:` adoption** (4.1.3)
 > plus the **primitive library** (4.1.4). 4.1.3: 226 theme ternaries → 18,
@@ -439,6 +439,44 @@ production build clean · CSS probe confirmed the reduced-motion query,
 **Risk & rollback:** Low — additive attributes + a wrapping landmark + global CSS;
 no behaviour or business logic touched. The reduced-motion catch-all is the one
 broad change (intended). Rollback: revert this commit.
+
+---
+
+### Step 4.2.2 — State Coverage ✅
+
+Closed the baseline UX gap: **0 → 4** App-Router state files, plus the first real
+adoption of the 4.1.4 `Skeleton`/`EmptyState` primitives.
+
+**Route-level (App Router special files — cover every route at once):**
+- **`not-found.tsx`** — branded 404 (`EmptyState` + a home link) inside a `<main>`.
+- **`error.tsx`** — segment error boundary (`"use client"`); logs the error, offers
+  `reset()` + a way home; details stay out of the UI.
+- **`global-error.tsx`** — last-resort boundary that replaces the document, so it
+  renders its own `<html>/<body>` with self-contained inline styles (no reliance
+  on app CSS/providers).
+- **`loading.tsx`** (root) — a calm content skeleton for route transitions, plus a
+  tailored **`consumer-dashboard/loading.tsx`** (stat row + content cards) for the
+  data-heavy dashboard.
+
+**Component-level empty states** wired into three genuine spots (not mock):
+`agents` search-empty, admin `ChatsViewport` empty branch, and `consumer/history`
+(new empty guard) — each an ad-hoc/absent state replaced with `<EmptyState>`.
+
+**Baseline → after:** `loading|error|not-found|global-error` route files **0 → 4**
+(+1 segment), Skeleton usage **0 → 2 route skeletons**, empty-state guards **2 → 5**.
+
+**Deferred (documented):** empty/skeleton coverage on the remaining lists
+(policies, documents, notifications, admin tables); `PolicyCards` keeps a static
+fallback so it has no genuine empty state; segment `error/loading` on the
+purchase flow. These continue as those surfaces get real data wiring.
+
+**Files:** 11 changed (6 new route files). **Verification:** tsc 0 · vitest
+198/198 · lint 0 errors · production build clean (`/_not-found` now a compiled
+route; Next validated the error/loading/global-error signatures).
+
+**Risk & rollback:** Low — new route files are additive; the three component edits
+swap an ad-hoc empty block for the primitive with no logic change. Rollback:
+revert this commit.
 
 ---
 

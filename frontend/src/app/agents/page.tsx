@@ -3,12 +3,13 @@
 import { useState } from "react";
 import Link from "next/link";
 import {
-  Search, Star, Shield, Users,
+  Search, SearchX, Star, Shield, Users,
   ArrowRight
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { EmptyState } from "@/components/ui";
 import { useTheme } from "@/context/ThemeContext";
 import { PLANS_PER_CATEGORY } from "@/lib/platformFacts";
 
@@ -257,8 +258,12 @@ export default function AgentsPage() {
             </AnimatePresence>
 
             {filteredAgents.length === 0 && (
-              <div className="col-span-full py-16 text-center text-slate-500 font-semibold">
-                No matching Aegis officers found. Expand search constraints.
+              <div className="col-span-full">
+                <EmptyState
+                  icon={<SearchX className="w-6 h-6" />}
+                  title="No matching officers"
+                  description="No Aegis officers match your current search. Try a different term or clear the filters."
+                />
               </div>
             )}
           </div>

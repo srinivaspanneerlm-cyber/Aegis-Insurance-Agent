@@ -9,6 +9,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { chatService } from "@/services/api";
 import { ChatLog } from "@/types/domain";
+import { EmptyState } from "@/components/ui";
 
 export default function ConsumerHistoryPage() {
   const { loading, isAuthenticated } = useAuth();
@@ -81,6 +82,13 @@ export default function ConsumerHistoryPage() {
             </div>
 
             <div className="space-y-4">
+              {history.length === 0 && (
+                <EmptyState
+                  icon={<Clock className="w-6 h-6" />}
+                  title="No consultations yet"
+                  description="Once you talk to an Aegis advisor, your conversation history will appear here."
+                />
+              )}
               {history.map((h, idx) => (
                 <div key={idx} className="p-6 bg-slate-900/60 border border-white/5 rounded-3xl text-left space-y-4 shadow-2xl">
                   <div className="flex items-center justify-between border-b border-white/5 pb-2">

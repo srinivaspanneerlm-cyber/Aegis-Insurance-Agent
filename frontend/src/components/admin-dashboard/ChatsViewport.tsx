@@ -1,7 +1,9 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { MessagesSquare } from "lucide-react";
 import type { ChatLog } from "@/types/domain";
+import { EmptyState } from "@/components/ui";
 
 /** Archived AI dialogue history inspector (nav: "chats"). */
 export function ChatsViewport({ chats }: { chats: ChatLog[] }) {
@@ -37,9 +39,11 @@ export function ChatsViewport({ chats }: { chats: ChatLog[] }) {
             </div>
           ))
         ) : (
-          <div className="p-8 text-center text-slate-550 font-bold uppercase tracking-widest bg-slate-950 border border-white/5 rounded-2xl">
-            No dialogues logged in current telemetry session.
-          </div>
+          <EmptyState
+            icon={<MessagesSquare className="w-6 h-6" />}
+            title="No dialogues logged"
+            description="No AI conversations have been recorded in the current telemetry session yet."
+          />
         )}
       </div>
     </motion.div>
