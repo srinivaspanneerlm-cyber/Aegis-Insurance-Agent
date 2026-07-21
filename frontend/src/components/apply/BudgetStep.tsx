@@ -3,6 +3,7 @@
 import { Check, ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
 import { descClass, labelClass, budgetBtnClass, priorityBtnClass } from "./applyTheme";
+import { Button } from "@/components/ui";
 
 interface BudgetStepProps {
   budgetTier: string;
@@ -90,13 +91,15 @@ export function BudgetStep({ budgetTier, setBudgetTier, priorities, togglePriori
         >
           Back
         </button>
-        <button
+        <Button
+          variant="primary"
+          size="lg"
           onClick={onNext}
-          className={`flex-grow py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-2xl flex items-center justify-center gap-2 transition-all cursor-pointer bg-navy-900 hover:bg-navy-950 text-white dark:bg-white dark:hover:bg-slate-100 dark:text-slate-950`}
+          rightIcon={<ArrowRight className="w-4 h-4" />}
+          className="flex-grow rounded-2xl shadow-2xl font-black dark:border-white"
         >
-          <span>Proceed to Verification</span>
-          <ArrowRight className="w-4 h-4" />
-        </button>
+          Proceed to Verification
+        </Button>
       </div>
     </motion.div>
   );

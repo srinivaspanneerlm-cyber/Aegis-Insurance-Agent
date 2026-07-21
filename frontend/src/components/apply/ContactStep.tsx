@@ -2,7 +2,8 @@
 
 import { User, Phone, Mail, Lock, ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
-import { descClass, labelClass, inputClass } from "./applyTheme";
+import { descClass } from "./applyTheme";
+import { Field, Input } from "@/components/ui";
 
 interface ContactStepProps {
   fullName: string;
@@ -33,49 +34,61 @@ export function ContactStep({
       </div>
 
       {/* Full Name */}
-      <div className="space-y-2">
-        <label className={`text-[10px] font-bold uppercase tracking-widest block ${labelClass}`}>Full Legal Name (Matching ID):</label>
-        <div className="relative">
-          <input
-            type="text"
-            value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
-            placeholder="Aravind Sharma"
-            className={`w-full py-4 pl-11 pr-4 rounded-xl border outline-none text-xs font-semibold transition-all ${inputClass}`}
-          />
-          <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-slate-400" />
-        </div>
-      </div>
+      <Field label="Full Legal Name (Matching ID):" className="space-y-2">
+        {({ id, invalid, describedBy }) => (
+          <div className="relative">
+            <Input
+              id={id}
+              type="text"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              placeholder="Aravind Sharma"
+              invalid={invalid}
+              aria-describedby={describedBy}
+              className="py-4 pl-11 pr-4"
+            />
+            <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-slate-400" />
+          </div>
+        )}
+      </Field>
 
       {/* Phone */}
-      <div className="space-y-2">
-        <label className={`text-[10px] font-bold uppercase tracking-widest block ${labelClass}`}>Secure Mobile (For OTP and CSR Alerts):</label>
-        <div className="relative">
-          <input
-            type="tel"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            placeholder="9876543210"
-            className={`w-full py-4 pl-11 pr-4 rounded-xl border outline-none text-xs font-semibold transition-all ${inputClass}`}
-          />
-          <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-slate-400" />
-        </div>
-      </div>
+      <Field label="Secure Mobile (For OTP and CSR Alerts):" className="space-y-2">
+        {({ id, invalid, describedBy }) => (
+          <div className="relative">
+            <Input
+              id={id}
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="9876543210"
+              invalid={invalid}
+              aria-describedby={describedBy}
+              className="py-4 pl-11 pr-4"
+            />
+            <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-slate-400" />
+          </div>
+        )}
+      </Field>
 
       {/* Email */}
-      <div className="space-y-2">
-        <label className={`text-[10px] font-bold uppercase tracking-widest block ${labelClass}`}>Policy Dispatch Email:</label>
-        <div className="relative">
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="aravind@corporate.com"
-            className={`w-full py-4 pl-11 pr-4 rounded-xl border outline-none text-xs font-semibold transition-all ${inputClass}`}
-          />
-          <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-slate-400" />
-        </div>
-      </div>
+      <Field label="Policy Dispatch Email:" className="space-y-2">
+        {({ id, invalid, describedBy }) => (
+          <div className="relative">
+            <Input
+              id={id}
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="aravind@corporate.com"
+              invalid={invalid}
+              aria-describedby={describedBy}
+              className="py-4 pl-11 pr-4"
+            />
+            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-slate-400" />
+          </div>
+        )}
+      </Field>
 
       {/* Encrypted Notice */}
       <div className={`p-4 rounded-2xl border flex items-start gap-3 bg-slate-100/50 border-slate-200 dark:bg-white/[0.02] dark:border-white/5`}>

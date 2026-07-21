@@ -15,11 +15,11 @@ Phase 4 work.
 ## Phase Progress
 
 ```
-Phase 4.1  UI Architecture      ██████████░░░░░░░░░░  2 of 4 steps
+Phase 4.1  UI Architecture      ████████████████████  4 of 4 steps
 Phase 4.2  UX Engineering       ░░░░░░░░░░░░░░░░░░░░  0 of 4 steps
 Phase 4.3  Visual Engineering   ░░░░░░░░░░░░░░░░░░░░  0 of 5 steps
 ──────────────────────────────────────────────────────────────────
-PHASE 4 OVERALL                 ████░░░░░░░░░░░░░░░░  3 of 13 steps
+PHASE 4 OVERALL                 ██████░░░░░░░░░░░░░░  4 of 13 steps
 ```
 
 | Step | Title | Status | Commit |
@@ -27,7 +27,7 @@ PHASE 4 OVERALL                 ████░░░░░░░░░░░░
 | **4.1.1** | Trust integrity — remove unverified claims | ✅ **Done** | `fix(frontend): stop presenting unverified claims as fact` |
 | **4.1.2** | Design tokens (color/spacing/radius/elevation) | ✅ **Done** | `feat(frontend): establish design-token layer` |
 | **4.1.3** | Theme migration — JS ternaries → `dark:` + semantic tokens | ✅ **Done** | `refactor(frontend): migrate theme ternaries to dark: variant + tokens` |
-| 4.1.4 | Component primitives (Button/Input/Card/Skeleton/EmptyState/…) | ⬜ Not started | — |
+| **4.1.4** | Component primitives (Button/Input/Card/Skeleton/EmptyState/…) | ✅ **Done** | `feat(frontend): component primitive library (ui/)` |
 | 4.2.1 | Accessibility pass — labels, landmarks, focus, ARIA, reduced-motion | ⬜ Not started | — |
 | 4.2.2 | State coverage — error/not-found/loading, skeletons, empty states | ⬜ Not started | — |
 | 4.2.3 | AI experience — typing/thinking, suggested questions ⚠️ *needs sign-off* | ⬜ Not started | — |
@@ -44,22 +44,25 @@ PHASE 4 OVERALL                 ████░░░░░░░░░░░░
 
 | Dimension | Baseline | Current | Target |
 |---|---:|---:|---:|
-| Accessibility | 32 | **32** | 90 |
+| Accessibility | 32 | **35** ▲3 | 90 |
 | Consumer Trust | 40 | **82** ▲42 | 90 |
-| Design System | 45 | **68** ▲23 | 90 |
+| Design System | 45 | **74** ▲29 | 90 |
 | Performance | 55 | **56** ▲1 | 85 |
 | UX | 58 | **58** | 88 |
-| UI Quality | 65 | **65** | 90 |
-| Frontend Architecture | 68 | **78** ▲10 | 90 |
-| **Enterprise Readiness (FE)** | 52 | **64** ▲12 | 90 |
-| **Production Readiness (FE)** | 55 | **66** ▲11 | 92 |
+| UI Quality | 65 | **69** ▲4 | 90 |
+| Frontend Architecture | 68 | **80** ▲12 | 90 |
+| **Enterprise Readiness (FE)** | 52 | **66** ▲14 | 90 |
+| **Production Readiness (FE)** | 55 | **68** ▲13 | 92 |
 
-> Design System / Architecture gains now reflect **token/`dark:` adoption**
-> (Step 4.1.3): the **226 theme ternaries dropped to 18** (all legitimate
-> conditional renders / logic / props, not styling), **`dark:` usage 5 → 394**,
-> and 63 sites moved onto the semantic tokens. `slate-*` and `text-[Npx]` still
-> stand (opacity-bearing surfaces can't be tokens per 4.1.2) and retire further
-> in Step 4.1.4 primitives.
+> Design System / Architecture gains reflect **token/`dark:` adoption** (4.1.3)
+> plus the **primitive library** (4.1.4). 4.1.3: 226 theme ternaries → 18,
+> `dark:` 5 → 394, 63 token sites. 4.1.4: a tested `ui/` library
+> (Button/Input+Field/Card/Badge/Skeleton/EmptyState) with the apply flow
+> migrated onto it. Accessibility ticks up slightly from `Field`'s `<label
+> htmlFor>` + focus-visible rings (the full a11y pass is **4.2.1**);
+> Skeleton/EmptyState adoption lands in **4.2.2**. `slate-*`/`text-[Npx]` still
+> stand where opacity-bearing (can't be tokens per 4.1.2) and retire as more
+> surfaces move onto the primitives.
 
 ---
 
@@ -338,6 +341,55 @@ the 4 token normalizations are intentional minor shifts (see above). Unit tests
 don't cover visuals — a **manual light/dark visual QA pass** on the marketing
 pages, apply flow, and dashboard is recommended before release. Rollback: revert
 this commit.
+
+---
+
+### Step 4.1.4 — Component Primitives ✅
+
+**Built a tested `ui/` primitive library and proved it against the apply flow.**
+Chosen scope: *library + focused prove-it migration* (additive-then-adopt, like
+4.1.2), not a full 64-button sweep — broad adoption continues incrementally and
+state primitives get wired into routes in 4.2.2.
+
+**New — `frontend/src/components/ui/`** (barrel `@/components/ui`):
+- **`Button`** — `forwardRef`, native `<button>` passthrough; variants
+  `primary` (navy/white-dark) · `gradient` (royal→cyan) · `secondary` · `ghost`;
+  sizes `sm/md/lg` (all `text-xs`, matching the app); `loading` (disables +
+  `aria-busy` + reuses `Spinner`); `fullWidth`, `leftIcon`/`rightIcon`;
+  `focus-visible` ring.
+- **`Input` + `Field`** — `Input` carries the recurring field treatment + an
+  `invalid` state; **`Field`** renders a real `<label htmlFor>` bound to the
+  control id and, on error, a message wired via `aria-describedby` (render-prop
+  passes `{ id, invalid, describedBy }`). Seeds the 4.2.1 label fix.
+- **`Card` + `Badge`** — `Card` (solid/glass/outline on surface tokens, padding
+  scale); `Badge` pill with `neutral/brand/success/warning/danger` tones.
+- **`Skeleton` + `EmptyState`** — shimmer placeholder (`aria-hidden`) and an
+  icon/title/description/action empty surface. Created here; **wired into routes
+  in 4.2.2** (the dashboard is static mock today, so no clean call site yet).
+- **`lib/cn.ts`** — `clsx` + `tailwind-merge` helper so a caller's `className`
+  reliably overrides a primitive default (used by every primitive).
+
+**Prove-it migration (apply flow):** `ContactStep`'s 3 fields → `Field`+`Input`
+(**adds the missing `<label htmlFor>` — a real a11y win**); `FamilyStep` +
+`BudgetStep` primary buttons → `Button variant="primary"`. Retired the now-dead
+`applyTheme.inputClass`. `VerdictStep`'s CTA left as-is (it's a `<Link>`, not a
+button — `Button` renders `<button>`).
+
+**Not migrated (documented, deliberate):** login/register forms are
+**purple-themed** (`focus:border-purple-*`), so `Input`'s royal focus isn't a
+pixel match — those adopt later with a themed accent; the dashboard's bespoke
+translucent cards/badges don't cleanly fit `Card`/`Badge` yet. The migrated
+inputs carry **minor normalizations** (bg opacity, focus-ring shade, label
+tone) — the expected effect of consolidating hand-tuned sites onto one system.
+
+**Files:** 15 changed (11 new: 6 primitives + 4 specs + `cn.ts` + barrel).
+**Verification:** tsc 0 · vitest **198/198** (+17 new primitive specs) · lint 0
+errors · production build clean · JIT probe confirmed `focus-visible:ring-2`,
+gradient/badge tones, `bg-surface-raised`, `shadow-elevation-1` all emit to CSS.
+
+**Risk & rollback:** Low. Library is additive; the migration is 5 sites in the
+apply flow with minor documented normalizations. Same **manual visual QA** note
+as 4.1.3 applies to the migrated apply steps. Rollback: revert this commit.
 
 ---
 

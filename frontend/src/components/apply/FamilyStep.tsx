@@ -3,6 +3,7 @@
 import { User, Heart, Users, Award, Check, ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
 import { descClass, familyBtnClass } from "./applyTheme";
+import { Button } from "@/components/ui";
 
 interface FamilyStepProps {
   familyConfig: string[];
@@ -113,13 +114,16 @@ export function FamilyStep({ familyConfig, toggleFamily, onNext }: FamilyStepPro
 
       </div>
 
-      <button
+      <Button
+        variant="primary"
+        size="lg"
+        fullWidth
         onClick={onNext}
-        className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-2xl flex items-center justify-center gap-2 transition-all cursor-pointer mt-4 bg-navy-900 hover:bg-navy-950 text-white dark:bg-white dark:hover:bg-slate-100 dark:text-slate-950`}
+        rightIcon={<ArrowRight className="w-4 h-4" />}
+        className="rounded-2xl shadow-2xl font-black mt-4 dark:border-white"
       >
-        <span>Configure Budget & Goals</span>
-        <ArrowRight className="w-4 h-4" />
-      </button>
+        Configure Budget &amp; Goals
+      </Button>
     </motion.div>
   );
 }

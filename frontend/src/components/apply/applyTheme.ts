@@ -40,9 +40,5 @@ export const budgetBtnClass = (isSelected: boolean) =>
     : "bg-slate-50 border-slate-200 hover:bg-slate-100 text-slate-600 font-bold " +
       "dark:bg-white/[0.02] dark:border-white/5 dark:hover:bg-white/5 dark:text-slate-400";
 
-export const inputClass =
-  "bg-slate-100/60 focus:bg-white border-slate-250 focus:border-royal-650 text-navy-900 shadow-inner " +
-  "dark:bg-white/5 dark:focus:bg-white/[0.08] dark:border-white/10 dark:focus:border-royal-500 dark:text-white dark:shadow-none";
-
 export const finalCardBorder =
   "border-royal-600 shadow-premium dark:border-cyan-400 dark:shadow-none";
