@@ -20,6 +20,7 @@ export default function AboutPage() {
     <div className={`min-h-screen relative flex flex-col justify-between overflow-hidden transition-colors duration-300 ${wrapperClass}`}>
       <Navbar />
       <AmbientBackground variant="about" />
+      <main id="main-content">
       <AboutHero />
       <AchievementsPanel />
       <CompanyIntroCard />
@@ -28,6 +29,7 @@ export default function AboutPage() {
       <FounderLocationSection />
       <CompanyValuesSection />
       <RoadmapSection />
+      </main>
       <Footer />
     </div>
   );

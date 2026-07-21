@@ -22,9 +22,11 @@ export default function ConsumerRecommendationsPage() {
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col justify-between">
         <Navbar />
+        <main id="main-content">
         <div className="flex-grow flex items-center justify-center">
           <div className="w-8 h-8 border-4 border-purple-650 border-t-transparent rounded-full animate-spin" />
         </div>
+        </main>
         <Footer />
       </div>
     );
@@ -35,6 +37,7 @@ export default function ConsumerRecommendationsPage() {
   return (
     <div className={`min-h-screen relative flex flex-col justify-between overflow-hidden transition-colors duration-300 ${wrapperClass}`}>
       <Navbar />
+      <main id="main-content">
 
       <section className="relative pt-36 pb-24 flex-grow flex items-center justify-center z-10 text-left">
         <div className="max-w-4xl w-full mx-auto px-6">
@@ -93,6 +96,7 @@ export default function ConsumerRecommendationsPage() {
         </div>
       </section>
 
+      </main>
       <Footer />
     </div>
   );

@@ -17,11 +17,13 @@ export default function Home() {
     <div className={`min-h-screen relative flex flex-col justify-between overflow-hidden transition-colors duration-300 ${wrapperClass}`}>
       <Navbar onLoginClick={openLogin} />
       <AmbientBackground variant="home" />
+      <main id="main-content">
       <HeroSection onOpenLogin={openLogin} />
       <StatsBar />
       <AdvisorEcosystem />
       <Testimonials />
       <LoginModal isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)} />
+      </main>
       <Footer />
     </div>
   );

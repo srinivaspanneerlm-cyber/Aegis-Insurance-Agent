@@ -16,10 +16,10 @@ Phase 4 work.
 
 ```
 Phase 4.1  UI Architecture      ████████████████████  4 of 4 steps
-Phase 4.2  UX Engineering       ░░░░░░░░░░░░░░░░░░░░  0 of 4 steps
+Phase 4.2  UX Engineering       █████░░░░░░░░░░░░░░░░  1 of 4 steps
 Phase 4.3  Visual Engineering   ░░░░░░░░░░░░░░░░░░░░  0 of 5 steps
 ──────────────────────────────────────────────────────────────────
-PHASE 4 OVERALL                 ██████░░░░░░░░░░░░░░  4 of 13 steps
+PHASE 4 OVERALL                 ███████░░░░░░░░░░░░░  5 of 13 steps
 ```
 
 | Step | Title | Status | Commit |
@@ -28,7 +28,7 @@ PHASE 4 OVERALL                 ██████░░░░░░░░░░
 | **4.1.2** | Design tokens (color/spacing/radius/elevation) | ✅ **Done** | `feat(frontend): establish design-token layer` |
 | **4.1.3** | Theme migration — JS ternaries → `dark:` + semantic tokens | ✅ **Done** | `refactor(frontend): migrate theme ternaries to dark: variant + tokens` |
 | **4.1.4** | Component primitives (Button/Input/Card/Skeleton/EmptyState/…) | ✅ **Done** | `feat(frontend): component primitive library (ui/)` |
-| 4.2.1 | Accessibility pass — labels, landmarks, focus, ARIA, reduced-motion | ⬜ Not started | — |
+| **4.2.1** | Accessibility pass — labels, landmarks, focus, ARIA, reduced-motion | ✅ **Done** | `feat(frontend): accessibility foundations — reduced-motion, focus, landmarks, ARIA` |
 | 4.2.2 | State coverage — error/not-found/loading, skeletons, empty states | ⬜ Not started | — |
 | 4.2.3 | AI experience — typing/thinking, suggested questions ⚠️ *needs sign-off* | ⬜ Not started | — |
 | 4.2.4 | Journey polish — nav, search, filters, confirmations | ⬜ Not started | — |
@@ -44,15 +44,15 @@ PHASE 4 OVERALL                 ██████░░░░░░░░░░
 
 | Dimension | Baseline | Current | Target |
 |---|---:|---:|---:|
-| Accessibility | 32 | **35** ▲3 | 90 |
+| Accessibility | 32 | **58** ▲26 | 90 |
 | Consumer Trust | 40 | **82** ▲42 | 90 |
 | Design System | 45 | **74** ▲29 | 90 |
 | Performance | 55 | **56** ▲1 | 85 |
 | UX | 58 | **58** | 88 |
 | UI Quality | 65 | **69** ▲4 | 90 |
 | Frontend Architecture | 68 | **80** ▲12 | 90 |
-| **Enterprise Readiness (FE)** | 52 | **66** ▲14 | 90 |
-| **Production Readiness (FE)** | 55 | **68** ▲13 | 92 |
+| **Enterprise Readiness (FE)** | 52 | **69** ▲17 | 90 |
+| **Production Readiness (FE)** | 55 | **70** ▲15 | 92 |
 
 > Design System / Architecture gains reflect **token/`dark:` adoption** (4.1.3)
 > plus the **primitive library** (4.1.4). 4.1.3: 226 theme ternaries → 18,
@@ -390,6 +390,55 @@ gradient/badge tones, `bg-surface-raised`, `shadow-elevation-1` all emit to CSS.
 **Risk & rollback:** Low. Library is additive; the migration is 5 sites in the
 apply flow with minor documented normalizations. Same **manual visual QA** note
 as 4.1.3 applies to the migrated apply steps. Rollback: revert this commit.
+
+---
+
+### Step 4.2.1 — Accessibility Pass ✅
+
+**First step of Phase 4.2.** Attacked the baseline's worst dimension (32) across
+five fronts. Metrics before → after: `prefers-reduced-motion` **0 → handled**
+(CSS + MotionConfig), `<main>` landmarks **2 → 16**, `aria-*` **1 → 27**,
+`<label htmlFor>` **2 → 12**, plus a global keyboard focus ring and a skip link
+where there were none.
+
+**Global foundations (`globals.css` + `layout.tsx`):**
+- **Reduced motion** — a `@media (prefers-reduced-motion: reduce)` catch-all
+  neutralises CSS transitions/animations (the app had **387 transitions / 109
+  animations**, 0 handled), and `<MotionConfig reducedMotion="user">` makes
+  framer-motion honour the OS setting (the JS animations CSS can't reach).
+- **Keyboard focus** — a universal `:focus-visible` outline (theme-aware via the
+  brand token, `outline` not box-shadow so it never shifts layout), keyboard-only
+  via `:focus:not(:focus-visible)`. Was **0 focus-visible** app-wide.
+- **Skip link** — an off-screen `.skip-link` that reveals on focus and jumps to
+  `#main-content`.
+
+**Structure — `<main id="main-content">`** wrapped onto 11 primary pages (home,
+auth, marketing, apply, dashboard + consumer sub-pages), via an indentation-aware
+transform that asserts balanced open/close. Guarded (loading-state) render blocks
+get their own `<main>` too.
+
+**Accessible names** on 10 icon-only controls that appear app-wide or on modals:
+theme toggle (`aria-label` + `aria-pressed`), FloatingAI launcher + close
+(`aria-expanded`), mega-menu button (`aria-expanded`/`aria-haspopup`), 3 password
+eye toggles (dynamic show/hide label), sidebar toggle (`aria-expanded`), and the
+login / lead-form / interrupt / advisor-exit close buttons.
+
+**Form labels** — wired `htmlFor`/`id` on the register (3) and login (2) fields
+whose visible labels weren't programmatically associated.
+
+**Deliberately deferred (documented follow-ups):** landmark coverage on the
+purchase/admin sub-flows; `role="dialog"` + **focus-trap** on modals (needs focus
+management, a meaningful chunk of its own); a **color-contrast audit** and real
+screen-reader testing; admin-login form labels. These keep Accessibility short of
+target — hence 58, not 90.
+
+**Files:** 21 changed. **Verification:** tsc 0 · vitest 198/198 · lint 0 errors ·
+production build clean · CSS probe confirmed the reduced-motion query,
+`:focus-visible` outline, and `.skip-link` all emit.
+
+**Risk & rollback:** Low — additive attributes + a wrapping landmark + global CSS;
+no behaviour or business logic touched. The reduced-motion catch-all is the one
+broad change (intended). Rollback: revert this commit.
 
 ---
 

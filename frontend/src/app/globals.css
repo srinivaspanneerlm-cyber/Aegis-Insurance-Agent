@@ -53,6 +53,58 @@ body {
   scroll-behavior: smooth;
 }
 
+/* ── Accessibility foundations (Step 4.2.1) ─────────────────────────────── */
+
+/* Visible keyboard focus for every interactive element. `outline` (not a
+   box-shadow) never shifts layout; `:focus-visible` keeps it keyboard-only so
+   mouse clicks don't show a ring. Theme-aware via the brand token. */
+:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Skip-to-content link: off-screen until focused, then pinned top-left. */
+.skip-link {
+  position: fixed;
+  top: 0.75rem;
+  left: 0.75rem;
+  z-index: 200;
+  padding: 0.6rem 1rem;
+  border-radius: 0.5rem;
+  background: var(--brand);
+  color: #fff;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  transform: translateY(-160%);
+  transition: transform 0.2s ease;
+}
+.skip-link:focus {
+  transform: translateY(0);
+}
+
+/* Honour the user's reduced-motion preference for CSS transitions/animations.
+   Framer-motion is handled separately via <MotionConfig reducedMotion="user">. */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .skip-link {
+    transition: none;
+  }
+}
+
 /* Premium utility classes */
 @layer utilities {
   .text-balance {

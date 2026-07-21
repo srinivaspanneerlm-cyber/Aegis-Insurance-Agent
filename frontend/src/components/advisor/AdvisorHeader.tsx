@@ -78,6 +78,7 @@ export default function AdvisorHeader({
 
         <Link
           href="/"
+          aria-label="Exit to home"
           className="p-2.5 rounded-xl border border-white/10 bg-white/5 text-slate-400 hover:text-white hover:bg-rose-500/10 hover:border-rose-500/20 active:scale-95 touch-manipulation select-none transition-all flex items-center justify-center cursor-pointer"
         >
           <X className="w-4 h-4" />

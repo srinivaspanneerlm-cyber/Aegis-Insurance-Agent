@@ -73,6 +73,7 @@ export default function InterruptDialog({ request, onConfirm, onDecline }: Props
             {/* Dismiss */}
             <button
               onClick={handleDecline}
+              aria-label="Dismiss"
               className="absolute right-4 top-4 z-10 p-2 rounded-xl text-slate-500 hover:text-white transition-colors cursor-pointer active:scale-95"
               style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}
             >

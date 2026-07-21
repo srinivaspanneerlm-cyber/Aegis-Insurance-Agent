@@ -96,6 +96,7 @@ export default function AgentsPage() {
   return (
     <div className={`min-h-screen relative flex flex-col justify-between overflow-hidden transition-colors duration-300 ${wrapperClass}`}>
       <Navbar />
+      <main id="main-content">
 
       {/* Futuristic animated glowing backgrounds */}
       {theme === "dark" && (
@@ -265,6 +266,7 @@ export default function AgentsPage() {
         </div>
       </section>
 
+      </main>
       <Footer />
     </div>
   );

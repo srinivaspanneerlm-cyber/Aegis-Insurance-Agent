@@ -85,6 +85,7 @@ export default function ConsumerLoginPage() {
   return (
     <div className={`min-h-screen relative flex flex-col justify-between overflow-hidden transition-colors duration-300 ${wrapperClass}`}>
       <Navbar />
+      <main id="main-content">
 
       {/* Soft warm gradients and grids */}
       {theme === "dark" ? (
@@ -192,11 +193,12 @@ export default function ConsumerLoginPage() {
 
                 {/* Email Address */}
                 <div className="space-y-1.5">
-                  <label className="text-[9px] font-black uppercase tracking-widest text-slate-500 block">
+                  <label htmlFor="login-email" className="text-[9px] font-black uppercase tracking-widest text-slate-500 block">
                     Registered Email Address:
                   </label>
                   <div className="relative">
                     <input
+                      id="login-email"
                       type="email"
                       required
                       value={email}
@@ -210,11 +212,12 @@ export default function ConsumerLoginPage() {
 
                 {/* Password */}
                 <div className="space-y-1.5">
-                  <label className="text-[9px] font-black uppercase tracking-widest text-slate-500 block">
+                  <label htmlFor="login-password" className="text-[9px] font-black uppercase tracking-widest text-slate-500 block">
                     Vault Passcode:
                   </label>
                   <div className="relative">
                     <input
+                      id="login-password"
                       type={showPassword ? "text" : "password"}
                       required
                       value={password}
@@ -227,6 +230,7 @@ export default function ConsumerLoginPage() {
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
+                      aria-label={showPassword ? "Hide password" : "Show password"}
                       className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
                     >
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -269,6 +273,7 @@ export default function ConsumerLoginPage() {
         </div>
       </section>
 
+      </main>
       <Footer />
     </div>
   );

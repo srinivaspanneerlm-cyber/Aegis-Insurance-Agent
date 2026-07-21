@@ -48,6 +48,7 @@ export default function FloatingAI() {
                 {/* Close Button */}
                 <button
                   onClick={() => setIsOpen(false)}
+                  aria-label="Close AI assistant"
                   className={`absolute top-4 right-4 p-1.5 rounded-full transition-colors cursor-pointer bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-900 dark:bg-white/5 dark:hover:bg-white/10 dark:text-slate-400 dark:hover:text-white`}
                 >
                   <X className="w-3.5 h-3.5" />
@@ -107,6 +108,8 @@ export default function FloatingAI() {
           {/* Floating Trigger Button */}
           <motion.button
             onClick={() => setIsOpen(!isOpen)}
+            aria-label={isOpen ? "Close AI assistant" : "Open AI assistant"}
+            aria-expanded={isOpen}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             animate={{

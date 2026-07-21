@@ -19,6 +19,7 @@ export default function ContactPage() {
     <div className={`min-h-screen relative flex flex-col justify-between overflow-hidden transition-colors duration-300 ${wrapperClass}`}>
       <Navbar />
       <AmbientBackground variant="contact" />
+      <main id="main-content">
       <ContactHero onOpenChat={chat.openChat} />
       <SupportCategories onQuickAccess={chat.handleQuickAccess} />
       <VaultChatRoom
@@ -33,6 +34,7 @@ export default function ContactPage() {
         chatConsoleRef={chat.chatConsoleRef}
       />
       <TrustPillars />
+      </main>
       <Footer />
     </div>
   );

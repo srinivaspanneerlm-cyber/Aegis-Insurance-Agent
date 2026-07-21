@@ -24,6 +24,7 @@ export default function ConsumerDashboard() {
     return (
       <div className="min-h-screen bg-slate-950 flex flex-col justify-between">
         <Navbar />
+        <main id="main-content">
         <div className="flex-grow flex items-center justify-center flex-col gap-4">
           <div className="relative w-16 h-16">
             <div className="absolute inset-0 rounded-full border-4 border-purple-500/20" />
@@ -32,6 +33,7 @@ export default function ConsumerDashboard() {
           </div>
           <h3 className="text-xs font-black text-white uppercase tracking-widest">Synchronizing Dynamic Dashboard...</h3>
         </div>
+        </main>
         <Footer />
       </div>
     );
@@ -42,6 +44,7 @@ export default function ConsumerDashboard() {
   return (
     <div className={`min-h-screen relative flex flex-col justify-between overflow-hidden transition-colors duration-300 ${wrapperClass}`}>
       <Navbar />
+      <main id="main-content">
       <DashboardAmbient />
 
       {/* Main Layout Grid */}
@@ -110,6 +113,7 @@ export default function ConsumerDashboard() {
 
       </div>
 
+      </main>
       <Footer />
     </div>
   );

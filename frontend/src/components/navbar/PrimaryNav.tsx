@@ -49,6 +49,8 @@ export function PrimaryNav() {
               >
                 <button
                   onClick={() => setIsMegaMenuOpen(!isMegaMenuOpen)}
+                  aria-expanded={isMegaMenuOpen}
+                  aria-haspopup="true"
                   className={`flex items-center gap-1.5 text-[11px] font-black uppercase tracking-widest transition-all hover:scale-105 duration-200 relative group cursor-pointer bg-transparent border-0 outline-none ${
                     isActive
                       ? "text-purple-600 dark:text-cyan-400"

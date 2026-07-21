@@ -56,6 +56,7 @@ export default function RegisterPage() {
   return (
     <div className={`min-h-screen relative flex flex-col justify-between transition-colors duration-300 ${wrapperClass}`}>
       <Navbar />
+      <main id="main-content">
 
       {/* Ambient background glows */}
       {theme === "dark" && (
@@ -109,9 +110,10 @@ export default function RegisterPage() {
 
               {/* Legal Name */}
               <div className="space-y-2">
-                <label className={`text-[10px] font-bold uppercase tracking-widest block ${labelClass}`}>Full Legal Name:</label>
+                <label htmlFor="reg-name" className={`text-[10px] font-bold uppercase tracking-widest block ${labelClass}`}>Full Legal Name:</label>
                 <div className="relative">
                   <input
+                    id="reg-name"
                     type="text"
                     required
                     value={name}
@@ -125,9 +127,10 @@ export default function RegisterPage() {
 
               {/* Security Email */}
               <div className="space-y-2">
-                <label className={`text-[10px] font-bold uppercase tracking-widest block ${labelClass}`}>Security Email Address:</label>
+                <label htmlFor="reg-email" className={`text-[10px] font-bold uppercase tracking-widest block ${labelClass}`}>Security Email Address:</label>
                 <div className="relative">
                   <input
+                    id="reg-email"
                     type="email"
                     required
                     value={email}
@@ -141,9 +144,10 @@ export default function RegisterPage() {
 
               {/* Password */}
               <div className="space-y-2">
-                <label className={`text-[10px] font-bold uppercase tracking-widest block ${labelClass}`}>Vault Passcode Key:</label>
+                <label htmlFor="reg-password" className={`text-[10px] font-bold uppercase tracking-widest block ${labelClass}`}>Vault Passcode Key:</label>
                 <div className="relative">
                   <input
+                    id="reg-password"
                     type="password"
                     required
                     value={password}
@@ -187,6 +191,7 @@ export default function RegisterPage() {
         </div>
       </section>
 
+      </main>
       <Footer />
     </div>
   );

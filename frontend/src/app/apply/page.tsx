@@ -23,6 +23,7 @@ function ApplyForm() {
   return (
     <div className={`min-h-screen relative flex flex-col justify-between transition-colors duration-300 ${wrapperClass}`}>
       <Navbar />
+      <main id="main-content">
 
       {/* Decorative Glows */}
       {theme === "dark" && (
@@ -93,6 +94,7 @@ function ApplyForm() {
         </div>
       </section>
 
+      </main>
       <Footer />
     </div>
   );

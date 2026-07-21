@@ -13,6 +13,7 @@ export const metadata: Metadata = {
   keywords: "insurance, AI advisor, health insurance, term life, vehicle insurance, family protection, premium fintech",
 };
 
+import { MotionConfig } from "framer-motion";
 import { AuthProvider } from "@/context/AuthContext";
 import { ThemeProvider } from "@/context/ThemeContext";
 import FloatingAI from "@/components/FloatingAI";
@@ -28,11 +29,16 @@ export default function RootLayout({
       <body
         className={`${inter.variable} font-sans antialiased`}
       >
+        <a href="#main-content" className="skip-link">Skip to main content</a>
         <ThemeProvider>
           <AuthProvider>
-            {children}
-            <FloatingAI />
-            <Toaster />
+            {/* reducedMotion="user" makes framer-motion honour the OS setting,
+                complementing the CSS catch-all in globals.css. */}
+            <MotionConfig reducedMotion="user">
+              {children}
+              <FloatingAI />
+              <Toaster />
+            </MotionConfig>
           </AuthProvider>
         </ThemeProvider>
       </body>

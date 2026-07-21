@@ -11,6 +11,8 @@ export function ThemeToggle() {
   return (
     <button
       onClick={toggleTheme}
+      aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+      aria-pressed={theme === "dark"}
       className={`w-14 h-7 rounded-full p-0.5 transition-all duration-300 relative border flex items-center cursor-pointer shadow-inner bg-slate-100 border-slate-200 dark:bg-slate-900 dark:border-white/10`}
     >
       <motion.div

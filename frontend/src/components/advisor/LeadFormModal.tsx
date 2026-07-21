@@ -25,6 +25,7 @@ export function LeadFormModal({ planName, onClose }: { planName: string | null; 
           >
             <button
               onClick={onClose}
+              aria-label="Close"
               className="absolute right-5 top-5 z-10 p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 transition-colors cursor-pointer active:scale-95 touch-manipulation select-none"
             >
               <X className="w-4 h-4 text-slate-600" />

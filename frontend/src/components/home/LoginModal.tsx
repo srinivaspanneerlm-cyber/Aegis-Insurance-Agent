@@ -109,6 +109,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
             {/* Close trigger button */}
             <button
               onClick={onClose}
+              aria-label="Close login"
               className={`absolute right-0 -top-12 p-2.5 rounded-xl border transition-colors cursor-pointer bg-white border-slate-200 text-slate-700 hover:bg-slate-100 dark:bg-white/5 dark:border-white/10 dark:text-white dark:hover:bg-white/15`}
             >
               <X className="w-5 h-5" />
