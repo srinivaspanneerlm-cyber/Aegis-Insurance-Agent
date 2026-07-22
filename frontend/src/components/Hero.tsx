@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { motion } from "framer-motion";
 import { Sparkles, ShieldCheck, Heart, ArrowRight } from "lucide-react";
 import {
@@ -112,10 +113,13 @@ export default function Hero({ onScrollToChat, onScrollToForm }: HeroProps) {
             transition={{ duration: 0.6, delay: 0.2 }}
             className="relative w-full max-w-[450px] aspect-square rounded-3xl overflow-hidden shadow-2xl border-4 border-white/80 bg-slate-50"
           >
-            <img
+            <Image
               src="/family_protection_hero.png"
               alt="Secure Your Family's Future under premium AI-driven digital shield"
-              className="w-full h-full object-cover"
+              fill
+              priority
+              sizes="(max-width: 768px) 100vw, 450px"
+              className="object-cover"
             />
           </motion.div>
 

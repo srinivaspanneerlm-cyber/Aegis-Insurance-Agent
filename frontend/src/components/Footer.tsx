@@ -16,10 +16,6 @@ export default function Footer() {
             <p className="text-[13px] text-slate-400 mt-0.5">Registration No. 999 • Evaluated & certified under digital fintech protection code.</p>
           </div>
         </div>
-        <div className="flex items-center gap-6">
-          <img src="https://img.shields.io/badge/Security-ISO%2027001-blue" alt="ISO Certification" className="h-6 opacity-75 hover:opacity-100 transition-opacity" />
-          <img src="https://img.shields.io/badge/Privacy-GDPR%20Compliant-cyan" alt="GDPR compliance badge" className="h-6 opacity-75 hover:opacity-100 transition-opacity" />
-        </div>
       </div>
 
       {/* Main Footer Links */}
