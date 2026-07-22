@@ -9,3 +9,4 @@ export { Card, type CardVariant, type CardPadding } from "./Card";
 export { Badge, type BadgeTone } from "./Badge";
 export { Skeleton } from "./Skeleton";
 export { EmptyState } from "./EmptyState";
+export { ConfirmDialog, type ConfirmTone } from "./ConfirmDialog";

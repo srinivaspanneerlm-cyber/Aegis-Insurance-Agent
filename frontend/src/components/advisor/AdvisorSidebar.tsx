@@ -1,7 +1,8 @@
 "use client";
-import React from "react";
+import React, { useState } from "react";
 import { Activity, RefreshCw } from "lucide-react";
 import { ADVISORS, type AdvisorKey } from "@/lib/advisors";
+import { ConfirmDialog } from "@/components/ui";
 
 export interface SidebarAdvisor {
   id: AdvisorKey;
@@ -27,6 +28,10 @@ export default function AdvisorSidebar({
   isStreaming,
   activeHandshakes,
 }: AdvisorSidebarProps) {
+  // Clearing the conversation is irreversible, so gate New Chat behind a confirm.
+  const [confirmNewChat, setConfirmNewChat] = useState(false);
+  const advisorName = ADVISORS[activeCategory].name;
+
   return (
         <div className="w-[260px] flex-shrink-0 h-full overflow-hidden hidden lg:flex flex-col gap-4 select-none">
           <div className="p-4 rounded-3xl border border-white/5 bg-slate-900/60 backdrop-blur-2xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.05),0_10px_30px_rgba(0,0,0,0.3)] flex flex-col h-full overflow-hidden">
@@ -71,7 +76,7 @@ export default function AdvisorSidebar({
             <div className="mt-4 pt-4 border-t border-white/5 space-y-3.5">
               {/* New Chat button */}
               <button
-                onClick={handleNewChat}
+                onClick={() => setConfirmNewChat(true)}
                 disabled={isStreaming}
                 className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-2xl border border-white/8 bg-white/[0.03] text-slate-400 hover:text-white hover:bg-white/[0.06] hover:border-white/15 active:scale-95 touch-manipulation select-none transition-all duration-200 cursor-pointer disabled:opacity-40 text-[10px] font-black uppercase tracking-wider"
               >
@@ -90,6 +95,20 @@ export default function AdvisorSidebar({
               </div>
             </div>
           </div>
+
+          <ConfirmDialog
+            open={confirmNewChat}
+            tone="danger"
+            title="Start a new chat?"
+            description={`This clears your current conversation with ${advisorName}. It can't be undone.`}
+            confirmLabel="New chat"
+            cancelLabel="Keep chat"
+            onConfirm={() => {
+              setConfirmNewChat(false);
+              handleNewChat();
+            }}
+            onCancel={() => setConfirmNewChat(false)}
+          />
         </div>
   );
 }

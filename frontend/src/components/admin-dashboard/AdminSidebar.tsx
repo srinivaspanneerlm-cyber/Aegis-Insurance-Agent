@@ -1,6 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import { Cpu, Radio } from "lucide-react";
+import { ConfirmDialog } from "@/components/ui";
 import { ADMIN_NAV_ITEMS } from "./navItems";
 import type { AdminNav } from "./types";
 
@@ -13,6 +15,8 @@ interface AdminSidebarProps {
 
 /** Cyber command-center sidebar: officer node, section nav, and shutdown. */
 export function AdminSidebar({ activeNav, setActiveNav, userName, logout }: AdminSidebarProps) {
+  const [confirmLogout, setConfirmLogout] = useState(false);
+
   return (
     <aside className="w-full lg:w-64 flex flex-col bg-slate-900 border border-cyan-500/20 rounded-3xl p-6 space-y-6 self-start">
       <div className="flex items-center gap-3 bg-slate-950 p-4 rounded-2xl border border-cyan-500/20 shadow-md">
@@ -48,13 +52,27 @@ export function AdminSidebar({ activeNav, setActiveNav, userName, logout }: Admi
 
       <div className="pt-6 border-t border-white/5 space-y-1">
         <button
-          onClick={() => logout()}
+          onClick={() => setConfirmLogout(true)}
           className="w-full flex items-center gap-3.5 px-4.5 py-3.5 rounded-xl font-black text-[10px] uppercase tracking-widest text-rose-500 hover:bg-rose-950/30 border border-transparent hover:border-rose-900/30 transition-all cursor-pointer"
         >
           <Radio className="w-4 h-4 animate-ping" />
           <span>Shutdown Node</span>
         </button>
       </div>
+
+      <ConfirmDialog
+        open={confirmLogout}
+        tone="danger"
+        title="Shut down this node?"
+        description="This ends your admin session. You'll need to re-authenticate to return to the command center."
+        confirmLabel="Shut down"
+        cancelLabel="Stay active"
+        onConfirm={() => {
+          setConfirmLogout(false);
+          logout();
+        }}
+        onCancel={() => setConfirmLogout(false)}
+      />
     </aside>
   );
 }

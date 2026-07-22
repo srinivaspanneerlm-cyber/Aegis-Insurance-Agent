@@ -16,10 +16,10 @@ Phase 4 work.
 
 ```
 Phase 4.1  UI Architecture      ████████████████████  4 of 4 steps
-Phase 4.2  UX Engineering       ███████████████░░░░░  3 of 4 steps
+Phase 4.2  UX Engineering       ████████████████████  4 of 4 steps ✅
 Phase 4.3  Visual Engineering   ░░░░░░░░░░░░░░░░░░░░  0 of 5 steps
 ──────────────────────────────────────────────────────────────────
-PHASE 4 OVERALL                 █████████░░░░░░░░░░░  7 of 13 steps
+PHASE 4 OVERALL                 ███████████░░░░░░░░░  8 of 13 steps
 ```
 
 | Step | Title | Status | Commit |
@@ -31,7 +31,7 @@ PHASE 4 OVERALL                 █████████░░░░░░░
 | **4.2.1** | Accessibility pass — labels, landmarks, focus, ARIA, reduced-motion | ✅ **Done** | `feat(frontend): accessibility foundations — reduced-motion, focus, landmarks, ARIA` |
 | **4.2.2** | State coverage — error/not-found/loading, skeletons, empty states | ✅ **Done** | `feat(frontend): route state coverage — loading/error/not-found + empty states` |
 | **4.2.3** | AI experience — typing/thinking, suggested questions, smart scroll + jump-to-latest | ✅ **Done** | `feat(frontend): advisor starter questions (presentational)` + smart-scroll extension |
-| 4.2.4 | Journey polish — nav, search, filters, confirmations | ⬜ Not started | — |
+| **4.2.4** | Journey polish — confirmation guards on destructive actions (accessible `ConfirmDialog`) | ✅ **Done** | `feat(frontend): confirmation guards on destructive actions` |
 | 4.3.1 | Landing page | ⬜ Not started | — |
 | 4.3.2 | Product / category pages | ⬜ Not started | — |
 | 4.3.3 | Illustrations & `next/image` migration | ⬜ Not started | — |
@@ -44,11 +44,11 @@ PHASE 4 OVERALL                 █████████░░░░░░░
 
 | Dimension | Baseline | Current | Target |
 |---|---:|---:|---:|
-| Accessibility | 32 | **58** ▲26 | 90 |
+| Accessibility | 32 | **61** ▲29 | 90 |
 | Consumer Trust | 40 | **82** ▲42 | 90 |
 | Design System | 45 | **74** ▲29 | 90 |
 | Performance | 55 | **56** ▲1 | 85 |
-| UX | 58 | **75** ▲17 | 88 |
+| UX | 58 | **78** ▲20 | 88 |
 | UI Quality | 65 | **69** ▲4 | 90 |
 | Frontend Architecture | 68 | **80** ▲12 | 90 |
 | **Enterprise Readiness (FE)** | 52 | **71** ▲19 | 90 |
@@ -540,6 +540,44 @@ touched**.
 **Risk & rollback:** Low — scroll is presentational; worst case is a mis-timed
 auto-scroll, not a workflow regression. Rollback: revert this commit (the old
 `chatEndRef` effect returns).
+
+---
+
+### Step 4.2.4 — Journey polish: confirmation guards ✅ *(Phase 4.2 complete)*
+
+**Problem:** three destructive actions fired **instantly, with no confirmation** —
+the advisor **New Chat** button (irreversibly wipes the whole conversation),
+consumer **Log Out** (desktop + mobile), and admin **Shutdown Node**. One
+mis-tap and the user loses their conversation or session.
+
+- `components/ui/ConfirmDialog.tsx` — **new accessible modal primitive** added to
+  the 4.1.4 `ui/` library: `role="dialog"` + `aria-modal`, `aria-labelledby`/
+  `aria-describedby`, focus moves to the **safe (cancel)** action on open, is
+  **trapped** within the dialog (Tab/Shift-Tab wrap), and **returns to the
+  trigger** on close; **Escape** and a **backdrop click** both cancel. Danger
+  tone (rose confirm + `AlertTriangle`) for irreversible actions. Built on the
+  `Button` primitive; theme-aware light/dark; reduced-motion-safe via the global
+  `MotionConfig`. **This also delivers the deferred 4.2.1 a11y item** (proper
+  dialog role + focus-trap).
+- Wired into the three destructive triggers — **`AdvisorSidebar`** (New Chat),
+  **`DashboardSidebar`** (both logout buttons), **`AdminSidebar`** (shutdown).
+  The confirm state lives **inside each presentational sidebar**; the actual
+  action (`handleNewChat` / `logout`) is unchanged and only runs on confirm.
+
+**Protected surface untouched:** the advisor's `page.tsx` and every
+streaming/voice/transfer/orchestrator file were **not** modified — guard-verified.
+New Chat is gated entirely within `AdvisorSidebar`.
+
+**Files:** 6 (2 new incl. spec, 4 edited sidebars/barrel).
+**Verification:** tsc 0 · vitest **216/216 (+6)** · lint 0 new · production build
+clean · protected-path guard: **0 protected files touched**.
+
+**Risk & rollback:** Low — additive confirm gate in front of existing handlers;
+no action logic changed. Rollback: revert this commit (buttons call their
+handlers directly again).
+
+**Phase 4.2 (UX Engineering) is COMPLETE (4/4).** Next: Phase 4.3 (Visual
+Engineering, 5 steps).
 
 ---
 

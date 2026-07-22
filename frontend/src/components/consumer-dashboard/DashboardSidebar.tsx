@@ -1,7 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import { LogOut, Menu, X, Zap } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { ConfirmDialog } from "@/components/ui";
 import { NAV_ITEMS } from "./navItems";
 import type { NavId } from "./types";
 
@@ -19,6 +21,7 @@ export function DashboardSidebar({
   activeNav, setActiveNav, sidebarOpen, setSidebarOpen, clientName, logout,
 }: DashboardSidebarProps) {
   const initial = clientName.charAt(0).toUpperCase();
+  const [confirmLogout, setConfirmLogout] = useState(false);
 
   return (
     <>
@@ -73,7 +76,7 @@ export function DashboardSidebar({
 
         <div className="pt-6 border-t border-white/5 space-y-1">
           <button
-            onClick={() => logout()}
+            onClick={() => setConfirmLogout(true)}
             className="w-full flex items-center gap-3.5 px-4.5 py-3.5 rounded-xl font-extrabold text-[10px] uppercase tracking-widest text-rose-500 hover:bg-rose-500/10 transition-colors cursor-pointer"
           >
             <LogOut className="w-4.5 h-4.5" />
@@ -132,7 +135,7 @@ export function DashboardSidebar({
               </button>
             ))}
             <button
-              onClick={() => logout()}
+              onClick={() => setConfirmLogout(true)}
               className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-xs uppercase tracking-wider text-rose-500 hover:bg-rose-500/10"
             >
               <LogOut className="w-4.5 h-4.5" />
@@ -141,6 +144,20 @@ export function DashboardSidebar({
           </motion.div>
         )}
       </AnimatePresence>
+
+      <ConfirmDialog
+        open={confirmLogout}
+        tone="danger"
+        title="Log out of Aegis?"
+        description="You'll need to sign in again to reach your dashboard and policies."
+        confirmLabel="Log out"
+        cancelLabel="Stay signed in"
+        onConfirm={() => {
+          setConfirmLogout(false);
+          logout();
+        }}
+        onCancel={() => setConfirmLogout(false)}
+      />
     </>
   );
 }
