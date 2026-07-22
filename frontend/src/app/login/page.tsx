@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -13,8 +13,36 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { useTheme } from "@/context/ThemeContext";
 
+// Minimal typings for the Google Identity Services global (loaded at runtime
+// from accounts.google.com/gsi/client) so we can integrate without `any`.
+interface GoogleIdConfig {
+  client_id: string;
+  callback: (response: { credential?: string }) => void;
+}
+interface GoogleButtonOptions {
+  type?: "standard" | "icon";
+  theme?: "outline" | "filled_blue" | "filled_black";
+  size?: "small" | "medium" | "large";
+  text?: "signin_with" | "signup_with" | "continue_with" | "signin";
+  shape?: "rectangular" | "pill" | "circle" | "square";
+  logo_alignment?: "left" | "center";
+  width?: number;
+}
+interface GoogleAccountsId {
+  initialize: (config: GoogleIdConfig) => void;
+  renderButton: (parent: HTMLElement, options: GoogleButtonOptions) => void;
+}
+declare global {
+  interface Window {
+    google?: { accounts: { id: GoogleAccountsId } };
+  }
+}
+
+const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "";
+const GIS_SRC = "https://accounts.google.com/gsi/client";
+
 export default function ConsumerLoginPage() {
-  const { login, loading, isAuthenticated, user } = useAuth();
+  const { login, loginWithGoogle, loading, isAuthenticated, user } = useAuth();
   const { theme } = useTheme();
   const router = useRouter();
 
@@ -23,8 +51,14 @@ export default function ConsumerLoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
-  // Google SSO simulated loading states
-  const [googleLoading, setGoogleLoading] = useState(false);
+  // Google Identity Services: the official button renders into this container.
+  const googleBtnRef = useRef<HTMLDivElement>(null);
+  // Keep the latest sign-in handler in a ref so the init effect can stay keyed
+  // only to the client id + theme (not re-run on every context change).
+  const loginWithGoogleRef = useRef(loginWithGoogle);
+  useEffect(() => {
+    loginWithGoogleRef.current = loginWithGoogle;
+  }, [loginWithGoogle]);
 
   // Redirect to consumer dashboard if already authenticated as consumer
   useEffect(() => {
@@ -54,17 +88,61 @@ export default function ConsumerLoginPage() {
     }
   };
 
-  const handleGoogleLoginSimulate = () => {
-    setGoogleLoading(true);
-    setErrorMsg("");
-    setTimeout(() => {
-      setGoogleLoading(false);
-      // Simulate direct fallback login to showcase workflow
-      setEmail("sri@example.com");
-      setPassword("password123");
-      setErrorMsg("Google SSO Simulated! Press 'Unlock Secure Vault' to proceed with demo credentials.");
-    }, 1200);
-  };
+  // Load Google Identity Services once and render the official Sign-in button.
+  // Re-renders on theme change so the button matches light/dark. No-op when the
+  // client id is not configured — email/password login stays fully available.
+  useEffect(() => {
+    if (!GOOGLE_CLIENT_ID) return;
+
+    const renderButton = () => {
+      const gid = window.google?.accounts?.id;
+      const container = googleBtnRef.current;
+      if (!gid || !container) return;
+
+      gid.initialize({
+        client_id: GOOGLE_CLIENT_ID,
+        callback: async (response) => {
+          if (!response.credential) return;
+          setErrorMsg("");
+          try {
+            await loginWithGoogleRef.current(response.credential);
+            // loginWithGoogle handles the role-based redirect on success.
+          } catch (err) {
+            setErrorMsg(
+              err instanceof Error ? err.message : "Google sign-in failed. Please try again."
+            );
+          }
+        },
+      });
+
+      container.innerHTML = "";
+      gid.renderButton(container, {
+        type: "standard",
+        theme: theme === "dark" ? "filled_black" : "outline",
+        size: "large",
+        text: "continue_with",
+        shape: "pill",
+        logo_alignment: "center",
+        width: 320,
+      });
+    };
+
+    if (window.google?.accounts?.id) {
+      renderButton();
+      return;
+    }
+    const existing = document.querySelector<HTMLScriptElement>(`script[src="${GIS_SRC}"]`);
+    if (existing) {
+      existing.addEventListener("load", renderButton, { once: true });
+      return;
+    }
+    const script = document.createElement("script");
+    script.src = GIS_SRC;
+    script.async = true;
+    script.defer = true;
+    script.onload = renderButton;
+    document.head.appendChild(script);
+  }, [theme]);
 
   // Theme styling computed
   const wrapperClass = "bg-surface text-content";
@@ -72,15 +150,6 @@ export default function ConsumerLoginPage() {
   const mainCardClass = "bg-white/95 border-slate-200/80 backdrop-blur-xl shadow-[0_20px_50px_rgba(15,23,42,0.08)] dark:bg-slate-900/40 dark:border-white/5 dark:backdrop-blur-xl dark:shadow-[0_30px_60px_rgba(0,0,0,0.4)]";
 
   const inputClass = "bg-slate-100 border-slate-200 text-slate-800 placeholder-slate-400 focus:bg-white focus:border-purple-650 focus:ring-4 focus:ring-purple-500/5 dark:bg-white/[0.03] dark:border-white/10 dark:text-white dark:placeholder-slate-500 dark:focus:bg-slate-900/60 dark:focus:border-purple-400 dark:focus:ring-2 dark:focus:ring-purple-500/10";
-
-  const GoogleIcon = () => (
-    <svg className="w-5 h-5 mr-3 flex-shrink-0" viewBox="0 0 24 24">
-      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
-      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
-    </svg>
-  );
 
   return (
     <div className={`min-h-screen relative flex flex-col justify-between overflow-hidden transition-colors duration-300 ${wrapperClass}`}>
@@ -155,21 +224,16 @@ export default function ConsumerLoginPage() {
                 </p>
               </div>
 
-              {/* Google login */}
-              <motion.button
-                whileHover={{ scale: 1.01 }}
-                whileTap={{ scale: 0.99 }}
-                onClick={handleGoogleLoginSimulate}
-                disabled={googleLoading}
-                className={`w-full py-3.5 px-4 rounded-2xl flex items-center justify-center font-bold text-xs transition-all border shadow-sm cursor-pointer bg-white border-slate-200 text-slate-800 hover:bg-slate-50 dark:bg-white/[0.04] dark:border-white/10 dark:text-white dark:hover:bg-white/[0.08]`}
-              >
-                {googleLoading ? (
-                  <div className="w-4 h-4 border-2 border-purple-500 border-t-transparent rounded-full animate-spin mr-3" />
-                ) : (
-                  <GoogleIcon />
-                )}
-                <span>{googleLoading ? "Connecting Secure SSO..." : "Continue with Google"}</span>
-              </motion.button>
+              {/* Google login — official Google Identity Services button */}
+              {GOOGLE_CLIENT_ID ? (
+                <div className="flex justify-center">
+                  <div ref={googleBtnRef} className="min-h-[44px]" />
+                </div>
+              ) : (
+                <p className="text-center text-[11px] text-slate-500 dark:text-slate-400">
+                  Google sign-in is not configured. Use your email and password below.
+                </p>
+              )}
 
               <div className="flex items-center my-6">
                 <div className={`flex-grow h-[1px] bg-slate-200 dark:bg-white/10`} />

@@ -1,12 +1,17 @@
 import bcrypt from "bcrypt";
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
+import { OAuth2Client } from "google-auth-library";
 import { userRepository, refreshTokenRepository } from "../repositories";
 import env from "../config/env";
 import { AUTH } from "../config/constants";
 import AppError from "../utils/appError";
 import { auditService } from "./audit.service";
 import { expiresInToMs } from "../utils/cookies";
+
+// Verifies Google ID tokens against our OAuth client ID. Instantiated once when
+// GOOGLE_CLIENT_ID is configured; null otherwise so the route fails closed.
+const googleClient = env.GOOGLE_CLIENT_ID ? new OAuth2Client(env.GOOGLE_CLIENT_ID) : null;
 
 const signAccessToken = (id: string): string =>
   jwt.sign({ id }, env.JWT_SECRET, { expiresIn: env.ACCESS_TOKEN_EXPIRES_IN } as jwt.SignOptions);
@@ -71,6 +76,67 @@ export const authService = {
 
     const tokens = await issueTokens(user.id);
     auditService.record({ actorId: user.id, action: "auth.login.success" });
+
+    const { password: _pw, ...userWithoutPassword } = user;
+    void _pw;
+    return { user: userWithoutPassword, ...tokens };
+  },
+
+  /**
+   * Sign in (or transparently sign up) with a Google ID token. The frontend
+   * obtains the token from Google Identity Services and posts it here; we verify
+   * its signature and audience with Google's library, then find-or-create the
+   * user by their verified email and issue our own access + refresh tokens — the
+   * same session the password flow produces. New accounts are always "customer"
+   * (no privilege escalation) and get an unusable random password, so the User
+   * schema is unchanged and Google users simply cannot log in with a password.
+   */
+  async googleLogin(idToken: string) {
+    if (!googleClient) {
+      throw new AppError("Google sign-in is not configured on this server.", 400);
+    }
+
+    let payload;
+    try {
+      const ticket = await googleClient.verifyIdToken({
+        idToken,
+        audience: env.GOOGLE_CLIENT_ID,
+      });
+      payload = ticket.getPayload();
+    } catch {
+      payload = undefined;
+    }
+
+    // Reject anything Google didn't vouch for: bad signature/audience, or an
+    // unverified email (which we must not trust for account matching).
+    if (!payload || !payload.email || !payload.email_verified) {
+      auditService.record({ action: "auth.login.google.rejected" });
+      throw new AppError("Could not verify your Google account. Please try again.", 401);
+    }
+
+    const email = payload.email.toLowerCase();
+    let user = await userRepository.findByEmail(email);
+
+    if (!user) {
+      // Google-verified email → transparent signup. The password is random and
+      // never disclosed, so these accounts are Google-only by construction.
+      const randomSecret = crypto.randomBytes(32).toString("base64url");
+      const hashedPassword = await bcrypt.hash(randomSecret, AUTH.BCRYPT_ROUNDS);
+      user = await userRepository.create({
+        name: payload.name || email.split("@")[0],
+        email,
+        password: hashedPassword,
+        role: "customer",
+      });
+      auditService.record({ actorId: user.id, action: "auth.register.google", metadata: { email } });
+    }
+
+    if (!user.isActive) {
+      throw new AppError("This account has been deactivated.", 403);
+    }
+
+    const tokens = await issueTokens(user.id);
+    auditService.record({ actorId: user.id, action: "auth.login.google.success" });
 
     const { password: _pw, ...userWithoutPassword } = user;
     void _pw;

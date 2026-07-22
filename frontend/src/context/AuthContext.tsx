@@ -24,6 +24,7 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   login: (email: string, password: string, options?: LoginOptions) => Promise<void>;
+  loginWithGoogle: (credential: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   isAuthenticated: boolean;
@@ -102,6 +103,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // 2b) Google sign-in — exchange the Google ID token (credential) for our own
+  //     httpOnly session. New Google accounts are created server-side as
+  //     customers, so this path is always a consumer login.
+  const loginWithGoogle = async (credential: string) => {
+    setLoading(true);
+    try {
+      const res = await authService.googleLogin(credential);
+      const userData = res.data.user;
+      setUser(userData);
+
+      if (userData.role === "admin" || userData.role === "superadmin") {
+        router.push("/admin-dashboard");
+      } else {
+        router.push("/consumer-dashboard");
+      }
+    } catch (err) {
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // 3) Register method — public signup always creates a standard customer.
   // Admin/superadmin roles are assigned server-side only (never requested here).
   const register = async (name: string, email: string, password: string) => {
@@ -149,6 +172,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     user,
     loading,
     login,
+    loginWithGoogle,
     register,
     logout,
     isAuthenticated: !!user,

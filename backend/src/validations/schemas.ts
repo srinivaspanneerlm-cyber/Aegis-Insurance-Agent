@@ -39,6 +39,18 @@ export const loginSchema = (data: RequestData): ValidationErrors => {
   return errors.length > 0 ? errors : null;
 };
 
+export const googleLoginSchema = (data: RequestData): ValidationErrors => {
+  const errors: string[] = [];
+  // The Google ID token is a compact JWT — a few hundred to ~2 KB. Bound it so
+  // an oversized body can't be pushed into the verifier.
+  if (!data.credential || typeof data.credential !== "string") {
+    errors.push("A Google credential is required.");
+  } else if (data.credential.length > 4096) {
+    errors.push("Invalid Google credential.");
+  }
+  return errors.length > 0 ? errors : null;
+};
+
 export const leadSchema = (data: RequestData): ValidationErrors => {
   const errors: string[] = [];
   if (!data.customerName || typeof data.customerName !== "string" || data.customerName.trim().length < 2) {

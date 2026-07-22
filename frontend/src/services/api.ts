@@ -38,6 +38,10 @@ export const authService = {
     const res = await apiClient.post("/auth/login", payload);
     return res.data;
   },
+  googleLogin: async (credential: string) => {
+    const res = await apiClient.post("/auth/google", { credential });
+    return res.data;
+  },
   logout: async () => {
     const res = await apiClient.post("/auth/logout");
     return res.data;

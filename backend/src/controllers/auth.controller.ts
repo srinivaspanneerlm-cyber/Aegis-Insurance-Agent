@@ -24,6 +24,13 @@ const login = catchAsync(async (req, res) => {
   sendSuccess(res, 200, { user }, { token: accessToken });
 });
 
+const googleLogin = catchAsync(async (req, res) => {
+  const { user, accessToken, refreshToken } = await authService.googleLogin(req.body.credential);
+  setAuthCookie(res, accessToken);
+  setRefreshCookie(res, refreshToken);
+  sendSuccess(res, 200, { user }, { token: accessToken });
+});
+
 // Exchange the refresh cookie for a fresh access token (rotates the refresh
 // token). The refresh token itself is the credential — no access token needed.
 const refresh = catchAsync(async (req, res) => {
@@ -49,4 +56,4 @@ const getMe = catchAsync(async (req, res) => {
   sendSuccess(res, 200, { user: userWithoutPassword });
 });
 
-export { register, login, refresh, logout, getMe };
+export { register, login, googleLogin, refresh, logout, getMe };

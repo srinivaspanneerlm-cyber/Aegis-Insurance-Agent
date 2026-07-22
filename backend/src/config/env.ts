@@ -94,6 +94,14 @@ const env = {
   AI_SERVICE_URL: process.env.AI_SERVICE_URL || "http://localhost:8000/api/ai",
   AI_INTERNAL_API_KEY: process.env.AI_INTERNAL_API_KEY || "",
 
+  // Google Sign-In. The OAuth 2.0 Web client ID is used both to render the
+  // Google button (frontend, via NEXT_PUBLIC_GOOGLE_CLIENT_ID) and to verify
+  // the returned ID token's audience here. When unset, the /auth/google route
+  // fails closed with a clear "not configured" error — email/password login is
+  // unaffected. The client ID is public (embedded in the frontend); it is not a
+  // secret and carries no client secret.
+  GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID || "",
+
   // Redis connection string for the shared cache (and future job queue). When
   // unset, the cache falls back to an in-process store — so dev / single-node
   // runs need no Redis, and multi-node deployments just set this.
