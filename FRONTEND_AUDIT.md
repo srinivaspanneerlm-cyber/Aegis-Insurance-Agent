@@ -17,9 +17,9 @@ Phase 4 work.
 ```
 Phase 4.1  UI Architecture      ████████████████████  4 of 4 steps
 Phase 4.2  UX Engineering       ████████████████████  4 of 4 steps ✅
-Phase 4.3  Visual Engineering   ████░░░░░░░░░░░░░░░░  1 of 5 steps
+Phase 4.3  Visual Engineering   ████████░░░░░░░░░░░░  2 of 5 steps
 ──────────────────────────────────────────────────────────────────
-PHASE 4 OVERALL                 █████████████░░░░░░░  9 of 13 steps
+PHASE 4 OVERALL                 ██████████████░░░░░░  10 of 13 steps
 ```
 
 | Step | Title | Status | Commit |
@@ -33,7 +33,7 @@ PHASE 4 OVERALL                 █████████████░░░
 | **4.2.3** | AI experience — typing/thinking, suggested questions, smart scroll + jump-to-latest | ✅ **Done** | `feat(frontend): advisor starter questions (presentational)` + smart-scroll extension |
 | **4.2.4** | Journey polish — confirmation guards on destructive actions (accessible `ConfirmDialog`) | ✅ **Done** | `feat(frontend): confirmation guards on destructive actions` |
 | **4.3.1** | Landing page — retire fabricated stat strips, drive from verified facts + harden guard | ✅ **Done** | `fix(frontend): landing/about stats show verified facts, not invented numbers` |
-| 4.3.2 | Product / category pages | ⬜ Not started | — |
+| **4.3.2** | Product / category page (`/policies`) — theme-aware + plain-language + trust-clean | ✅ **Done** | `refactor(frontend): /policies theme-aware, plain-language, trust-clean` |
 | 4.3.3 | Illustrations & `next/image` migration | ⬜ Not started | — |
 | 4.3.4 | Responsive + performance (code splitting, server components) | ⬜ Not started | — |
 | 4.3.5 | Documentation — UI_GUIDELINES, design system | ⬜ Not started | — |
@@ -619,6 +619,44 @@ step (offered but not selected); logged below as a follow-up.
 
 ---
 
+### Step 4.3.2 — Product / category page (`/policies`) ✅
+
+Full standard-raising pass on the consumer product/category page, which was
+**dark-only, jargon-heavy, and carried an unverified regulatory claim**.
+
+- **Theme:** was hardcoded `bg-slate-950 text-white` with **zero** `dark:`/tokens
+  (broken in light mode, unlike the 4.1.3-migrated marketing pages). Rebuilt on
+  design tokens (`bg-surface`/`surface-raised`/`surface-sunken`, `text-content`/
+  `-muted`/`-subtle`, `border-line`) + `dark:` accents; reuses the shared
+  `AmbientBackground`. Added a `<main id="main-content">` landmark and
+  focus-visible rings (4.2.1 parity).
+- **Copy (mission):** replaced cyber-jargon — *“Dynamic Underwriting Vaults”,
+  “Sovereign Risk Underwriting Gates”, “holographic package card”, “Required
+  Calibration Metrics”* — with plain, first-time-buyer language (“Find the right
+  cover for you”, “How it works”, “What the advisor will ask about”).
+- **Trust:** removed the unverified **“Sovereign underwriting verified & IRDAI
+  registered”** claim (user confirmed: not a licensed insurer). Replaced with an
+  honest guidance note (“educational guidance… not a policy document… non-binding”).
+  `PLANS_PER_CATEGORY` (verified fact) retained.
+
+**Files:** 2 (`app/policies/page.tsx` rewritten, audit). **Verification:** tsc 0 ·
+vitest 222/222 · lint 0 new · build clean (`/policies` static, 5.05 kB).
+
+**Risk & rollback:** Low — single presentational page + copy. Rollback: revert.
+
+**🔴 CRITICAL finding raised — repo-wide IRDAI / regulatory claims (open #6).**
+The IRDAI claim is **not** isolated to `/policies`. Verified sites include:
+`Footer.tsx` (on every page) — heading **“IRDAI Certified & Regulated”** + a
+fabricated **“IRDAI Reg. No 999”**; `PolicyCards.tsx` — **“IRDAI Licensed.”**;
+`LeadForm` — “IRDAI-registered carriers”; `purchase/payment` — “IRDAI Compliant”;
+plus pervasive “Sovereign” jargon (~20 files). A repo-wide guard was **deliberately
+not** added this step (it would fail the build across ~10 files). This deserves a
+**dedicated trust-cleanup step** — recommended as the next action — where all
+sites are corrected and the guard is hardened once (distinguishing false
+“we-are-IRDAI-certified” claims from legitimate “IRDAI is the regulator” mentions).
+
+---
+
 ## Open Items Carried Forward
 
 | # | Item | Raised By | Owner |
@@ -628,3 +666,4 @@ step (offered but not selected); logged below as a follow-up.
 | 3 | `plan.premium \|\| "850"` fallback silently invents a premium in maths | 4.1.1 | Needs backend sign-off |
 | 4 | Regenerate the DOCX progress report — module table advisor mapping was corrected (Emma = Home/Property, Ethan = Travel) | 4.1.1 | Done in `PROGRESS_REPORT.md`; DOCX pending |
 | 5 | Soften `HeroSection` overclaims — `"100% Secure & Trusted"` badge, `"we audit policy coverage matrices instantly"` copy | 4.3.1 | Next visual/trust pass |
+| 6 | **🔴 Repo-wide IRDAI / regulatory-claim cleanup** — `Footer` “IRDAI Certified & Regulated” + fabricated “Reg. No 999”, `PolicyCards` “IRDAI Licensed”, `LeadForm`, `purchase/*`; harden guard once. **Recommended as the next step.** | 4.3.2 | **Dedicated trust step** |
