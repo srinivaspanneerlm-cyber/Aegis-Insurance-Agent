@@ -7,15 +7,99 @@
 >
 > **See also:** [README.md §1](README.md) · [ARCHITECTURE.md §2](ARCHITECTURE.md) ·
 > [PROJECT_RULES.md §4](PROJECT_RULES.md) · [CLAUDE.md §4](CLAUDE.md)
+>
+> **Last updated:** Phase 4.3.5 — documents the Phase 4 design system (tokens,
+> theme strategy, `@/components/ui` primitives, and performance conventions).
+
+---
+
+## Foundations — Tokens, Theme & Primitives
+
+> **The canonical way to build UI as of Phase 4.** New work uses the semantic
+> token layer and the `@/components/ui` primitives below. Raw `slate-*` colors,
+> `text-[Npx]` sizes, and `theme === "dark" ? …` ternaries are legacy debt —
+> do not add more. Sources of truth: `frontend/tailwind.config.ts`,
+> `frontend/src/app/globals.css`, `frontend/src/components/ui/`.
+
+### F.1 Design Tokens (Step 4.1.2)
+
+Theme-switching values live as CSS variables in `globals.css` and are exposed as
+Tailwind utilities in `tailwind.config.ts`. One class (e.g. `bg-surface`) resolves
+to the right value per theme — no conditional needed.
+
+| Token utility | Light | Dark | Use |
+|---|---|---|---|
+| `bg-surface` | `#ffffff` | `#0b0f19` (navy-950) | Base page / app surface |
+| `bg-surface-raised` | `#ffffff` | `#0f172a` (navy-900) | Cards, raised panels |
+| `bg-surface-sunken` | `#f1f5f9` | `#080c14` | Wells, insets, track |
+| `bg-surface-overlay` | `#ffffff` | `#1d2946` (navy-800) | Popovers, modals, menus |
+| `border-line` | `#e2e8f0` | `#1e293b` | Default hairline border |
+| `border-line-strong` | `#cbd5e1` | `#334155` | Emphasised divider |
+| `text-content` | `#090d16` | `#f1f5f9` | Primary body text |
+| `text-content-muted` | `#475569` | `#94a3b8` | Secondary text, labels |
+| `text-content-subtle` | `#94a3b8` | `#64748b` | Timestamps, hints |
+| `text-content-inverted` | `#ffffff` | `#0b0f19` | Text on a brand fill |
+| `bg-brand` / `text-brand` | `#2563eb` | `#3b82f6` | Primary action, links |
+| `*-brand-strong` | `#1d4ed8` | `#2563eb` | Hover for brand |
+| `*-accent` | `#0891b2` | `#22d3ee` | Cyan accent (AA on each theme) |
+| `*-accent-strong` | `#0e7490` | `#06b6d4` | Hover for accent |
+
+**Elevation** — `shadow-elevation-1…4`, a semantic shadow scale; `elevation-1/2`
+reuse the existing premium shadows so nothing shifts visually.
+
+**Micro type rungs** — `text-3xs` (8px) and `text-2xs` (10px) replace arbitrary
+`text-[8px]` / `text-[10px]`.
+
+**Large radii** — `rounded-4xl` (32px) and `rounded-5xl` (36px) replace
+`rounded-[32px]` / `rounded-[36px]`.
+
+### F.2 Theme Strategy (Step 4.1.3)
+
+- `darkMode: "class"`. `ThemeContext` toggles a `.dark` class on `<html>` (dark is
+  the default — see §2 for the mechanics).
+- Author with **semantic tokens** (`bg-surface`, `text-content`) which already
+  adapt, or with the **`dark:` variant** for one-off cases:
+  `className="bg-white dark:bg-navy-900"`.
+- **Do not** branch color in JS (`theme === "dark" ? … : …`). That pattern was
+  retired in 4.1.3 (226 ternaries → 18): it ships both branches to the client and
+  can flash the wrong theme.
+
+### F.3 Primitive Library — `@/components/ui` (Step 4.1.4)
+
+Reach for these before hand-rolling a button, card, or input. All are built on the
+tokens above and are theme- and accessibility-aware.
+
+| Primitive | Key props | Notes |
+|---|---|---|
+| `Button` | `variant`: `primary` \| `gradient` \| `secondary` \| `ghost`; `size`: `sm` \| `md` \| `lg` | Focus-visible ring + disabled state built in |
+| `Card` | `variant`: `solid` \| `glass` \| `outline`; `padding`: `none` \| `sm` \| `md` \| `lg` | Token surfaces + elevation |
+| `Input` / `Field` | `Field` wires `<label htmlFor>`, error text, `aria-describedby` | Use `Field` for labelled inputs |
+| `Badge` | `tone`: `neutral` \| `brand` \| `success` \| `warning` \| `danger` | Status pills |
+| `Skeleton` | — | Loading placeholders (see §12.5) |
+| `EmptyState` | icon + title + description + action | Zero-data states (see §12.5) |
+| `ConfirmDialog` | `tone`: `danger` \| `default` | Accessible modal for destructive actions (`role="dialog"`, `aria-modal`, focus trap) |
+
+### F.4 Performance & Assets (Steps 4.3.3–4.3.4)
+
+- **Images:** use `next/image` for every raster asset — never a raw `<img>`. The
+  hero uses `<Image fill priority sizes>` for LCP. No remote image hosts are
+  whitelisted; keep assets local under `frontend/public/`.
+- **Code-splitting:** lazy-load heavy, conditionally-rendered *presentational*
+  components with `next/dynamic` so they stay out of the initial route bundle.
+  Reference: the advisor recommendation UI (`MultiPlanSuite` / `RecommendationCard`)
+  loads on demand once a plan is shown, with a `Skeleton` fallback. **Never**
+  code-split or defer voice / stream / transfer / orchestration logic.
 
 ---
 
 ## 1. Color System
 
 The palette is sourced directly from `frontend/tailwind.config.ts` and
-`frontend/src/app/globals.css`. The primary aesthetic is a **dark navy / deep
-slate base with cyan and royal-blue accents** — evoking trust, precision, and
-a premium fintech feel.
+`frontend/src/app/globals.css`. Aegis AI is **theme-aware** — a **dark navy /
+deep slate** base (the default) plus a full light theme, both with cyan and
+royal-blue accents that evoke trust, precision, and a premium fintech feel.
+Prefer the semantic tokens in **Foundations §F.1** over the raw palette below;
+the raw values are kept here as reference.
 
 ### 1.1 Core Palette
 
@@ -79,16 +163,20 @@ Dark mode is the **default** for Aegis AI. It is managed by `ThemeContext`
 - **Hydration safety:** `ThemeProvider` hides children (`visibility: hidden`)
   until mounted to prevent a flash of wrong theme
 
-**Implementation rule:** always provide both dark and light variants in a single
-Tailwind expression:
+**Implementation rule (updated in 4.1.3):** author color with the **semantic
+tokens** from Foundations §F.1 — which adapt automatically — or the Tailwind
+**`dark:` variant**. Reserve JS theme branching for genuinely non-CSS cases.
 
 ```tsx
-// Always dual-branch:
-className={isDark ? "bg-slate-900/60 text-slate-300" : "bg-white text-slate-700"}
+// Preferred — token adapts per theme, no branch:
+className="bg-surface-raised text-content"
+// Also fine — explicit dark: variant:
+className="bg-white text-slate-700 dark:bg-navy-900 dark:text-slate-200"
 ```
 
-**Never** use a single-branch conditional for color — it produces an invisible
-or broken UI in one mode.
+**Avoid** the legacy `isDark ? … : …` color ternary (retired in 4.1.3): it ships
+both branches to the client and can flash the wrong theme. **Never** use a
+single-branch color conditional — it produces an invisible UI in one mode.
 
 ---
 
@@ -447,6 +535,11 @@ layer (`z-index` below content).
 ---
 
 ## 15. Component Summary
+
+**Primitives first.** For new UI, compose the `@/components/ui` primitives from
+**Foundations §F.3** (`Button`, `Card`, `Input`/`Field`, `Badge`, `Skeleton`,
+`EmptyState`, `ConfirmDialog`) rather than styling raw elements. The
+domain/feature components below sit on top of those primitives and tokens.
 
 | Component | File | Purpose |
 |---|---|---|
