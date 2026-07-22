@@ -1,14 +1,35 @@
 "use client";
 import React, { memo } from "react";
+import dynamic from "next/dynamic";
 import { motion } from "framer-motion";
 import { Volume2, RefreshCw } from "lucide-react";
 
 import { parseRecommendation } from "./chat/parseRecommendation";
 import { FormattedText } from "./chat/FormattedText";
-import { MultiPlanSuite } from "./chat/MultiPlanSuite";
-import { RecommendationCard } from "./chat/RecommendationCard";
 import { StreamingCursor, TransferBadge, CopyButton } from "./chat/atoms";
 import type { ChatMessageProps } from "./chat/types";
+
+// Placeholder shown while a recommendation chunk streams in, so the transcript
+// doesn't jump when the lazy card mounts.
+const RecSkeleton = () => (
+  <div className="mt-1 rounded-2xl border border-white/5 bg-slate-900/40 p-4 animate-pulse">
+    <div className="h-3.5 w-1/3 rounded bg-white/10" />
+    <div className="mt-3 h-2.5 w-2/3 rounded bg-white/8" />
+    <div className="mt-2 h-2.5 w-1/2 rounded bg-white/8" />
+  </div>
+);
+
+// The recommendation UI renders only after a recommendation finishes streaming
+// (see below). Code-split it so it stays out of the advisor's initial bundle
+// and loads on demand the first time a plan is shown.
+const MultiPlanSuite = dynamic(
+  () => import("./chat/MultiPlanSuite").then((m) => m.MultiPlanSuite),
+  { ssr: false, loading: RecSkeleton },
+);
+const RecommendationCard = dynamic(
+  () => import("./chat/RecommendationCard").then((m) => m.RecommendationCard),
+  { ssr: false, loading: RecSkeleton },
+);
 
 // Re-exported so existing importers of ChatMessage keep working unchanged.
 export type {
