@@ -24,6 +24,16 @@ const FORBIDDEN: { pattern: RegExp; why: string }[] = [
   { pattern: /IRDAI\s+(regulatory|compliance)/i, why: "unheld regulatory status" },
   { pattern: /AES-256/i, why: "unverified encryption claim" },
   { pattern: /audited metric/i, why: "unaudited figure labelled as audited" },
+  // Reworded marketing-stat labels that evaded the shapes above (Step 4.3.1):
+  // the landing/About stat strips carried invented usage, satisfaction, coverage
+  // and rating figures. Both now render from PLATFORM_FACTS; these lock the
+  // labels out so a hand-authored stat array cannot quietly reintroduce them.
+  { pattern: /happy customers/i, why: "invented customers-served count" },
+  { pattern: /\bAI consultations\b/i, why: "invented consultations count" },
+  { pattern: /customer satisfaction/i, why: "invented satisfaction rate" },
+  { pattern: /coverage guided/i, why: "invented coverage total" },
+  { pattern: /rating on platform/i, why: "invented platform rating" },
+  { pattern: /AI experience rating/i, why: "invented platform rating" },
 ];
 
 function walk(dir: string): string[] {
