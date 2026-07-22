@@ -30,7 +30,7 @@ PHASE 4 OVERALL                 █████████░░░░░░░
 | **4.1.4** | Component primitives (Button/Input/Card/Skeleton/EmptyState/…) | ✅ **Done** | `feat(frontend): component primitive library (ui/)` |
 | **4.2.1** | Accessibility pass — labels, landmarks, focus, ARIA, reduced-motion | ✅ **Done** | `feat(frontend): accessibility foundations — reduced-motion, focus, landmarks, ARIA` |
 | **4.2.2** | State coverage — error/not-found/loading, skeletons, empty states | ✅ **Done** | `feat(frontend): route state coverage — loading/error/not-found + empty states` |
-| **4.2.3** | AI experience — typing/thinking, suggested questions | ✅ **Done** | `feat(frontend): advisor starter questions (presentational)` |
+| **4.2.3** | AI experience — typing/thinking, suggested questions, smart scroll + jump-to-latest | ✅ **Done** | `feat(frontend): advisor starter questions (presentational)` + smart-scroll extension |
 | 4.2.4 | Journey polish — nav, search, filters, confirmations | ⬜ Not started | — |
 | 4.3.1 | Landing page | ⬜ Not started | — |
 | 4.3.2 | Product / category pages | ⬜ Not started | — |
@@ -505,6 +505,41 @@ clean · protected-path guard: **0 protected files touched**.
 
 **Risk & rollback:** Minimal — additive presentational UI calling an existing
 handler; no streaming/voice/transfer logic changed. Rollback: revert this commit.
+
+---
+
+### Step 4.2.3 (extension) — Smart scroll + jump-to-latest ✅ *(presentational-only, signed off)*
+
+Second, deeper pass on the AI experience — again **bounded to presentational**
+after user sign-off, again guard-verified against the protected surface.
+
+**Problem fixed:** the transcript force-scrolled to the bottom on *every* message
+and streaming token, which fought a reader scrolling up to re-read an earlier
+answer — and there was no way back to the live message but manual scroll.
+
+- `hooks/useStickyScroll.ts` — owns the scroll container ref, tracks whether the
+  reader is near the bottom, re-pins to the newest content **only while they are
+  already there**, and exposes `showJump` / `scrollToBottom`. A `programmatic`
+  guard suppresses jitter during the animated jump. Pure `isNearBottom()` seam
+  exported for unit testing (jsdom has no scroll geometry).
+- `components/advisor/JumpToLatest.tsx` — floating "Latest" pill (framer-motion,
+  reduced-motion-safe via the global `MotionConfig`, `aria-label`, focus-visible
+  ring); renders on `show`, reports a click, holds no chat state.
+- `MessageTranscript.tsx` — adopts the hook; scroll container wrapped in a
+  `relative` box so the pill floats over the viewport (not the scroll content).
+- `advisor/page.tsx` — **removed** the old force-scroll effect + `chatEndRef`;
+  scrolling now lives entirely in the transcript. No chat/stream/transfer logic
+  touched.
+
+**Files:** 6 (3 new incl. 2 specs, 2 edited transcript/page, audit). **htmlFor /
+send path / streaming unchanged.**
+**Verification:** tsc 0 · vitest **210/210 (+8)** · lint 0 new · production build
+clean (`/advisor` static, 203 kB) · protected-path guard: **0 protected files
+touched**.
+
+**Risk & rollback:** Low — scroll is presentational; worst case is a mis-timed
+auto-scroll, not a workflow regression. Rollback: revert this commit (the old
+`chatEndRef` effect returns).
 
 ---
 

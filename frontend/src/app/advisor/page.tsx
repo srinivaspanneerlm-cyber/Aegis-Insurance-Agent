@@ -62,7 +62,6 @@ function AdvisorChat() {
   const transfer = useAdvisorTransfer();
   const { transferRequest, interruptRequest, connectingTo, previousAdvisorCategory } = transfer;
 
-  const chatEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const streamingTimestampRef = useRef("");
   const lastUserMsgRef = useRef("");
@@ -122,13 +121,8 @@ function AdvisorChat() {
     if (p) setSelectedPlan(decodeURIComponent(p));
   }, [searchParams]);
 
-  // ── Auto-scroll ───────────────────────────────────────────────────────────
-  useEffect(() => {
-    const t = setTimeout(() => {
-      chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, 80);
-    return () => clearTimeout(t);
-  }, [messages, streamState.text, streamState.phase]);
+  // Auto-scroll is owned by MessageTranscript's useStickyScroll (it re-pins to
+  // the newest message only while the reader is already at the bottom).
 
   // ── Textarea auto-resize ──────────────────────────────────────────────────
   useEffect(() => {
@@ -426,7 +420,6 @@ function AdvisorChat() {
             onOptionClick={handleOptionClick}
             onRegenerate={handleRegenerate}
             onVoicePlay={handleVoicePlay}
-            chatEndRef={chatEndRef}
           />
 
           {/* Starter chips: only before the user's first turn. Routes through the
