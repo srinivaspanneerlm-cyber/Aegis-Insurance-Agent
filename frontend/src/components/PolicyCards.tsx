@@ -282,7 +282,7 @@ export default function PolicyCards({ selectedPlan, onSelectPlan, onScrollToForm
         {/* Small Trust Disclaimer Info */}
         <div className="flex items-center justify-center gap-2 mt-12 text-[12px] text-slate-400">
           <ShieldAlert className="w-4 h-4 text-slate-400 flex-shrink-0" />
-          <span>Rates are regulated and verified under corporate partner guidelines. IRDAI Licensed.</span>
+          <span>Rates shown are indicative. Your final premium is set by the insurer at underwriting.</span>
         </div>
       </div>
     </section>

@@ -5,15 +5,15 @@ import { Shield, Mail, Phone, MapPin, Award, Heart } from "lucide-react";
 export default function Footer() {
   return (
     <footer className="bg-navy-950 text-slate-300 border-t border-slate-800/80">
-      {/* Top Banner: Safe & Certified */}
+      {/* Top Banner: What Aegis AI is (and isn't) */}
       <div className="max-w-7xl mx-auto px-6 py-10 border-b border-slate-800/60 flex flex-col md:flex-row items-center justify-between gap-6">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 rounded-xl bg-slate-800/60 flex items-center justify-center text-cyan-400">
             <Award className="w-6 h-6" />
           </div>
           <div>
-            <h4 className="font-semibold text-white text-base">IRDAI Certified & Regulated</h4>
-            <p className="text-[13px] text-slate-400 mt-0.5">Registration No. 999 • Evaluated & certified under digital fintech protection code.</p>
+            <h4 className="font-semibold text-white text-base">Independent guidance, not a sales desk</h4>
+            <p className="text-[13px] text-slate-400 mt-0.5">Aegis AI is an educational insurance-guidance platform — not a licensed insurer. You buy any policy directly from the insurer.</p>
           </div>
         </div>
       </div>
@@ -75,7 +75,7 @@ export default function Footer() {
         <div>
           <h5 className="font-semibold text-white text-[14px] uppercase tracking-wider mb-5">Legal & Trust</h5>
           <ul className="space-y-3.5 text-[14px]">
-            {["Privacy Protection", "Terms of Service", "Claim Disclosure", "ISO Certifications", "Grievance Redressal"].map((item, idx) => (
+            {["Privacy Protection", "Terms of Service", "Claim Disclosure", "Security & Privacy", "Grievance Redressal"].map((item, idx) => (
               <li key={idx}>
                 <a href="#" className="hover:text-white transition-colors">{item}</a>
               </li>
@@ -87,7 +87,7 @@ export default function Footer() {
       {/* Compliance Disclaimer */}
       <div className="max-w-7xl mx-auto px-6 py-8 border-t border-slate-800/60 text-[11px] text-slate-500 leading-relaxed space-y-3">
         <p>
-          *Disclaimer: Insurance is the subject matter of solicitation. Standard terms and conditions apply. Aegis AI Protection acts as a corporate digital agency (IRDAI Reg. No 999). Information portal is powered by proprietary artificial intelligence models trained on certified open insurance logs. Recommendations provided are non-binding advisory calculations and are subject to final underwriting criteria set by respective insurance partners.
+          *Disclaimer: Insurance is the subject matter of solicitation. Standard terms and conditions apply. Aegis AI is an educational insurance-guidance platform — not a licensed insurer, and it is not registered with IRDAI as an intermediary. Recommendations are non-binding advisory calculations and are subject to the final terms and underwriting of the insurance provider you choose to buy from.
         </p>
         <p>
           © 2026 Aegis Insurance Solutions Ltd. All rights reserved. Made with <Heart className="w-3 h-3 text-red-500 inline fill-red-500" /> for family security and emotional wellness.

@@ -138,11 +138,11 @@ export default function LeadForm({ initialPlanSelection }: LeadFormProps) {
                 <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 text-[12.5px] text-slate-500 text-left space-y-2 font-medium">
                   <p><strong>🔒 Secure ID:</strong> {leadId || "AEG-Pending"}</p>
                   <p><strong>📋 Scope Selected:</strong> {formData.insuranceType}</p>
-                  <p><strong>📞 Contact Direct:</strong> An Aegis Certified Family Officer will contact you at <strong>{formData.phone}</strong> within 10 minutes to verify medical details and trigger cover.</p>
+                  <p><strong>📞 Contact Direct:</strong> An Aegis advisor will contact you at <strong>{formData.phone}</strong> within 10 minutes to talk through your options.</p>
                 </div>
 
                 <div className="pt-2 text-[11px] text-slate-400">
-                  Secured & underwritten in partnership with IRDAI-registered carriers.
+                  Aegis AI provides guidance only. Any policy is issued and underwritten by the insurer you choose.
                 </div>
               </motion.div>
             ) : step === 1 ? (
@@ -286,7 +286,7 @@ export default function LeadForm({ initialPlanSelection }: LeadFormProps) {
                   {/* Trust disclaimer badge */}
                   <div className="p-3.5 bg-blue-50 border border-blue-100 rounded-2xl flex items-start gap-2.5 text-[11.5px] text-slate-600 font-medium">
                     <ShieldCheck className="w-5 h-5 text-royal-600 flex-shrink-0 mt-0.5" />
-                    <span>Privacy Assured: We enforce a zero-marketing spam rule. Your digits will only be used by certified claim support officers.</span>
+                    <span>Privacy Assured: We enforce a zero-marketing spam rule. Your number will only be used by our support team.</span>
                   </div>
 
                   {/* Controls */}

@@ -36,7 +36,7 @@ export function PoliciesViewport({
     >
       <div className="border-b border-white/5 pb-4">
         <h3 className={`font-black text-base text-content`}>Your Active Insurance Portfolio</h3>
-        <p className="text-xs text-slate-400 mt-1 font-medium">Fully locked and regulated under certified premium SaaS underwriting terms.</p>
+        <p className="text-xs text-slate-400 mt-1 font-medium">Your saved policies and coverage, all in one place.</p>
       </div>
 
       <div className="space-y-6">

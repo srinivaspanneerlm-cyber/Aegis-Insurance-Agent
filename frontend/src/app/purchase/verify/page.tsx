@@ -14,7 +14,7 @@ const CHECKS = [
   { id: "risk",        icon: Activity,      label: "Risk Profiling",          sub: "Analysing underwriting risk parameters",      delay: 1200 },
   { id: "coverage",    icon: FileCheck,     label: "Coverage Eligibility",    sub: "Mapping coverage limits to profile",          delay: 1800 },
   { id: "fraud",       icon: AlertTriangle, label: "Fraud Detection",         sub: "Running 47-point fraud pattern scan",         delay: 2400 },
-  { id: "policy",      icon: ClipboardCheck,label: "Policy Rules Check",      sub: "Validating against current IRDAI guidelines", delay: 3000 },
+  { id: "policy",      icon: ClipboardCheck,label: "Policy Rules Check",      sub: "Reviewing plan rules and eligibility",         delay: 3000 },
   { id: "compliance",  icon: Lock,          label: "Internal Compliance",     sub: "Confirming KYC & AML compliance",             delay: 3600 },
   { id: "executive",   icon: BadgeCheck,    label: "Executive Approval",      sub: "Final sign-off by Chief Risk Officer",        delay: 4200 },
 ];

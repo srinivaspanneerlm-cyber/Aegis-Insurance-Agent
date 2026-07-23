@@ -50,7 +50,7 @@ function PurchaseLayoutInner({ children }: { children: React.ReactNode }) {
           {/* Security badge */}
           <div className="hidden sm:flex items-center gap-2 text-xs text-emerald-400">
             <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            256-bit SSL · PCI DSS Compliant
+            Encrypted connection · Demo Mode
           </div>
         </div>
 

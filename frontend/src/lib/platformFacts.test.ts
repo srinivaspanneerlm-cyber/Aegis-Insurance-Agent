@@ -20,8 +20,12 @@ const FORBIDDEN: { pattern: RegExp; why: string }[] = [
   { pattern: /50,000\+\s*families/i, why: "invented customers-served count" },
   { pattern: /₹500Cr\+/i, why: "invented claims-disbursed total" },
   { pattern: /ISO\s*27001/i, why: "unheld certification" },
-  { pattern: /PCI-DSS/i, why: "unheld certification" },
-  { pattern: /IRDAI\s+(regulatory|compliance)/i, why: "unheld regulatory status" },
+  { pattern: /PCI[\s-]?DSS/i, why: "unheld certification" },
+  // Aegis is a guidance platform, not a licensed insurer or IRDAI-registered
+  // intermediary (Step 4.3.6). These lock out self-certification shapes while
+  // deliberately allowing legit references to the regulator ("IRDAI guidelines").
+  { pattern: /IRDAI[\s-]+(regulatory|compliance|compliant|certified|licen[sc]ed|registered|registration)/i, why: "unheld regulatory status / certification" },
+  { pattern: /reg(istration)?\.?\s*no\.?\s*999\b/i, why: "invented regulator registration number" },
   { pattern: /AES-256/i, why: "unverified encryption claim" },
   { pattern: /audited metric/i, why: "unaudited figure labelled as audited" },
   // Reworded marketing-stat labels that evaded the shapes above (Step 4.3.1):

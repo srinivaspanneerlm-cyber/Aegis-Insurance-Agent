@@ -22,7 +22,7 @@ interface ProcessingStep {
 const STEPS: ProcessingStep[] = [
   { id: "verify",   label: "Verifying Payment",         sub: "Confirming transaction with payment gateway",  icon: ShieldCheck,    delay: 0,    duration: 1600 },
   { id: "policy",   label: "Generating Policy",          sub: "Underwriting & policy document creation",      icon: FileText,       delay: 1600, duration: 1400 },
-  { id: "polno",    label: "Assigning Policy Number",    sub: "Registering with IRDAI database",              icon: Hash,           delay: 3000, duration: 1200 },
+  { id: "polno",    label: "Assigning Policy Number",    sub: "Finalising your demo application",              icon: Hash,           delay: 3000, duration: 1200 },
   { id: "qr",       label: "Generating QR Code",         sub: "Quick-access QR for policy retrieval",         icon: QrCode,         delay: 4200, duration: 900  },
   { id: "card",     label: "Creating Insurance Card",    sub: "Digital insurance card with policy details",   icon: CreditCard,     delay: 5100, duration: 1100 },
   { id: "pdf",      label: "Generating Policy PDF",      sub: "Full policy document in PDF format",           icon: FileDown,       delay: 6200, duration: 1200 },

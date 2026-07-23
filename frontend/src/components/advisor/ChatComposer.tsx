@@ -100,7 +100,7 @@ export function ChatComposer({
       <div className="flex flex-wrap items-center justify-between gap-2 mt-3 px-1.5 text-[9px] font-bold text-slate-600 uppercase tracking-wider">
         <span>🔐 Pipeline V3.8</span>
         <span className="hidden sm:inline">Conversations are private &amp; secure</span>
-        <span>Cleared: IRDAI-MOCK</span>
+        <span>Demo session</span>
       </div>
     </div>
   );

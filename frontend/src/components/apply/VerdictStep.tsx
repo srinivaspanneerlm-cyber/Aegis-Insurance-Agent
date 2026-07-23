@@ -112,7 +112,7 @@ export function VerdictStep({ loading, underwritingVerdict, secureId }: VerdictS
 
           <div className="flex items-center justify-center gap-2 text-[10px] text-slate-500 font-bold uppercase tracking-widest pt-4">
             <ShieldCheck className="w-4 h-4 text-emerald-500" />
-            <span>Governed under IRDAI digital guidelines</span>
+            <span>Non-binding guidance — not a policy issuance</span>
           </div>
 
           <Link
