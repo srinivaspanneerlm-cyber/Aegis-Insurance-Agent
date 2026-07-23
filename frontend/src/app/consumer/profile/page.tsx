@@ -58,13 +58,13 @@ export default function ConsumerProfilePage() {
               </div>
               <div>
                 <h2 className="text-xl font-black text-white">{user.name}</h2>
-                <p className="text-[9.5px] text-cyan-400 font-extrabold uppercase tracking-widest mt-1">Sovereign Encryption Node</p>
+                <p className="text-[9.5px] text-cyan-400 font-extrabold uppercase tracking-widest mt-1">Verified Account</p>
               </div>
             </div>
 
             <div className="space-y-6 text-slate-300">
               <div className="space-y-2">
-                <label className="text-[9px] text-slate-500 font-black uppercase tracking-widest block">Sovereign Email</label>
+                <label className="text-[9px] text-slate-500 font-black uppercase tracking-widest block">Email</label>
                 <div className="p-4 bg-white/[0.01] border border-white/5 rounded-xl flex items-center gap-3">
                   <Mail className="w-4 h-4 text-purple-400" />
                   <span className="text-xs font-bold text-white">{user.email}</span>

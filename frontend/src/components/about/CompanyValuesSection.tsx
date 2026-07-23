@@ -24,7 +24,7 @@ export function CompanyValuesSection() {
         <div className="space-y-3">
           <span className="inline-flex items-center gap-1.5 text-cyan-400 bg-cyan-950/30 border border-cyan-800/40 py-1.5 px-4 rounded-full text-xs font-bold uppercase tracking-widest">
             <ShieldCheck className="w-3.5 h-3.5" />
-            <span>Actuarial Trust Pillars</span>
+            <span>What We Stand For</span>
           </span>
           <h2 className="text-3xl font-black tracking-tight text-white leading-none">Core Operating Values</h2>
         </div>

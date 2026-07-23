@@ -36,9 +36,9 @@ export function HeroBanner({ clientName }: { clientName: string }) {
         <div className={`flex items-center gap-4 border rounded-2xl p-4.5 self-start lg:self-center shadow-lg backdrop-blur-md transition-all duration-300 bg-white/80 border-slate-200 dark:bg-white/[0.02] dark:border-white/10`}>
           <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping shadow-glow" />
           <div className="text-left space-y-1">
-            <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest leading-none">Security Node</p>
-            <p className={`text-xs font-black mt-1 leading-none text-content`}>ECDSA Sync Secured</p>
-            <p className="text-[9.5px] text-cyan-400 font-extrabold uppercase tracking-widest">Vault Active</p>
+            <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest leading-none">Account Status</p>
+            <p className={`text-xs font-black mt-1 leading-none text-content`}>Protected &amp; Encrypted</p>
+            <p className="text-[9.5px] text-cyan-400 font-extrabold uppercase tracking-widest">Active</p>
           </div>
         </div>
       </div>

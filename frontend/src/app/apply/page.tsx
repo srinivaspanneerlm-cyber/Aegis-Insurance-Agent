@@ -47,7 +47,7 @@ function ApplyForm() {
             {/* Top Indicator */}
             <div className={`flex items-center justify-between mb-8 pb-4 border-b border-slate-150 dark:border-white/5`}>
               <span className={`text-[10px] font-black uppercase tracking-widest py-1 px-3.5 rounded-lg text-royal-600 bg-royal-50 border border-royal-100 dark:text-cyan-400 dark:bg-cyan-400/10 dark:border dark:border-cyan-400/20`}>
-                Sovereign AI Underwriter
+                AI Insurance Advisor
               </span>
               <span className="text-xs font-bold text-slate-400">Step {flow.step} of 4</span>
             </div>

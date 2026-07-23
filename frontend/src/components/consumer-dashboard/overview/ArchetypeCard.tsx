@@ -21,7 +21,7 @@ export function ArchetypeCard({ clientArchetype, archetypeExplanation }: Archety
       <div className="border-b border-white/5 pb-3">
         <span className="text-[8px] font-black text-purple-400 uppercase tracking-widest block mb-0.5">AI Profile Insights</span>
         <h4 className={`text-xs sm:text-sm font-black uppercase tracking-wider text-content`}>
-          Sovereign Risk Archetype
+          Your Risk Profile
         </h4>
       </div>
 

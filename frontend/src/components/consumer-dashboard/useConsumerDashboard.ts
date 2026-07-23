@@ -33,12 +33,12 @@ const INITIAL_MESSAGES: DashboardMessage[] = [
 const INITIAL_NOTIFICATIONS: DashboardNotification[] = [
   { id: 1, title: "AI Audit Cleared", message: "Family health protection coverage has passed the quarterly regulatory evaluation.", time: "2 hours ago", type: "audit", read: false },
   { id: 2, title: "Premium Lock Safe", message: "Your Aegis Supreme Health Shield premium rate is locked in until 2027.", time: "1 day ago", type: "premium", read: true },
-  { id: 3, title: "KYC Clearance Verified", message: "Your sovereign ID credentials have been successfully updated in our decentralized cloud vault.", time: "3 days ago", type: "kyc", read: true },
+  { id: 3, title: "KYC Verified", message: "Your ID documents have been updated and securely stored.", time: "3 days ago", type: "kyc", read: true },
 ];
 
 const INITIAL_DOCS: DashboardDoc[] = [
   { id: "doc-1", name: "Supreme_Health_Shield_Certificate.pdf", size: "2.4 MB", type: "policy", date: "May 10, 2026" },
-  { id: "doc-2", name: "Sovereign_Aadhaar_KYC_Encrypted.pdf", size: "1.1 MB", type: "kyc", date: "May 14, 2026" },
+  { id: "doc-2", name: "Aadhaar_KYC.pdf", size: "1.1 MB", type: "kyc", date: "May 14, 2026" },
   { id: "doc-3", name: "Premium_Receipt_Q1_2026.pdf", size: "850 KB", type: "receipt", date: "April 02, 2026" },
 ];
 

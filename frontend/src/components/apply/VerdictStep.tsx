@@ -29,8 +29,8 @@ export function VerdictStep({ loading, underwritingVerdict, secureId }: VerdictS
             <Spinner className="absolute inset-0 border-cyan-400" />
             <Sparkles className="absolute inset-0 m-auto w-8 h-8 text-cyan-400 animate-pulse" />
           </div>
-          <h3 className={`font-extrabold text-base text-content`}>Underwriting Dynamic Risk Parameters...</h3>
-          <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest animate-pulse">Running advanced actuarial ML rate locks</p>
+          <h3 className={`font-extrabold text-base text-content`}>Reviewing your details...</h3>
+          <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest animate-pulse">Matching you to the right plan</p>
         </div>
       ) : (
         <div className="space-y-6 text-left">
@@ -39,8 +39,8 @@ export function VerdictStep({ loading, underwritingVerdict, secureId }: VerdictS
           </div>
 
           <div className="text-center space-y-2 mb-6">
-            <h2 className={`text-2xl sm:text-3xl font-black text-content`}>Actuarial Risk Qualified</h2>
-            <p className={`text-xs font-semibold leading-relaxed ${descClass}`}>Your sovereign security shield has been dynamically underwritten. Secure ID allocated successfully.</p>
+            <h2 className={`text-2xl sm:text-3xl font-black text-content`}>You&apos;re a Match</h2>
+            <p className={`text-xs font-semibold leading-relaxed ${descClass}`}>We&apos;ve found a plan that fits your details. Your reference ID is ready below.</p>
           </div>
 
           {/* Recommendation Card */}
@@ -83,13 +83,13 @@ export function VerdictStep({ loading, underwritingVerdict, secureId }: VerdictS
 
             {/* Reason */}
             <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-100 text-[11.5px] text-slate-600 leading-relaxed mb-5 font-semibold">
-              <strong className="text-slate-900 block mb-0.5">Actuarial Analytics Reason:</strong>
+              <strong className="text-slate-900 block mb-0.5">Why this plan:</strong>
               {underwritingVerdict?.reason}
             </div>
 
             {/* Key Benefits List */}
             <div className="space-y-3 mb-6">
-              <span className="text-[9.5px] text-slate-400 font-bold uppercase tracking-widest block">Sovereign Safeguards Checklist:</span>
+              <span className="text-[9.5px] text-slate-400 font-bold uppercase tracking-widest block">What&apos;s covered:</span>
               <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
                 {underwritingVerdict?.benefits?.map((b: string, bIdx: number) => (
                   <li key={bIdx} className="flex items-start gap-2 text-xs text-slate-700">
@@ -104,7 +104,7 @@ export function VerdictStep({ loading, underwritingVerdict, secureId }: VerdictS
             <div className="bg-slate-900 text-white rounded-2xl p-4 flex items-center justify-between border border-white/5">
               <div className="flex items-center gap-2">
                 <Lock className="w-4 h-4 text-cyan-400" />
-                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Sovereign Verification number</span>
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Reference number</span>
               </div>
               <span className="font-mono text-xs font-bold text-cyan-400">{secureId}</span>
             </div>

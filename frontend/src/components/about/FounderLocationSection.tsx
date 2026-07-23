@@ -35,7 +35,7 @@ export function FounderLocationSection() {
 
           <div className="pt-8 border-t border-white/5 flex items-center gap-2 text-[10px] text-slate-500 font-bold uppercase tracking-wider">
             <Sparkles className="w-4 h-4 text-purple-400" />
-            <span>Sovereign Visionary Alignment</span>
+            <span>Our Founding Vision</span>
           </div>
         </div>
 
@@ -48,7 +48,7 @@ export function FounderLocationSection() {
               <MapPin className="w-6 h-6 animate-bounce" />
             </div>
             <div className="space-y-2">
-              <span className="text-[9px] font-black uppercase tracking-wider text-slate-500 block">Sovereign Coordinates</span>
+              <span className="text-[9px] font-black uppercase tracking-wider text-slate-500 block">Where We Are</span>
               <h3 className="text-xl font-black text-white">Salem, Tamil Nadu</h3>
               <span className="text-[10px] text-cyan-400 font-bold uppercase tracking-widest block">India</span>
             </div>
@@ -62,7 +62,7 @@ export function FounderLocationSection() {
             <div className="absolute w-2.5 h-2.5 rounded-full bg-cyan-400 shadow-[0_0_10px_#22d3ee]" />
 
             <span className="absolute bottom-2 right-3 text-[8.5px] font-mono text-slate-600 font-black uppercase tracking-wider">
-              Active Node: IN-SLM
+              Salem, India
             </span>
           </div>
         </div>

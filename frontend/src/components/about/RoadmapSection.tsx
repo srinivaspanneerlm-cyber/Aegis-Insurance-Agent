@@ -25,10 +25,10 @@ interface RoadmapMilestone {
 const MILESTONES: RoadmapMilestone[] = [
   {
     listTitle: "Voice AI Consultation",
-    listDesc: "Full sovereign voice-signature underwriter streams.",
+    listDesc: "Talk to an AI advisor by voice, in your own language.",
     phase: "Phase 1",
     detailTitle: "Voice AI Consultation",
-    detailDesc: "Enabling seamless, encrypted real-time vocal consultation feeds inside Aegis Command. Actuarial engines perform complex biometric checks and voice signature lockdowns instantly.",
+    detailDesc: "Speak to an AI advisor in real time instead of typing — helpful for first-time buyers, seniors, and anyone who finds forms hard. Your conversation stays private and encrypted.",
   },
   {
     listTitle: "Conversational Automation",
@@ -42,7 +42,7 @@ const MILESTONES: RoadmapMilestone[] = [
     listDesc: "Claim settlements triggered by AI execution nodes.",
     phase: "Phase 3",
     detailTitle: "AI Workflow Automation",
-    detailDesc: "Deploying sovereign workflow agents capable of orchestrating instant cashless approvals, vehicle depreciation calculations, and emergency evacuations with zero manual delays.",
+    detailDesc: "AI that handles the slow steps for you — cashless claim approvals, vehicle value calculations, and emergency help — so you get answers without the paperwork wait.",
   },
   {
     listTitle: "Personalized Protection Systems",
@@ -53,7 +53,7 @@ const MILESTONES: RoadmapMilestone[] = [
   },
   {
     listTitle: "Autonomous Recommendations",
-    listDesc: "Sovereign machine-learning underwritten portfolios.",
+    listDesc: "AI-built protection plans matched to your needs.",
     phase: "Phase 5",
     detailTitle: "Autonomous Insurance Recommendations",
     detailDesc: "Launching deep statistical machine-learning underwriters that perform mathematical risk evaluation and recommend custom protection packages autonomously.",

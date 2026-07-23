@@ -29,7 +29,7 @@ export function VisionMissionSection() {
           </div>
           <div className="pt-6 flex items-center gap-2 text-[10px] font-black uppercase tracking-wider text-purple-400">
             <span className="w-2 h-2 rounded-full bg-purple-400 animate-ping" />
-            <span>Sovereign Actuarial Excellence</span>
+            <span>Our Guiding Principle</span>
           </div>
         </motion.div>
 

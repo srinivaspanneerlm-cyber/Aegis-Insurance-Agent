@@ -28,7 +28,7 @@ export default function TrustSecurity() {
         {/* Section Heading */}
         <div className="text-center mb-16 space-y-3">
           <span className="text-xs font-semibold uppercase tracking-wider text-cyan-600 bg-cyan-50 border border-cyan-100 rounded-full py-1.5 px-4 inline-block">
-            Sovereign Security & Care
+            Your Security &amp; Privacy
           </span>
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-navy-900 leading-tight">
             Engineered for Unconditional Trust

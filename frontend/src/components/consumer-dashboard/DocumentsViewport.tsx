@@ -25,7 +25,7 @@ export function DocumentsViewport({
     >
       <div className="border-b border-white/5 pb-4">
         <h3 className={`font-black text-base text-content`}>Secure Document Vault</h3>
-        <p className="text-xs text-slate-400 mt-1 font-medium">Encrypt and seed sovereign KYC ID assets directly into decentralized ledger storage.</p>
+        <p className="text-xs text-slate-400 mt-1 font-medium">Upload your KYC and ID documents securely.</p>
       </div>
 
       <div className={`border-2 border-dashed rounded-2xl py-10 px-6 text-center flex flex-col items-center justify-center gap-3 border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-white/[0.01]`}>
@@ -42,7 +42,7 @@ export function DocumentsViewport({
 
         <div className="space-y-1">
           <p className={`text-xs font-bold text-content`}>Click upload to deposit secure PDF KYC assets</p>
-          <p className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Decentralized DPDP locker protocol</p>
+          <p className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Stored securely and privately</p>
         </div>
 
         {uploadingDoc && (

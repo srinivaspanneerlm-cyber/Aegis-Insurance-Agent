@@ -23,7 +23,7 @@ export function ClaimsViewport() {
     >
       <div className="border-b border-white/5 pb-4">
         <h3 className={`font-black text-base text-content`}>Secure Claim Safe-Track Portal</h3>
-        <p className="text-xs text-slate-400 mt-1 font-medium">Evaluating underwritten claims with decentralized authorization.</p>
+        <p className="text-xs text-slate-400 mt-1 font-medium">Track the status of your claims, all in one place.</p>
       </div>
 
       <div className={`p-6 border rounded-3xl space-y-6 bg-slate-50 border-slate-150 dark:bg-white/[0.01] dark:border-white/5`}>

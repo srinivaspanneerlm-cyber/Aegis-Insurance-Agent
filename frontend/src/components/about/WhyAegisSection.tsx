@@ -7,7 +7,7 @@ import { glassCardClass } from "./aboutTheme";
 const REASONS = [
   { title: "No Form Fatigue", desc: "No more filling out hundreds of tedious checkboxes. Conversational intake matches details seamlessly." },
   { title: "Zero Cold Calls", desc: "Consult in a private, encrypted digital vault. No agents will ever cold call or bother you." },
-  { title: "Dynamic Underwriting", desc: "Pricing is mathematically underwritten in real-time based on real actuarial telemetry indices." },
+  { title: "Fair, Real-Time Pricing", desc: "Your price is worked out from your actual details as you chat — no guesswork, no hidden loading." },
 ];
 
 /** "Why Aegis AI Exists" purpose section. */

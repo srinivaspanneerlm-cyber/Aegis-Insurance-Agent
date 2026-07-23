@@ -53,13 +53,13 @@ export function AdvisorEcosystem() {
         <div className="space-y-4 max-w-2xl mx-auto">
           <span className="inline-flex items-center gap-1.5 text-cyan-400 bg-cyan-950/30 border border-cyan-800/40 py-1.5 px-4 rounded-full text-xs font-bold uppercase tracking-widest">
             <Sparkles className="w-3.5 h-3.5 animate-spin-slow" />
-            <span>Sovereign Risk Underwriters</span>
+            <span>Your Specialist AI Advisors</span>
           </span>
           <h2 className="text-3xl sm:text-5xl font-black tracking-tight leading-none text-white">
             Consult with Specialized AI Advisors
           </h2>
           <p className="text-slate-400 text-xs sm:text-sm leading-relaxed">
-            Plans at Aegis are never static sheets. They are dynamically underwritten and custom-compiled in real time inside our secure digital vault. Connect with a specialized AI engine to start.
+            Plans at Aegis aren&apos;t one-size-fits-all sheets. Each one is tailored to your needs as you chat. Connect with a specialist AI advisor to start.
           </p>
         </div>
 
@@ -96,7 +96,7 @@ export function AdvisorEcosystem() {
                 </p>
 
                 <div className="space-y-1.5 pt-2 border-t border-white/5">
-                  <span className="text-[9px] font-black uppercase tracking-wider text-slate-500">Actuarial Telemetry</span>
+                  <span className="text-[9px] font-black uppercase tracking-wider text-slate-500">Focus Areas</span>
                   <div className="flex flex-wrap gap-1.5">
                     {adv.telemetry.map((t, tIdx) => (
                       <span key={tIdx} className="text-[8.5px] font-black uppercase tracking-wide bg-white/5 text-slate-300 py-0.5 px-2 rounded-md">

@@ -125,7 +125,7 @@ export function VaultChatRoom({
                           <span className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-bounce delay-300" />
                         </div>
                         <span className="text-slate-500 font-bold uppercase tracking-widest text-[9.5px] animate-pulse">
-                          Orchestrating executive leadership channels...
+                          Connecting you to the executive advisor...
                         </span>
                       </div>
                     </div>

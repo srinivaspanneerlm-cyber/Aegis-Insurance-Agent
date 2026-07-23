@@ -15,16 +15,16 @@ export function getExecutiveResponse(query: string): string {
   const hasWord = (w: string) => words.includes(w);
 
   if (hasWord("hi") || hasWord("hey") || norm.includes("hello") || norm.includes("greet")) {
-    return "Greetings. I am Sri AI, Chief Executive AI Advisor. I orchestrate the high-fidelity risk valuation matrices here at Aegis AI. How can I facilitate your onboarding or calibrate your underwriter desk today?";
+    return "Hello, I'm Sri AI, the Chief Executive AI Advisor at Aegis. I'm here to help you understand your options and get started, at your own pace. What can I help you with today?";
   }
   if (norm.includes("insurance") || norm.includes("guidance") || norm.includes("plan") || norm.includes("cover")) {
-    return "Aegis AI operates on a conversational 'Talk-to-Unlock' private gate. To unlock coverages, navigate to the Policies Portal, select your specialized underwriter (Alex, Sarah, Ethan, or Emma), and complete the conversational intake parameters checklist. My models will then compile a custom holographic recommendation package for you.";
+    return "Getting started is simple. Go to the Policies page and pick the advisor that fits your need — Sarah for health, Alex for motor, Ethan for travel, or Emma for home. Answer a few plain questions in a chat, and they'll put together a recommendation tailored to you.";
   }
   if (norm.includes("tech") || norm.includes("support") || norm.includes("error") || norm.includes("bug") || norm.includes("fail")) {
-    return "Underwriting channels are fully active. All endpoints—including the Node.js API server and our Gemini fallback actuarial controllers—are healthy and responding under 45ms. If you experience a token mismatch, please clear your browser cache or re-authenticate in the Vault Room.";
+    return "Everything is up and running smoothly. If something isn't working, try refreshing the page or signing in again. If it still won't work, our team is happy to help — just let us know what you were trying to do.";
   }
   if (norm.includes("recommend") || norm.includes("recommendation") || norm.includes("card") || norm.includes("hologram")) {
-    return "Our recommendation engine parses customer-specified budget bounds and risk metrics in real-time, emitting structured JSON payloads formatted inside secure tags. This renders the premium holographic card in your console. Simply click 'Continue Secure Application' to lock in your pre-approved pricing.";
+    return "Our AI looks at your budget and what you need, then suggests a plan that fits — shown as a clear, easy-to-read card on screen. When you're ready, click 'Continue Secure Application' to move ahead. There's no obligation.";
   }
   if (norm.includes("consult") || norm.includes("intake") || norm.includes("checklist")) {
     return "To resolve your intake metrics, ensure you provide: your name (or sign in), your household matrix size, comfort budget boundaries (e.g. ₹850/mo), coverage goals, and risk preferences. The live checklist indicator in your sidebar will tick green as these are cleared.";
