@@ -1,0 +1,275 @@
+{
+  "health-rural-senior-budget": {
+    "segment": "Budget",
+    "recommended": "Essential Care Plus",
+    "ranking": [
+      {
+        "rank": 1,
+        "plan_name": "Essential Care Plus",
+        "overall": 66
+      },
+      {
+        "rank": 2,
+        "plan_name": "Value Guard",
+        "overall": 62
+      },
+      {
+        "rank": 3,
+        "plan_name": "Basic Care Shield",
+        "overall": 60
+      }
+    ]
+  },
+  "health-metro-family-standard": {
+    "segment": "Standard",
+    "recommended": "Complete Care",
+    "ranking": [
+      {
+        "rank": 1,
+        "plan_name": "Complete Care",
+        "overall": 81
+      },
+      {
+        "rank": 2,
+        "plan_name": "Family Shield",
+        "overall": 77
+      },
+      {
+        "rank": 3,
+        "plan_name": "Standard Protect",
+        "overall": 67
+      }
+    ]
+  },
+  "health-firsttime-premium": {
+    "segment": "Premium",
+    "recommended": "Premium Elite",
+    "ranking": [
+      {
+        "rank": 1,
+        "plan_name": "Premium Elite",
+        "overall": 79
+      },
+      {
+        "rank": 2,
+        "plan_name": "Executive Shield",
+        "overall": 75
+      },
+      {
+        "rank": 3,
+        "plan_name": "Platinum Protect",
+        "overall": 62
+      }
+    ]
+  },
+  "health-coldstart-empty": {
+    "segment": "Budget",
+    "recommended": "Value Guard",
+    "ranking": [
+      {
+        "rank": 1,
+        "plan_name": "Value Guard",
+        "overall": 96
+      },
+      {
+        "rank": 2,
+        "plan_name": "Essential Care Plus",
+        "overall": 88
+      },
+      {
+        "rank": 3,
+        "plan_name": "Basic Care Shield",
+        "overall": 77
+      }
+    ]
+  },
+  "motor-twowheeler-budget": {
+    "segment": "Budget",
+    "recommended": "Third Party Only",
+    "ranking": [
+      {
+        "rank": 1,
+        "plan_name": "Third Party Only",
+        "overall": 81
+      },
+      {
+        "rank": 2,
+        "plan_name": "Road Guard Basic",
+        "overall": 76
+      },
+      {
+        "rank": 3,
+        "plan_name": "Drive Safe Starter",
+        "overall": 73
+      }
+    ]
+  },
+  "motor-hatchback-standard": {
+    "segment": "Standard",
+    "recommended": "Road Elite",
+    "ranking": [
+      {
+        "rank": 1,
+        "plan_name": "Road Elite",
+        "overall": 88
+      },
+      {
+        "rank": 2,
+        "plan_name": "Drive Complete",
+        "overall": 83
+      },
+      {
+        "rank": 3,
+        "plan_name": "Motor Shield",
+        "overall": 78
+      }
+    ]
+  },
+  "motor-suv-premium": {
+    "segment": "Premium",
+    "recommended": "Drive Supreme",
+    "ranking": [
+      {
+        "rank": 1,
+        "plan_name": "Drive Supreme",
+        "overall": 86
+      },
+      {
+        "rank": 2,
+        "plan_name": "Bumper-to-Bumper Plus",
+        "overall": 78
+      },
+      {
+        "rank": 3,
+        "plan_name": "Platinum Drive",
+        "overall": 64
+      }
+    ]
+  },
+  "travel-domestic-budget": {
+    "segment": "Budget",
+    "recommended": "Travel Basic",
+    "ranking": [
+      {
+        "rank": 1,
+        "plan_name": "Travel Basic",
+        "overall": 73
+      },
+      {
+        "rank": 2,
+        "plan_name": "Travel Smart",
+        "overall": 67
+      },
+      {
+        "rank": 3,
+        "plan_name": "Travel Saver",
+        "overall": 67
+      }
+    ]
+  },
+  "travel-family-intl-standard": {
+    "segment": "Standard",
+    "recommended": "Travel Shield",
+    "ranking": [
+      {
+        "rank": 1,
+        "plan_name": "Travel Shield",
+        "overall": 79
+      },
+      {
+        "rank": 2,
+        "plan_name": "Complete Traveller",
+        "overall": 69
+      },
+      {
+        "rank": 3,
+        "plan_name": "Family Travel Protect",
+        "overall": 68
+      }
+    ]
+  },
+  "travel-senior-intl-premium": {
+    "segment": "Standard",
+    "recommended": "Complete Traveller",
+    "ranking": [
+      {
+        "rank": 1,
+        "plan_name": "Complete Traveller",
+        "overall": 95
+      },
+      {
+        "rank": 2,
+        "plan_name": "Family Travel Protect",
+        "overall": 90
+      },
+      {
+        "rank": 3,
+        "plan_name": "Travel Shield",
+        "overall": 83
+      }
+    ]
+  },
+  "property-renter-budget": {
+    "segment": "Budget",
+    "recommended": "Home Value",
+    "ranking": [
+      {
+        "rank": 1,
+        "plan_name": "Home Value",
+        "overall": 90
+      },
+      {
+        "rank": 2,
+        "plan_name": "Home Secure",
+        "overall": 89
+      },
+      {
+        "rank": 3,
+        "plan_name": "Home Essential",
+        "overall": 74
+      }
+    ]
+  },
+  "property-homeowner-standard": {
+    "segment": "Standard",
+    "recommended": "Complete Property Care",
+    "ranking": [
+      {
+        "rank": 1,
+        "plan_name": "Complete Property Care",
+        "overall": 90
+      },
+      {
+        "rank": 2,
+        "plan_name": "Family Property Shield",
+        "overall": 87
+      },
+      {
+        "rank": 3,
+        "plan_name": "Home Protect",
+        "overall": 86
+      }
+    ]
+  },
+  "property-villa-premium": {
+    "segment": "Premium",
+    "recommended": "Platinum Property Guard",
+    "ranking": [
+      {
+        "rank": 1,
+        "plan_name": "Platinum Property Guard",
+        "overall": 87
+      },
+      {
+        "rank": 2,
+        "plan_name": "Elite Property Shield",
+        "overall": 86
+      },
+      {
+        "rank": 3,
+        "plan_name": "Ultimate Home Protection",
+        "overall": 83
+      }
+    ]
+  }
+}
