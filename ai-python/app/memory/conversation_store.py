@@ -28,6 +28,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
+from app.utils.atomic_io import atomic_write_text, file_lock
 from app.utils.logger import logger
 
 
@@ -110,41 +111,41 @@ class ConversationStore:
         path = self._path(customer_id, domain)
         key = self._cache_key(customer_id, domain)
 
-        # Load existing data (from cache or disk)
-        if key in self._cache:
-            turns = list(self._cache[key])
-            data = {
-                "customer_id": customer_id,
-                "domain": domain,
-                "turns": turns,
-            }
-        elif path.exists():
-            try:
-                data = json.loads(path.read_text(encoding="utf-8"))
-                turns = data.get("turns", [])
-            except Exception as e:
-                logger.warning(f"[ConversationStore] Corrupt history for {customer_id}/{domain}, resetting: {e}")
+        now = datetime.utcnow().isoformat()
+        new_turns = [
+            {"role": "user",      "content": user_message,      "ts": now},
+            {"role": "assistant", "content": assistant_message, "ts": now},
+        ]
+
+        # Serialise the read-modify-write across workers and base the append on
+        # the current on-disk state — not this process's cache — so a concurrent
+        # worker's turns can never be overwritten, and the write is atomic. (8.3a)
+        with file_lock(path):
+            if path.exists():
+                try:
+                    data = json.loads(path.read_text(encoding="utf-8"))
+                    turns = data.get("turns", [])
+                except Exception as e:
+                    logger.warning(f"[ConversationStore] Corrupt history for {customer_id}/{domain}, resetting: {e}")
+                    data = {"customer_id": customer_id, "domain": domain, "turns": []}
+                    turns = []
+            else:
                 data = {"customer_id": customer_id, "domain": domain, "turns": []}
                 turns = []
-        else:
-            data = {"customer_id": customer_id, "domain": domain, "turns": []}
-            turns = []
 
-        now = datetime.utcnow().isoformat()
-        turns.append({"role": "user",      "content": user_message,      "ts": now})
-        turns.append({"role": "assistant", "content": assistant_message, "ts": now})
+            turns = turns + new_turns
 
-        # Trim to max (each pair = 2 entries → MAX_TURNS pairs = MAX_TURNS*2 entries)
-        if len(turns) > self.MAX_TURNS * 2:
-            turns = turns[-(self.MAX_TURNS * 2):]
+            # Trim to max (each pair = 2 entries → MAX_TURNS pairs = MAX_TURNS*2 entries)
+            if len(turns) > self.MAX_TURNS * 2:
+                turns = turns[-(self.MAX_TURNS * 2):]
 
-        data["turns"] = turns
-        data["last_updated"] = now
+            data["turns"] = turns
+            data["last_updated"] = now
 
-        try:
-            path.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
-        except Exception as e:
-            logger.error(f"[ConversationStore] Save failed for {customer_id}/{domain}: {e}")
+            try:
+                atomic_write_text(path, json.dumps(data, indent=2, ensure_ascii=False))
+            except Exception as e:
+                logger.error(f"[ConversationStore] Save failed for {customer_id}/{domain}: {e}")
 
         self._cache[key] = turns
 

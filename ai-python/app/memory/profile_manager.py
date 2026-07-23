@@ -32,6 +32,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
+from app.utils.atomic_io import atomic_write_text, file_lock
 from app.utils.logger import logger
 from app.utils.prompt_safety import sanitize_profile, sanitize_profile_value
 
@@ -125,7 +126,8 @@ class EnhancedProfileManager:
     def save_shared_profile(self, base_customer_id: str, shared: Dict[str, Any]) -> None:
         path = self._shared_path(base_customer_id)
         try:
-            path.write_text(json.dumps(shared, indent=2, default=str), encoding="utf-8")
+            with file_lock(path):
+                atomic_write_text(path, json.dumps(shared, indent=2, default=str))
             self._cache[f"shared:{base_customer_id}"] = dict(shared)
         except Exception as e:
             logger.error(f"[ProfileManager] Save shared failed {base_customer_id}: {e}")
@@ -161,7 +163,8 @@ class EnhancedProfileManager:
         else:
             path = self._domain_path(domain_customer_id)
             try:
-                path.write_text(json.dumps(profile, indent=2, default=str), encoding="utf-8")
+                with file_lock(path):
+                    atomic_write_text(path, json.dumps(profile, indent=2, default=str))
             except Exception as e:
                 logger.error(f"[ProfileManager] Save domain failed {domain_customer_id}: {e}")
         self._cache[f"domain:{domain_customer_id}"] = dict(profile)

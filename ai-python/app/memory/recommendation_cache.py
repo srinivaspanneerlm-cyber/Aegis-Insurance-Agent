@@ -24,6 +24,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Optional
 
+from app.utils.atomic_io import atomic_write_text, file_lock
 from app.utils.logger import logger
 
 
@@ -100,10 +101,9 @@ class RecommendationCache:
         }
 
         try:
-            self._path(customer_id, domain).write_text(
-                json.dumps(entry, indent=2, default=str),
-                encoding="utf-8",
-            )
+            path = self._path(customer_id, domain)
+            with file_lock(path):
+                atomic_write_text(path, json.dumps(entry, indent=2, default=str))
         except Exception as e:
             logger.warning(f"[RecCache] Write failed {customer_id}/{domain}: {e}")
 
