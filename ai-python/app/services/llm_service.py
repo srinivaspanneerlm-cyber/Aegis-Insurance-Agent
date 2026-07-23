@@ -1,11 +1,30 @@
-from typing import List, Optional, Any
+from typing import List, Optional, Any, Tuple
 import json
+import time
 import asyncio
 import google.generativeai as genai
 from openai import AsyncOpenAI
 from app.config.config import settings
+from app.utils import metrics
 from app.utils.logger import logger
 from app.utils.premium_calculator import calculate_premium
+
+
+def _openai_usage(response: Any) -> Tuple[int, int]:
+    """(prompt_tokens, completion_tokens) from an OpenAI-compatible response.
+    Best-effort — Ollama's OpenAI-compat endpoint may omit usage entirely."""
+    usage = getattr(response, "usage", None)
+    if not usage:
+        return (0, 0)
+    return (getattr(usage, "prompt_tokens", 0) or 0, getattr(usage, "completion_tokens", 0) or 0)
+
+
+def _gemini_usage(response: Any) -> Tuple[int, int]:
+    """(prompt_tokens, completion_tokens) from a Gemini response's usage_metadata."""
+    meta = getattr(response, "usage_metadata", None)
+    if not meta:
+        return (0, 0)
+    return (getattr(meta, "prompt_token_count", 0) or 0, getattr(meta, "candidates_token_count", 0) or 0)
 
 
 class LLMService:
@@ -63,17 +82,24 @@ class LLMService:
     ) -> str:
         """Generate a response from the configured LLM provider."""
 
-        if self.provider == "ollama":
-            return await self._call_ollama(system_prompt, user_message, history, tools)
+        # Time and count the LLM call by provider (8.2). Observation only —
+        # the reply and any exception pass through unchanged.
+        start = time.perf_counter()
+        try:
+            if self.provider == "ollama":
+                reply = await self._call_ollama(system_prompt, user_message, history, tools)
+            elif self.provider == "gemini":
+                reply = await self._call_gemini(system_prompt, user_message, history, tools)
+            elif self.provider == "openai":
+                reply = await self._call_openai(system_prompt, user_message, history, tools)
+            else:
+                raise ValueError(f"Unsupported provider: {self.provider}")
+        except Exception:
+            metrics.observe_llm_call(self.provider, "error", time.perf_counter() - start)
+            raise
 
-        elif self.provider == "gemini":
-            return await self._call_gemini(system_prompt, user_message, history, tools)
-
-        elif self.provider == "openai":
-            return await self._call_openai(system_prompt, user_message, history, tools)
-
-        else:
-            raise ValueError(f"Unsupported provider: {self.provider}")
+        metrics.observe_llm_call(self.provider, "success", time.perf_counter() - start)
+        return reply
 
     # ── Ollama ────────────────────────────────────────────────────────────────
 
@@ -106,6 +132,7 @@ class LLMService:
             temperature=0.3,
         )
         logger.info("Ollama response resolved.")
+        metrics.record_llm_tokens("ollama", *_openai_usage(response))
         return response.choices[0].message.content or ""
 
     # ── Gemini ────────────────────────────────────────────────────────────────
@@ -151,10 +178,12 @@ class LLMService:
                     loop     = asyncio.get_event_loop()
                     response = await loop.run_in_executor(None, lambda: chat.send_message(final_prompt))
                     logger.info("Gemini tool call response resolved.")
+                    metrics.record_llm_tokens("gemini", *_gemini_usage(response))
                     return response.text
                 else:
                     response = await model.generate_content_async(final_prompt)
                     logger.info("Gemini response resolved.")
+                    metrics.record_llm_tokens("gemini", *_gemini_usage(response))
                     return response.text
             except Exception as e:
                 err_msg = str(e)
@@ -223,6 +252,7 @@ class LLMService:
             temperature=0.3,
         )
 
+        metrics.record_llm_tokens("openai", *_openai_usage(response))
         tool_calls = response.choices[0].message.tool_calls
         if tool_calls:
             logger.info("OpenAI: processing tool calls...")
@@ -246,6 +276,7 @@ class LLMService:
                 temperature=0.3,
             )
             logger.info("OpenAI tool call resolved.")
+            metrics.record_llm_tokens("openai", *_openai_usage(second))
             return second.choices[0].message.content or ""
         else:
             logger.info("OpenAI response resolved.")

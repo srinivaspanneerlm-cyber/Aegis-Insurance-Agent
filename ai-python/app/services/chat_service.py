@@ -6,8 +6,10 @@ session management, and response generation is handled by the orchestrator.
 """
 import json
 import re
+import time
 from typing import List, Optional, Dict, Any
 from app.models.schemas import ChatHistoryMessage
+from app.utils import metrics
 from app.utils.logger import logger
 
 
@@ -51,6 +53,13 @@ class ChatService:
         """
         history_list = self._normalize_history(history)
 
+        # Observe the reasoning latency of the non-streaming dispatch path (8.2).
+        # One observation per call, whatever the outcome; the protected SSE path
+        # is intentionally not instrumented here.
+        start = time.perf_counter()
+        outcome = "fallback"
+        domain = product_type
+
         if self._orchestrator:
             try:
                 result = await self._orchestrator.dispatch(
@@ -67,12 +76,20 @@ class ChatService:
                     f"(transferred={result.get('transferred', False)}, "
                     f"suggest_transfer={result.get('suggest_transfer', False)})"
                 )
+                metrics.observe_dispatch(
+                    result.get("agent_domain") or domain, "success", time.perf_counter() - start
+                )
                 return result
             except Exception as e:
+                outcome = "error"
                 logger.error(f"[ChatService] Orchestrator dispatch error: {e}")
 
-        # Graceful fallback if orchestrator is down
-        return self._fallback_response(user_message, user_name, product_type, session_id)
+        # Graceful fallback if orchestrator is down or dispatch raised.
+        result = self._fallback_response(user_message, user_name, product_type, session_id)
+        metrics.observe_dispatch(
+            domain or result.get("agent_domain"), outcome, time.perf_counter() - start
+        )
+        return result
 
     async def generate_response(
         self,

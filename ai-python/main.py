@@ -82,7 +82,8 @@ async def health_ready(response: Response):
 
 @app.get("/metrics", include_in_schema=False)
 async def metrics():
-    """Prometheus exposition — default process metrics (CPU, RAM, FDs)."""
+    """Prometheus exposition — default process metrics (CPU, RAM, FDs) plus
+    AI reasoning metrics (dispatch latency, LLM call latency, token usage)."""
     return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
 
