@@ -32,7 +32,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-from app.utils.atomic_io import atomic_write_text, file_lock
+from app.utils.atomic_io import atomic_write_text, file_lock, file_sig
 from app.utils.logger import logger
 from app.utils.prompt_safety import sanitize_profile, sanitize_profile_value
 
@@ -103,16 +103,24 @@ class EnhancedProfileManager:
     # ── Shared profile ────────────────────────────────────────────────────────
 
     def load_shared_profile(self, base_customer_id: str) -> Dict[str, Any]:
-        """Load (or initialize) the cross-domain shared profile."""
-        key = f"shared:{base_customer_id}"
-        if key in self._cache:
-            return dict(self._cache[key])
+        """Load (or initialize) the cross-domain shared profile.
 
+        The cache is mtime-aware (8.3b): a cached value is reused only while the
+        file is unchanged on disk, so another worker's write is picked up on the
+        next read instead of being masked by a stale cache — a prerequisite for
+        the merge-on-save below to avoid lost updates.
+        """
+        key = f"shared:{base_customer_id}"
         path = self._shared_path(base_customer_id)
+        mtime = file_sig(path)
+        cached = self._cache.get(key)
+        if cached is not None and mtime is not None and cached[0] == mtime:
+            return dict(cached[1])
+
         if path.exists():
             try:
                 data = json.loads(path.read_text(encoding="utf-8"))
-                self._cache[key] = data
+                self._cache[key] = (mtime, data)
                 return dict(data)
             except Exception as e:
                 logger.warning(f"[ProfileManager] Corrupt shared profile {base_customer_id}, using empty: {e}")
@@ -127,8 +135,23 @@ class EnhancedProfileManager:
         path = self._shared_path(base_customer_id)
         try:
             with file_lock(path):
-                atomic_write_text(path, json.dumps(shared, indent=2, default=str))
-            self._cache[f"shared:{base_customer_id}"] = dict(shared)
+                # Disk-authoritative merge (8.3b): fold this update into the latest
+                # on-disk state so a concurrent worker's fields are never lost.
+                current: Dict[str, Any] = {}
+                if path.exists():
+                    try:
+                        current = json.loads(path.read_text(encoding="utf-8"))
+                    except Exception:
+                        current = {}
+                merged = {**current, **shared}
+                # conversation_domains accumulates — union it so no worker's domain is dropped.
+                domains = list(dict.fromkeys(
+                    (current.get("conversation_domains") or []) + (shared.get("conversation_domains") or [])
+                ))
+                if domains:
+                    merged["conversation_domains"] = domains
+                atomic_write_text(path, json.dumps(merged, indent=2, default=str))
+                self._cache[f"shared:{base_customer_id}"] = (file_sig(path), merged)
         except Exception as e:
             logger.error(f"[ProfileManager] Save shared failed {base_customer_id}: {e}")
 
@@ -158,16 +181,26 @@ class EnhancedProfileManager:
         return {"customer_id": domain_customer_id}
 
     def save_domain_profile(self, domain_customer_id: str, profile: Dict[str, Any]) -> None:
+        to_cache = profile
         if self.memory_engine:
+            # Layer-3 engine owns its own storage + coherence (Aegis-AI tree).
             self.memory_engine.save_profile(domain_customer_id, profile)
         else:
             path = self._domain_path(domain_customer_id)
             try:
                 with file_lock(path):
-                    atomic_write_text(path, json.dumps(profile, indent=2, default=str))
+                    # Disk-authoritative merge on the fallback path (8.3b).
+                    current: Dict[str, Any] = {}
+                    if path.exists():
+                        try:
+                            current = json.loads(path.read_text(encoding="utf-8"))
+                        except Exception:
+                            current = {}
+                    to_cache = {**current, **profile}
+                    atomic_write_text(path, json.dumps(to_cache, indent=2, default=str))
             except Exception as e:
                 logger.error(f"[ProfileManager] Save domain failed {domain_customer_id}: {e}")
-        self._cache[f"domain:{domain_customer_id}"] = dict(profile)
+        self._cache[f"domain:{domain_customer_id}"] = dict(to_cache)
 
     # ── Merged profile ────────────────────────────────────────────────────────
 

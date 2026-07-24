@@ -35,6 +35,17 @@ def test_history_is_readable_by_a_fresh_reader_after_save(tmp_path):
     assert [h["content"] for h in history] == ["hi", "hello"]
 
 
+def test_load_history_is_coherent_across_workers(tmp_path):
+    a = ConversationStore(tmp_path)
+    b = ConversationStore(tmp_path)
+
+    a.save_turn("c", "health", "u1", "a1")
+    assert [h["content"] for h in b.load_history("c", "health")] == ["u1", "a1"]  # b caches it
+    a.save_turn("c", "health", "u2", "a2")   # file signature (mtime, size) changes
+    # b must pick up a's new turns on its next read, not serve the stale cache.
+    assert [h["content"] for h in b.load_history("c", "health")] == ["u1", "a1", "u2", "a2"]
+
+
 def test_append_still_trims_to_max_turns(tmp_path):
     store = ConversationStore(tmp_path)
     for i in range(store.MAX_TURNS + 10):

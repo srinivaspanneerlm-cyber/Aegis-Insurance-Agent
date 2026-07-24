@@ -28,7 +28,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
-from app.utils.atomic_io import atomic_write_text, file_lock
+from app.utils.atomic_io import atomic_write_text, file_lock, file_sig
 from app.utils.logger import logger
 
 
@@ -73,20 +73,24 @@ class ConversationStore:
     def load_history(self, customer_id: str, domain: str) -> List[Dict]:
         """
         Returns list of {role, content} dicts (no timestamps) for LLM context.
-        Loads from in-memory cache first, then disk.
+        The cache is mtime-aware (8.3b): cached turns are reused only while the
+        file is unchanged, so another worker's appended turns are seen on the next
+        read rather than masked by a stale cache.
         """
         key = self._cache_key(customer_id, domain)
-        if key in self._cache:
-            return [{"role": t["role"], "content": t["content"]} for t in self._cache[key]]
-
         path = self._path(customer_id, domain)
+        mtime = file_sig(path)
+        cached = self._cache.get(key)
+        if cached is not None and mtime is not None and cached[0] == mtime:
+            return [{"role": t["role"], "content": t["content"]} for t in cached[1]]
+
         if not path.exists():
             return []
 
         try:
             data = json.loads(path.read_text(encoding="utf-8"))
             turns = data.get("turns", [])
-            self._cache[key] = turns
+            self._cache[key] = (mtime, turns)
             return [{"role": t["role"], "content": t["content"]} for t in turns]
         except Exception as e:
             logger.warning(f"[ConversationStore] Load failed for {customer_id}/{domain}: {e}")
@@ -147,7 +151,7 @@ class ConversationStore:
             except Exception as e:
                 logger.error(f"[ConversationStore] Save failed for {customer_id}/{domain}: {e}")
 
-        self._cache[key] = turns
+        self._cache[key] = (file_sig(path), turns)
 
     # ── Transfer export ────────────────────────────────────────────────────────
 

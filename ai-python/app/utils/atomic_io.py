@@ -59,6 +59,22 @@ def atomic_write_text(path: Union[str, Path], text: str, encoding: str = "utf-8"
         raise
 
 
+def file_sig(path: Union[str, Path]):
+    """A cheap change-signature ``(mtime_ns, size)`` for mtime-aware caches, or
+    ``None`` if the file is absent.
+
+    The memory stores reuse a cached value only while this signature is unchanged,
+    so one worker's write is seen by another on its next read (8.3b). Size is
+    included alongside mtime so an update that lands within the same mtime
+    granularity as the cached read is still detected via the size change.
+    """
+    try:
+        st = Path(path).stat()
+        return (st.st_mtime_ns, st.st_size)
+    except OSError:
+        return None
+
+
 @contextmanager
 def file_lock(path: Union[str, Path]) -> Iterator[None]:
     """Hold an exclusive advisory lock scoped to ``path`` for the block's body.
