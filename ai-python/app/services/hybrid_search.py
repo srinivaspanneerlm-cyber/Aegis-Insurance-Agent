@@ -285,3 +285,16 @@ class HybridSearchEngine:
         
         logger.info(f"HybridSearchEngine: Retrieval complete. Selected top {len(top_chunks)} semantic chunks.")
         return top_chunks
+
+
+# ── Singleton ───────────────────────────────────────────────────────────────────
+
+_engine_singleton: Optional[HybridSearchEngine] = None
+
+
+def get_hybrid_search_engine() -> HybridSearchEngine:
+    """Singleton getter — builds the chunk corpus + BM25 index once and reuses it."""
+    global _engine_singleton
+    if _engine_singleton is None:
+        _engine_singleton = HybridSearchEngine()
+    return _engine_singleton
