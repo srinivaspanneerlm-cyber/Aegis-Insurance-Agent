@@ -5,7 +5,8 @@
 > model, and the roadmap for future agents.
 >
 > **See also:** [ARCHITECTURE.md](ARCHITECTURE.md) (system model) ·
-> [CLAUDE.md](CLAUDE.md) (protection rules) · [API_REFERENCE.md](API_REFERENCE.md)
+> [CLAUDE.md](CLAUDE.md) (protection rules) · [API_REFERENCE.md](API_REFERENCE.md) ·
+> [tests/eval/EVAL_REPORT.md](ai-python/tests/eval/EVAL_REPORT.md) (recommendation eval)
 
 ---
 
@@ -178,6 +179,15 @@ sequenceDiagram
 - The **shared** profile carries cross-domain facts (e.g. family size) so a
   transfer feels continuous without leaking domain-specific detail.
 
+**Durability & coherence.** The Layer-3 file stores are written **atomically**
+(temp file → `fsync` → `os.replace`) under a cross-process **advisory file
+lock**, so a reader never sees a torn file and a crash never corrupts a profile.
+Read caches are **mtime/size-aware** and saves are **disk-authoritative merges**,
+so concurrent workers do not lose each other's updates. This is described in
+detail in the memory hardening notes (§11). The `memory_engine` (Layer-3, in the
+`Aegis-AI/` tree) still owns its own storage, so the AI engine runs with
+`WEB_CONCURRENCY=1` until that path is made process-safe too.
+
 ---
 
 ## 8. Intent & Interrupt Intelligence
@@ -230,3 +240,55 @@ sequenceDiagram
 
 > No agent ships without isolation, consent-based transfer, tenant-scoped
 > memory, and documentation. These are enforced by [CLAUDE.md](CLAUDE.md).
+
+---
+
+## 11. Evaluation, Observability & Memory Hardening
+
+Quality and reliability work that surrounds — but does not alter — the protected
+agent logic.
+
+### 11.1 Recommendation evaluation (safety net)
+
+A deterministic, **LLM-free** harness (`ai-python/tests/eval/`) drives all four
+specialist engines across **13 mission-aligned personas** and asserts the
+invariants of a trustworthy recommendation (stable envelope, bounded scores,
+honest ranking, determinism, an advisory narrative on every plan, no profile
+mutation, and budget→segment monotonicity). Two golden baselines pin behaviour:
+`recommendations.json` (each persona's segment + recommended plan + scores) and
+`prompts.json` (the exact rendered system prompt for ordinary / Tamil / empty /
+poisoned-legacy profiles, guarding the injection-critical renderer). Full details
+and the current baseline table are in
+[tests/eval/EVAL_REPORT.md](ai-python/tests/eval/EVAL_REPORT.md).
+
+### 11.2 Reasoning observability
+
+The non-streaming reasoning path is instrumented with Prometheus metrics, exposed
+on the AI engine's `/metrics`:
+
+| Metric | Meaning |
+|---|---|
+| `aegis_ai_dispatch_seconds` | Orchestrator dispatch latency (labels: domain, outcome) |
+| `aegis_ai_llm_call_seconds` | Per-call LLM latency (labels: provider, outcome) |
+| `aegis_ai_llm_tokens_total` | Prompt/completion tokens (labels: provider, kind) |
+
+Recording is observation-only and defensive — a metrics failure never breaks a
+reply. The protected SSE/voice streaming path is intentionally **not** instrumented
+pending sign-off.
+
+### 11.3 Memory durability & multi-worker safety
+
+The Layer-3 file stores were made crash-safe and cross-process-safe:
+
+- **Atomic writes** — temp file → `fsync` → `os.replace`; a reader always sees a
+  complete file, even across a crash.
+- **Advisory file locks** — an `fcntl` lock on a sidecar `.lock` file serialises
+  each read-modify-write across uvicorn workers.
+- **mtime/size-aware caches** — a cached value is reused only while the file's
+  `(mtime, size)` signature is unchanged, so one worker sees another's write.
+- **Disk-authoritative merge-on-save** — a save folds its update into the latest
+  on-disk state (with list fields unioned), so concurrent updates to different
+  fields both survive.
+
+The `memory_engine` (Layer-3, `Aegis-AI/` tree) path is the remaining follow-up
+before `WEB_CONCURRENCY` can be raised above 1.
