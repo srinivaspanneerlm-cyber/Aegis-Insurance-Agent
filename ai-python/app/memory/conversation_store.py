@@ -30,6 +30,7 @@ from typing import Dict, List, Optional, Tuple
 
 from app.utils.atomic_io import atomic_write_text, file_lock, file_sig
 from app.utils.logger import logger
+from app.utils.metrics import timed_memory_op
 
 
 class ConversationStore:
@@ -70,6 +71,7 @@ class ConversationStore:
 
     # ── Load ──────────────────────────────────────────────────────────────────
 
+    @timed_memory_op("conversation_load")
     def load_history(self, customer_id: str, domain: str) -> List[Dict]:
         """
         Returns list of {role, content} dicts (no timestamps) for LLM context.
@@ -98,6 +100,7 @@ class ConversationStore:
 
     # ── Save ──────────────────────────────────────────────────────────────────
 
+    @timed_memory_op("conversation_save_turn")
     def save_turn(
         self,
         customer_id: str,

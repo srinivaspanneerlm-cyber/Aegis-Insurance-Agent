@@ -34,6 +34,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from app.utils.atomic_io import atomic_write_text, file_lock, file_sig
 from app.utils.logger import logger
+from app.utils.metrics import timed_memory_op
 from app.utils.prompt_safety import sanitize_profile, sanitize_profile_value
 
 
@@ -102,6 +103,7 @@ class EnhancedProfileManager:
 
     # ── Shared profile ────────────────────────────────────────────────────────
 
+    @timed_memory_op("profile_load_shared")
     def load_shared_profile(self, base_customer_id: str) -> Dict[str, Any]:
         """Load (or initialize) the cross-domain shared profile.
 
@@ -131,6 +133,7 @@ class EnhancedProfileManager:
         }
         return empty
 
+    @timed_memory_op("profile_save_shared")
     def save_shared_profile(self, base_customer_id: str, shared: Dict[str, Any]) -> None:
         path = self._shared_path(base_customer_id)
         try:
@@ -157,6 +160,7 @@ class EnhancedProfileManager:
 
     # ── Domain profile ────────────────────────────────────────────────────────
 
+    @timed_memory_op("profile_load_domain")
     def load_domain_profile(self, domain_customer_id: str) -> Dict[str, Any]:
         """Load the domain-specific profile (uses Layer 3 engine if available)."""
         key = f"domain:{domain_customer_id}"
@@ -180,6 +184,7 @@ class EnhancedProfileManager:
 
         return {"customer_id": domain_customer_id}
 
+    @timed_memory_op("profile_save_domain")
     def save_domain_profile(self, domain_customer_id: str, profile: Dict[str, Any]) -> None:
         to_cache = profile
         if self.memory_engine:

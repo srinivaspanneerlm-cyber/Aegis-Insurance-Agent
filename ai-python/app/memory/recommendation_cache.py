@@ -26,6 +26,7 @@ from typing import Any, Dict, Optional
 
 from app.utils.atomic_io import atomic_write_text, file_lock
 from app.utils.logger import logger
+from app.utils.metrics import timed_memory_op
 
 
 class RecommendationCache:
@@ -75,6 +76,7 @@ class RecommendationCache:
 
     # ── Store ─────────────────────────────────────────────────────────────────
 
+    @timed_memory_op("rec_cache_store")
     def store(
         self,
         customer_id: str,
@@ -112,6 +114,7 @@ class RecommendationCache:
 
     # ── Retrieve ──────────────────────────────────────────────────────────────
 
+    @timed_memory_op("rec_cache_retrieve")
     def retrieve(
         self,
         customer_id: str,

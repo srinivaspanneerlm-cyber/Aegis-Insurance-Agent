@@ -16,7 +16,9 @@ stays flat regardless of traffic.
 """
 from __future__ import annotations
 
+import functools
 import sys
+import time
 from typing import Any, Callable, Dict, Iterable, List, Tuple
 
 from prometheus_client import REGISTRY, Counter, Histogram
@@ -26,6 +28,9 @@ from app.utils.logger import logger
 
 # Latency buckets tuned for LLM-bound work: sub-second to tens of seconds.
 _LATENCY_BUCKETS = (0.05, 0.1, 0.25, 0.5, 1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 60.0)
+
+# Finer buckets for Layer-3 memory file I/O: sub-millisecond to a couple seconds.
+_MEMORY_BUCKETS = (0.0005, 0.001, 0.0025, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5)
 
 # The domains an agent can carry a reply for; anything else collapses to "other"
 # so a malformed label can never explode the series count.
@@ -49,6 +54,13 @@ LLM_TOKENS = Counter(
     "aegis_ai_llm_tokens_total",
     "LLM tokens consumed on the reasoning path, by provider and kind.",
     labelnames=("provider", "kind"),
+)
+
+MEMORY_OP_LATENCY = Histogram(
+    "aegis_ai_memory_op_seconds",
+    "Latency of a Layer-3 memory read/write op (conversation, profile, rec cache).",
+    labelnames=("operation", "outcome"),
+    buckets=_MEMORY_BUCKETS,
 )
 
 
@@ -82,6 +94,44 @@ def record_llm_tokens(provider: str | None, prompt_tokens: int = 0, completion_t
             LLM_TOKENS.labels(provider=p, kind="completion").inc(completion_tokens)
     except Exception as e:  # pragma: no cover
         logger.debug(f"[metrics] record_llm_tokens failed: {e}")
+
+
+# ── Layer-3 memory-op timing (Phase 9.3b) ────────────────────────────────────
+# The memory/persistence path is protected (CLAUDE.md §2), so this is strictly
+# observation-only: it times an op and records the latency, then the op's result
+# or exception passes through completely unchanged. A metrics failure can never
+# affect a read or a write. Applied as a decorator so the method bodies are not
+# touched. ``operation`` is a fixed vocabulary, so label cardinality stays flat.
+
+def observe_memory_op(operation: str, outcome: str, seconds: float) -> None:
+    """Record one memory op. ``outcome`` ∈ {success, error}."""
+    try:
+        MEMORY_OP_LATENCY.labels(operation=operation, outcome=outcome).observe(seconds)
+    except Exception as e:  # pragma: no cover - metrics must never break persistence
+        logger.debug(f"[metrics] observe_memory_op failed: {e}")
+
+
+def timed_memory_op(operation: str) -> Callable:
+    """Decorate a Layer-3 memory op to record its latency and outcome.
+
+    Behaviour-preserving: the wrapped call's return value and any exception are
+    propagated unchanged; timing is recorded in a ``finally`` so both paths are
+    measured without altering control flow.
+    """
+    def decorator(fn: Callable) -> Callable:
+        @functools.wraps(fn)
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
+            start = time.perf_counter()
+            outcome = "success"
+            try:
+                return fn(*args, **kwargs)
+            except Exception:
+                outcome = "error"
+                raise
+            finally:
+                observe_memory_op(operation, outcome, time.perf_counter() - start)
+        return wrapper
+    return decorator
 
 
 # ── Agent-environment diagnostics (Phase 9.3) ────────────────────────────────
