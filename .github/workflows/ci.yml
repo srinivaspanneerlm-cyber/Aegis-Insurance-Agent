@@ -28,6 +28,11 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci
+      # Fail the build on any NEW critical vulnerability in production deps.
+      # Highs are tracked separately (the Next 15 upgrade — see PROD_READINESS.md);
+      # tighten to --audit-level=high once that lands.
+      - name: Dependency audit (prod)
+        run: npm audit --omit=dev --audit-level=critical
       - name: Typecheck
         run: npx tsc --noEmit
       - name: Lint
@@ -53,6 +58,9 @@ jobs:
           cache: npm
           cache-dependency-path: backend/package-lock.json
       - run: npm ci
+      # Fail the build on any NEW critical vulnerability in production deps.
+      - name: Dependency audit (prod)
+        run: npm audit --omit=dev --audit-level=critical
       # Prisma client is generated from the schema (no database needed) so the
       # tests that import the data layer can load.
       - name: Generate Prisma client
