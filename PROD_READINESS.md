@@ -19,8 +19,8 @@ config validation, and a 3-job CI.
 |---|---|---|---|
 | PR‑1a | 🔴 P1 | Dependency vulnerabilities in prod deps (BE 14 / FE 6) | **Done** (this doc §PR‑1a) |
 | PR‑1b | 🔴 P1 | Postgres prod path not real (`schema.prisma` hardcodes `provider = "sqlite"`) | Open |
-| PR‑2 | 🟡 P2 | Runtime `console.log` in sockets/jobs/cache bypass the pino logger | Open |
-| PR‑3 | 🟢 P3 | 30 TODO/FIXME (mostly frontend advisor-transfer + tests) | Open |
+| PR‑2 | 🟡 P2 | Runtime `console.log` in sockets/jobs/cache bypass the pino logger | **Done** |
+| PR‑3 | 🟢 P3 | TODO/FIXME triage — a no-op upload scan | **Done** (this doc §PR‑3) |
 | PR‑4 | 🟡 P2 | No dependency-scan in CI · no documented backup/restore · no smoke/e2e | Partly done (CI audit gate landed with PR‑1a) |
 
 ---
@@ -57,10 +57,24 @@ frontend highs below; tighten to `--audit-level=high` once PR‑1a‑next lands.
 
 ---
 
+## PR‑3 — TODO/FIXME burndown ✅
+
+Triage corrected the count: of the ~30 raw matches, **29 were false positives**
+(case-insensitive `TODO` inside `toDomain` / `goToDocuments`, and `XXX` inside
+`+91 XXXXXXXXXX` / `cust_xxx.json`). Exactly **one** genuine marker existed:
+`fileScan.ts`'s upload scanner was a **no-op that passed every file**.
+
+Fixed it with real defense-in-depth: `scanFile` now does **magic-byte content
+validation** — it reads the file's leading bytes and rejects anything that is
+not a genuine PDF (`%PDF-`) or DOCX/OOXML zip (`PK\x03\x04`), failing closed on
+an unreadable file. This closes a real gap: the multer filter only checks the
+*client-declared* MIME, so a renamed executable (`evil.exe` → `evil.pdf`) passed
+before and is now rejected + removed. A full antivirus (ClamAV) — which finds
+malware *inside* a validly-formatted file — remains a deploy-time addition that
+plugs into the same `scanFile` hook.
+
 ## Remaining roadmap
 
-- **PR‑1a‑next** — Next 14 → 15 migration (clears both frontend residuals; protected UI, needs care + sign-off).
-- **PR‑1b** — make the Prisma datasource provider env-switchable / add a tested Postgres path, and correct DATABASE.md's "just a connection string" claim.
-- **PR‑2** — route runtime `console.log` (sockets, jobs, cache) through the pino logger.
-- **PR‑3** — burn down TODO/FIXME (audit which are real vs stale).
+- **PR‑1a‑next** — Next 14 → 15 migration (clears both frontend residuals; protected advisor/voice UI, needs care + sign-off).
 - **PR‑4** — documented backup/restore runbook; consider smoke/e2e in CI.
+- **Deploy-time (needs real infra):** generate + apply the Postgres migration lineage (PR‑1b mechanism is in place); drop in a ClamAV scanner behind the `scanFile` hook (PR‑3 magic-byte check is in place).

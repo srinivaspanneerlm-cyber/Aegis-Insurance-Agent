@@ -28,10 +28,12 @@ const storage = multer.diskStorage({
   },
 });
 
-// Allowed uploads must match on BOTH the extension and the declared MIME type,
-// so a renamed executable (evil.exe -> evil.pdf) is rejected on its content
-// type. `application/octet-stream` is tolerated because some browsers send it
-// for .docx, but only when the extension is already on the allowlist.
+// First gate: allow only known extensions + declared MIME types. The declared
+// MIME is client-supplied and spoofable, so this is not the real content check —
+// uploadService then calls scanFile(), which verifies the file's actual magic
+// bytes and rejects a disguised file (e.g. evil.exe renamed to evil.pdf).
+// `application/octet-stream` is tolerated because some browsers send it for
+// .docx, but only when the extension is already on the allowlist.
 const ALLOWED_EXTS = [".pdf", ".docx"];
 const ALLOWED_MIMES = new Set([
   "application/pdf",
