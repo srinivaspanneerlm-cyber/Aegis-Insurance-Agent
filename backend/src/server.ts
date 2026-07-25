@@ -41,6 +41,15 @@ process.on("uncaughtException", (err: Error) => {
 // Boot HTTP Server
 const server = http.createServer(app);
 
+// Keep-alive tuning. Node's default keepAliveTimeout is 5s; behind a proxy or
+// load balancer that holds idle upstream connections longer, Node can close a
+// socket just as the proxy reuses it → intermittent 502s under load. Keep
+// Node's timeout above the upstream idle timeout, and headersTimeout above
+// keepAliveTimeout so the header-read timer never fires mid-connection.
+// Values (and their invariant) are validated in config/serverTimeouts.
+server.keepAliveTimeout = env.KEEPALIVE_TIMEOUT_MS;
+server.headersTimeout = env.HEADERS_TIMEOUT_MS;
+
 // Integrate Socket.io with a strict CORS allowlist (no wildcard).
 const io = new Server(server, {
   cors: {

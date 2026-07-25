@@ -8,6 +8,8 @@
  * Import `env` anywhere instead of reading `process.env` directly.
  */
 
+import resolveServerTimeouts from "./serverTimeouts";
+
 const NODE_ENV = process.env.NODE_ENV || "development";
 const isProd = NODE_ENV === "production";
 
@@ -58,6 +60,15 @@ if (allowedOrigins.length === 0) {
   allowedOrigins.push("http://localhost:3000");
 }
 
+// ── HTTP keep-alive timeouts ──────────────────────────────────────────────────
+// Tuned to survive an upstream proxy's idle timeout (see serverTimeouts.ts). A
+// misordered pair (headers ≤ keepAlive) would silently cut requests short, so
+// it fails fast in production and warns in development.
+const serverTimeouts = resolveServerTimeouts(process.env);
+serverTimeouts.errors.forEach((msg) =>
+  isProd ? errors.push(msg) : warnings.push(msg)
+);
+
 // ── Report & fail fast ──────────────────────────────────────────────────────
 if (warnings.length) {
   // eslint-disable-next-line no-console
@@ -73,6 +84,11 @@ const env = {
   NODE_ENV,
   isProd,
   PORT: parseInt(process.env.PORT || "5000", 10),
+
+  // HTTP keep-alive tuning (see serverTimeouts.ts). Applied to the http.Server
+  // in server.ts so idle connections outlive the upstream proxy's idle timeout.
+  KEEPALIVE_TIMEOUT_MS: serverTimeouts.keepAliveTimeoutMs,
+  HEADERS_TIMEOUT_MS: serverTimeouts.headersTimeoutMs,
 
   JWT_SECRET,
   JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || "30d",
