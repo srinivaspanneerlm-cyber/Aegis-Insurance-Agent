@@ -18,6 +18,7 @@ import { AuthProvider } from "@/context/AuthContext";
 import { ThemeProvider } from "@/context/ThemeContext";
 import FloatingAI from "@/components/FloatingAI";
 import { Toaster } from "@/components/shared/Toaster";
+import WebVitalsReporter from "@/components/WebVitalsReporter";
 
 export default function RootLayout({
   children,
@@ -38,6 +39,7 @@ export default function RootLayout({
               {children}
               <FloatingAI />
               <Toaster />
+              <WebVitalsReporter />
             </MotionConfig>
           </AuthProvider>
         </ThemeProvider>
