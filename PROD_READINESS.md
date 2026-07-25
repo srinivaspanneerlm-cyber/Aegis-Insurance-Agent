@@ -21,7 +21,7 @@ config validation, and a 3-job CI.
 | PR‑1b | 🔴 P1 | Postgres prod path not real (`schema.prisma` hardcodes `provider = "sqlite"`) | Open |
 | PR‑2 | 🟡 P2 | Runtime `console.log` in sockets/jobs/cache bypass the pino logger | **Done** |
 | PR‑3 | 🟢 P3 | TODO/FIXME triage — a no-op upload scan | **Done** (this doc §PR‑3) |
-| PR‑4 | 🟡 P2 | No dependency-scan in CI · no documented backup/restore · no smoke/e2e | Partly done (CI audit gate landed with PR‑1a) |
+| PR‑4 | 🟡 P2 | CI/ops hardening — pre-merge smoke; reconcile audit duplication | **Done** (this doc §PR‑4) |
 
 ---
 
@@ -73,8 +73,27 @@ before and is now rejected + removed. A full antivirus (ClamAV) — which finds
 malware *inside* a validly-formatted file — remains a deploy-time addition that
 plugs into the same `scanFile` hook.
 
+## PR‑4 — CI / ops hardening ✅
+
+Pre-flight corrected the finding: most of PR‑4 already existed. Backup/restore is
+real (`scripts/backup-db.sh`, `restore-db.sh`, systemd `aegis-backup.{service,timer}`,
+`scripts/README.md`, DEVOPS.md §5), dependency scanning lives in `security.yml`
+(npm audit CRITICAL gate + pip-audit + Trivy), and a deploy-time smoke
+(`/health/ready` gate) runs in `deploy.yml` / `rollback.yml`.
+
+Two genuine gaps closed:
+
+- **Pre-merge smoke** — `ci.yml` never booted the app; smoke only ran at deploy.
+  A new `smoke` job boots the backend on an ephemeral SQLite DB
+  (`prisma migrate deploy`) and runs `scripts/smoke.mjs`, which probes `/health`,
+  `/health/live`, DB-gated `/health/ready`, and the JSON 404 path. Fails loud on
+  any non-expected status.
+- **Audit de-duplication** — the `npm audit --omit=dev --audit-level=critical`
+  steps added to `ci.yml` in PR‑1a duplicated `security.yml` (which already ran
+  exactly that on the same triggers). Removed from `ci.yml`; `security.yml` is the
+  single home for dependency/vuln scanning.
+
 ## Remaining roadmap
 
-- **PR‑1a‑next** — Next 14 → 15 migration (clears both frontend residuals; protected advisor/voice UI, needs care + sign-off).
-- **PR‑4** — documented backup/restore runbook; consider smoke/e2e in CI.
+- **PR‑1a‑next** — Next 14 → 15 migration (clears both frontend residuals; protected advisor/voice UI, needs care + sign-off). The last open code item.
 - **Deploy-time (needs real infra):** generate + apply the Postgres migration lineage (PR‑1b mechanism is in place); drop in a ClamAV scanner behind the `scanFile` hook (PR‑3 magic-byte check is in place).
