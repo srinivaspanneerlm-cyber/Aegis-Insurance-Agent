@@ -6,8 +6,10 @@
 //     so the Prisma Client API used across the backend keeps working unchanged.
 //   • Every model carries audit + soft-delete + optimistic-locking fields.
 //   • Indexes cover every real query path (owner + time, status + time, FKs).
-//   • Provider-portable: `datasource.url` comes from env so the same schema runs
-//     on SQLite (dev) or PostgreSQL (prod) — see DATABASE.md for the migration.
+//   • Provider-portable MODELS: this schema validates on both SQLite (dev) and
+//     PostgreSQL (prod). The `provider` below is a literal (Prisma can't read it
+//     from env), so switch it with `npm run db:provider postgresql` at deploy;
+//     migration SQL is dialect-specific and is regenerated per DB — see DATABASE.md.
 //   • SQLite has no native enums; string fields document their allowed values.
 //
 // NOTE on soft delete: `deletedAt` is present on all core models but is NOT yet

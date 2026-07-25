@@ -10,6 +10,7 @@
     "test:coverage": "node --import tsx --test --experimental-test-coverage tests/",
     "typecheck": "tsc --noEmit",
     "loadtest": "node loadtest/run.mjs",
+    "db:provider": "node scripts/set-db-provider.js",
     "db:generate": "npx prisma generate",
     "db:push": "npx prisma db push",
     "db:migrate": "npx prisma migrate dev",

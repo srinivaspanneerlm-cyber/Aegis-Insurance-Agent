@@ -28,9 +28,29 @@ Aegis AI has **two persistence systems**:
 | Access | **Repository layer only** | Repository layer only |
 | Migrations | `prisma migrate` (versioned) | `prisma migrate deploy` |
 
-The datasource URL is read from `env("DATABASE_URL")`, so the **same schema**
-runs on SQLite or PostgreSQL — the production switch is a connection-string +
-`prisma migrate deploy`, no model changes.
+The **models are portable** — this schema validates unchanged on both SQLite and
+PostgreSQL. But the switch is *not* only a connection string, because Prisma's
+datasource `provider` is a literal (it cannot be read from `env()`), the
+`migration_lock.toml` pins it, and migration SQL is dialect-specific. The real
+production procedure:
+
+```bash
+# 1. Point at Postgres and switch the provider (rewrites schema.prisma +
+#    migration_lock.toml together; run in the prod image build / CI, not committed).
+export DATABASE_URL="postgresql://user:pass@host:5432/aegis"
+npm run db:provider postgresql          # or DATABASE_PROVIDER=postgresql
+
+# 2. Generate a Postgres migration lineage against a Postgres shadow DB.
+#    The models are identical; only the emitted SQL differs from the SQLite set.
+npx prisma migrate dev --name init_postgres
+
+# 3. Deploy.
+npm run db:migrate:deploy
+npm run db:generate
+```
+
+The committed default stays SQLite for zero-friction local dev. `npm run
+db:provider sqlite` reverts.
 
 ---
 
