@@ -7,6 +7,7 @@
  */
 import jobQueue from "../services/jobQueue.service";
 import { leadRepository } from "../repositories";
+import { logger } from "../config/logger";
 
 export const JOB_TYPES = Object.freeze({
   LEAD_AUTO_QUALIFY: "lead.autoQualify",
@@ -19,7 +20,7 @@ export function registerJobs(): typeof jobQueue {
   // configured delay, move the lead to "approved".
   jobQueue.register(JOB_TYPES.LEAD_AUTO_QUALIFY, async ({ leadId }: { leadId: string }) => {
     await leadRepository.update(leadId, { status: "approved" });
-    console.log(`Lead ${leadId} status successfully qualified & approved.`);
+    logger.info({ leadId }, "Lead auto-qualified & approved");
   });
 
   return jobQueue;

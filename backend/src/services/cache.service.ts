@@ -15,6 +15,7 @@
 import Redis from "ioredis";
 import { CACHE_TTL, FEATURES } from "../config/constants";
 import env from "../config/env";
+import { logger } from "../config/logger";
 
 interface CacheStats {
   size: number; // -1 when the backing cannot report it cheaply (Redis)
@@ -150,13 +151,13 @@ class RedisCache implements CacheStore {
     this.redis.on("error", (err: Error) => {
       // Log once per outage rather than on every reconnect attempt.
       if (!this.errorLogged) {
-        console.error("[cache] Redis unavailable — serving uncached:", err.message);
+        logger.error({ err }, "[cache] Redis unavailable — serving uncached");
         this.errorLogged = true;
       }
     });
     this.redis.on("ready", () => {
       this.errorLogged = false;
-      console.log("[cache] Redis connected.");
+      logger.info("[cache] Redis connected.");
     });
   }
 
@@ -246,6 +247,6 @@ class RedisCache implements CacheStore {
 // Pick the backing once at boot. REDIS_URL present → shared Redis; else the
 // in-process store. The rest of the app depends only on the CacheStore contract.
 const cache: CacheStore = env.REDIS_URL ? new RedisCache(env.REDIS_URL) : new InMemoryCache();
-if (env.REDIS_URL) console.log("[cache] Using Redis backing.");
+if (env.REDIS_URL) logger.info("[cache] Using Redis backing.");
 
 export = cache;

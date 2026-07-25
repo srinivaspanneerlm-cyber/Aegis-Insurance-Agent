@@ -14,6 +14,9 @@ const logger = pino({
   level: env.LOG_LEVEL,
   base: { service: "aegis-backend" },
   timestamp: pino.stdTimeFunctions.isoTime,
+  // Serialize Error objects passed as `{ err }` into message/stack/type rather
+  // than the empty `{}` pino would otherwise emit (Error props aren't enumerable).
+  serializers: { err: pino.stdSerializers.err },
   // Belt-and-suspenders: strip anything secret-bearing if an object carrying
   // these keys is ever logged (e.g. a serialized request).
   redact: {

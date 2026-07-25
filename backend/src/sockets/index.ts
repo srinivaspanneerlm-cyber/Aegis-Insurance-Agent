@@ -2,6 +2,7 @@ import jwt, { type JwtPayload } from "jsonwebtoken";
 import type { Server, Socket } from "socket.io";
 import { userRepository, chatRepository } from "../repositories";
 import env from "../config/env";
+import { logger } from "../config/logger";
 import aiService = require("../services/ai.service");
 
 type SocketNext = (err?: Error) => void;
@@ -38,7 +39,7 @@ const socketAuthMiddleware = async (socket: Socket, next: SocketNext): Promise<v
 
 const initSockets = (io: Server): void => {
   io.on("connection", (socket: Socket) => {
-    console.log(`🔌 Client connected to Aegis socket server: ${socket.id}`);
+    logger.info({ socketId: socket.id }, "Socket client connected");
 
     // There is no `join_room` here on purpose. It used to let a client join any
     // room it named, with no check that the room was theirs — and every reply
@@ -105,14 +106,14 @@ const initSockets = (io: Server): void => {
           socket.emit("message_received", savedAiMsg);
         }
       } catch (err) {
-        console.error("Socket chat processing failed:", err);
+        logger.error({ err }, "Socket chat processing failed");
         socket.emit("error", { message: "Failed to process chat message." });
       }
     });
 
     // Disconnection cleanup
     socket.on("disconnect", () => {
-      console.log(`🔌 Client disconnected: ${socket.id}`);
+      logger.info({ socketId: socket.id }, "Socket client disconnected");
     });
   });
 };
