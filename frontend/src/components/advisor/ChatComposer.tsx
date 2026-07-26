@@ -15,7 +15,7 @@ interface ChatComposerProps {
   speakText: string | null;
   onSpeakEnd: () => void;
   voiceAgentDomain: string;
-  textareaRef: RefObject<HTMLTextAreaElement>;
+  textareaRef: RefObject<HTMLTextAreaElement | null>;
   inputVal: string;
   onInputChange: (value: string) => void;
   onKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;

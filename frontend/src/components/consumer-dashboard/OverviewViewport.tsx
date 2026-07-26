@@ -21,7 +21,7 @@ interface OverviewViewportProps {
   chatInput: string;
   setChatInput: (value: string) => void;
   handleSendMessage: (e: React.FormEvent) => void;
-  chatEndRef: RefObject<HTMLDivElement>;
+  chatEndRef: RefObject<HTMLDivElement | null>;
   setActiveNav: (nav: NavId) => void;
 }
 

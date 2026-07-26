@@ -43,17 +43,16 @@ also aligned the runtime with `@types/bcrypt@^6`, which was already installed
 (the two had drifted). `bcrypt`'s `hash`/`compare` API is unchanged; verified by
 the auth test suite + a hash/compare smoke.
 
-**CI gate.** Both the frontend and backend jobs now run
-`npm audit --omit=dev --audit-level=critical`, so a *new* critical in production
-deps fails the build. It is set to critical (not high) because of the tracked
-frontend highs below; tighten to `--audit-level=high` once PR‑1a‑next lands.
+**CI gate.** Dependency scanning is consolidated in `security.yml` (see PR‑4),
+which runs `npm audit --omit=dev --audit-level=critical` for both tiers. It
+stays at critical (not high) because of the tracked build-time `postcss` high
+below; it cannot be tightened to `--audit-level=high` until Next stops
+exact-pinning an old `postcss`.
 
-### Residual (frontend, tracked — not fixed here)
+### Residual (frontend) — see PR‑1a‑next
 
-| Package | Severity | Why not fixed now | Mitigation |
-|---|---|---|---|
-| `next` | high | Fix requires **Next 15** — a major App-Router upgrade that risks the protected advisor/voice UI, so it needs its own migration (call it **PR‑1a‑next**). All 14.2.x are affected; 14.2.35 is already the latest 14.2. | The vulns are DoS / image-optimizer / RSC issues; the app runs behind nginx (rate limiting, request/body limits), which blunts the DoS surface. |
-| `postcss` | high | The vulnerable `8.4.31` is pinned *exactly* by Next 14; a scoped `overrides` is rejected as `invalid` without a risky full lockfile regen. Resolves for free when PR‑1a‑next bumps Next. | **Build-time only** — postcss processes our own source CSS at build, never untrusted input at runtime; it is not shipped to the browser. |
+The `next` high is **resolved** by the Next 15 upgrade (PR‑1a‑next). Only a
+build-time `postcss` high remains — see that section.
 
 ---
 
@@ -93,7 +92,32 @@ Two genuine gaps closed:
   exactly that on the same triggers). Removed from `ci.yml`; `security.yml` is the
   single home for dependency/vuln scanning.
 
+## PR‑1a‑next — Next 14 → 15 (+ React 19) ✅
+
+Upgraded `next` 14.2.35 → **15.5.21** and `react`/`react-dom` 18 → **19** (plus
+`eslint-config-next` and `@types/react{,-dom}`). Blast radius was small: the app
+uses **no** async request APIs (`cookies()`/`headers()`/`draftMode()`) and **no**
+server-component `params`/`searchParams`, so the headline Next‑15 breaks did not
+apply. The only code change was widening five ref-prop types to
+`RefObject<T | null>` (React 19's `useRef(null)` return type).
+
+**Security outcome:** the `next` runtime CVEs (DoS / RSC / image-optimizer
+`remotePatterns`) are **cleared**. The upgrade also surfaced two transitive
+highs, one of which was fixed:
+
+| Package | Result |
+|---|---|
+| `next` runtime CVEs | ✅ Cleared by 15.5.21 |
+| `sharp` (image optimizer; fresh 2026‑07 libvips CVEs) | ✅ Cleared via `overrides: { sharp: "^0.35.3" }` (Next pins `^0.34.3`; the 0.35 bump is API-compatible and the build + image path verified) |
+| `postcss` | ⚠️ Remains — Next 15 still exact-pins `8.4.31`; **build-time only** (processes our own source CSS, never shipped) |
+
+Verified: tsc 0 · vitest 230 · lint 0 errors · `next build` clean · bundle within
+budget (total 1864 KB, largest 185 KB) · `next start` serves `/`, `/login`,
+`/advisor` → 200 under React 19. **Manual QA still needed:** interactive voice
+(mic + SSE streaming) and agent transfers require a browser with the backend +
+AI engine running — not verifiable in CI.
+
 ## Remaining roadmap
 
-- **PR‑1a‑next** — Next 14 → 15 migration (clears both frontend residuals; protected advisor/voice UI, needs care + sign-off). The last open code item.
 - **Deploy-time (needs real infra):** generate + apply the Postgres migration lineage (PR‑1b mechanism is in place); drop in a ClamAV scanner behind the `scanFile` hook (PR‑3 magic-byte check is in place).
+- **Watch:** the build-time `postcss` high clears whenever Next unpins it; tighten the CI audit gate to `--audit-level=high` at that point.

@@ -12,7 +12,7 @@ interface AdvisorChatPanelProps {
   chatInput: string;
   setChatInput: (value: string) => void;
   handleSendMessage: (e: React.FormEvent) => void;
-  chatEndRef: RefObject<HTMLDivElement>;
+  chatEndRef: RefObject<HTMLDivElement | null>;
 }
 
 /** Sarah AI advisor block: recommendation summary, live chat, and input. */

@@ -16,8 +16,8 @@ interface VaultChatRoomProps {
   inputVal: string;
   setInputVal: (value: string) => void;
   handleSendMessage: (e?: React.FormEvent, customMsg?: string) => void;
-  chatEndRef: RefObject<HTMLDivElement>;
-  chatConsoleRef: RefObject<HTMLDivElement>;
+  chatEndRef: RefObject<HTMLDivElement | null>;
+  chatConsoleRef: RefObject<HTMLDivElement | null>;
 }
 
 /** Collapsible "secure room" chat console with Sri AI. */
