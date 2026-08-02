@@ -168,8 +168,12 @@ cost-abuse and scraping bursts.
   (`message ≤ 8000`, `history ≤ 100`, `user_name ≤ 200`, …) to prevent LLM
   cost-abuse and memory-exhaustion DoS.
 - **Uploads:** extension **and** MIME must both be on the allowlist (`.pdf`,
-  `.docx`); single-file, 10 MB cap; stored with generated filenames;
-  served behind `protect` with `dotfiles: deny`.
+  `.docx`, `.png`, `.jpg`, `.heic`, `.webp`, `.mp4`, `.mov`); up to 50 MB and 5
+  files per request; stored with generated filenames; served behind `protect`
+  with `dotfiles: deny`. Neither the extension nor the declared MIME is trusted:
+  every file's **magic bytes are read and must agree with its extension**, so a
+  real MP4 named `invoice.pdf` is rejected even though both formats are allowed
+  (`src/utils/fileTypes.ts`, `src/utils/fileScan.ts`).
 - **Never trust client identity:** `sender`/`name`/`role` from a client are not
   authoritative after authentication; the verified user is used instead. This
   includes `user_name` on AI-engine calls — the backend supplies it from the

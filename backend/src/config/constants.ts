@@ -54,8 +54,12 @@ export const AUTH = {
 
 // ── Uploads ──────────────────────────────────────────────────────────────────
 export const UPLOADS = {
-  MAX_BYTES: num("UPLOAD_MAX_BYTES", 10 * 1024 * 1024),
-  MAX_FILES: num("UPLOAD_MAX_FILES", 1),
+  // 50 MB per file: customers photograph paperwork on phones and send motor
+  // walkaround videos, and a 10 MB cap turned those away. The real defence is
+  // the content scan, not a small number here.
+  MAX_BYTES: num("UPLOAD_MAX_BYTES", 50 * 1024 * 1024),
+  // Per request. An agent commonly asks for several documents at once.
+  MAX_FILES: num("UPLOAD_MAX_FILES", 5),
 };
 
 export const JOBS = {

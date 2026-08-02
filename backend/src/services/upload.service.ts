@@ -26,12 +26,24 @@ export const uploadService = {
    * rejected upload is removed to avoid orphaned files.
    */
   async create(input: DocumentInput) {
-    const { filepath, ownerId } = input;
+    const { filepath, filename, ownerId } = input;
 
-    const scan = await scanFile(filepath);
+    // The customer's own filename is what the scan judges the content against —
+    // multer's generated name would only ever agree with itself.
+    const scan = await scanFile(filepath, filename);
     if (!scan.clean) {
       await fs.unlink(filepath).catch(() => {});
-      auditService.record({ actorId: ownerId, action: "document.rejected", metadata: { reason: scan.reason ?? "scan" } });
+      auditService.record({
+        actorId: ownerId,
+        action: "document.rejected",
+        metadata: {
+          reason: scan.reason ?? "scan",
+          filename,
+          declaredMimeType: input.mimeType,
+          detectedFormat: scan.format ?? null,
+          sizeBytes: input.sizeBytes,
+        },
+      });
       throw new AppError("The uploaded file failed a security scan.", 400, "VALIDATION_ERROR");
     }
 
@@ -48,7 +60,11 @@ export const uploadService = {
       action: "document.uploaded",
       entity: "UploadedDocument",
       entityId: doc.id,
-      metadata: { filename: input.filename, sizeBytes: input.sizeBytes },
+      metadata: {
+        filename,
+        sizeBytes: input.sizeBytes,
+        detectedFormat: scan.format ?? null,
+      },
     });
     return doc;
   },

@@ -519,25 +519,54 @@ leakage. Capped at 200 most-recent messages.
 
 #### `POST /api/upload`
 
-Upload a KYC or policy document. Single file, multipart form-data.
+Upload one or more KYC / policy documents. `multipart/form-data`.
 
 **Auth required:** Yes
 
-**Request:** `multipart/form-data`, field name `file`
+**Request:** field name `file` (one document) or `files` (a batch). Both are
+accepted on the same endpoint, so an older client keeps working unchanged.
 
-Allowed types (extension AND MIME must both match):
-- `.pdf` / `application/pdf`
-- `.docx` / `application/vnd.openxmlformats-officedocument.wordprocessingml.document`
+Allowed types (extension AND MIME must both match, **and** the file's real magic
+bytes must match the extension):
 
-Limits: 10 MB per file, 1 file per request.
+| Extension | MIME |
+|---|---|
+| `.pdf` | `application/pdf` |
+| `.docx` | `application/vnd.openxmlformats-officedocument.wordprocessingml.document` |
+| `.png` | `image/png` |
+| `.jpg`, `.jpeg` | `image/jpeg` |
+| `.heic`, `.heif` | `image/heic`, `image/heif` |
+| `.webp` | `image/webp` |
+| `.mp4`, `.m4v` | `video/mp4` |
+| `.mov` | `video/quicktime` |
+
+`application/octet-stream` and an empty MIME are tolerated (browsers send them
+for DOCX and HEIC) — the content scan is what actually decides.
+
+Limits: **50 MB per file, 5 files per request** (`UPLOAD_MAX_BYTES`,
+`UPLOAD_MAX_FILES`). The nginx edge must stay above these
+(`client_max_body_size`).
 
 **Response `201`:**
 ```json
 {
   "status": "success",
-  "data": { "document": { "id": "uuid", "filename": "kyc-doc.pdf", "filepath": "...", "uploadedAt": "..." } }
+  "data": {
+    "document":  { "id": "uuid", "filename": "rc-book.png", "filepath": "...", "uploadedAt": "..." },
+    "documents": [ { "id": "uuid", "filename": "rc-book.png", "...": "..." } ],
+    "rejected":  [ { "filename": "evil.pdf", "reason": "The uploaded file failed a security scan." } ]
+  }
 }
 ```
+
+`document` is the first accepted file and is always present on success — the
+original single-file contract. `rejected` appears only for a batch: one bad file
+does not discard the good ones. When **every** file in a batch is rejected the
+request fails with `400` instead.
+
+**Errors:** `400` unsupported type, failed content scan, or over the size /
+count limit (the message names the limit); `409` the same document was already
+uploaded (content-hash duplicate).
 
 **Errors:**
 - `400` — no file, disallowed extension, or mismatched MIME type
