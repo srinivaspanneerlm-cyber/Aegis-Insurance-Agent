@@ -32,6 +32,10 @@ import { ChatComposer } from "@/components/advisor/ChatComposer";
 import { SuggestedQuestions } from "@/components/advisor/SuggestedQuestions";
 import { SUGGESTED_QUESTIONS } from "@/lib/suggestedQuestions";
 import { LeadFormModal } from "@/components/advisor/LeadFormModal";
+import { UploadModal } from "@/components/documents";
+import { DocumentRequestBlock } from "@/components/advisor/DocumentRequestBlock";
+import { stripDocumentRequestTag } from "@/lib/documents/parseDocumentRequest";
+import { useDocumentWorkflow } from "./useDocumentWorkflow";
 
 // ── Component ──────────────────────────────────────────────────────────────────
 
@@ -367,6 +371,14 @@ function AdvisorChat() {
     setSelectedPlan(planData?.planName || "Selected Plan");
   }, []);
 
+  // ── Document workflow ─────────────────────────────────────────────────────
+  // Reads the transcript, owns the uploads, and continues the conversation
+  // through the normal send path once everything asked for has arrived.
+  const documents = useDocumentWorkflow({
+    messages,
+    onAllReceived: sendToAdvisor,
+  });
+
   // Names come from the roster; the icon and sub-label are sidebar-only copy.
   const sidebarAdvisors: { id: AdvisorKey; icon: React.ReactNode; label: string; sub: string }[] = (
     [
@@ -420,6 +432,21 @@ function AdvisorChat() {
             onOptionClick={handleOptionClick}
             onRegenerate={handleRegenerate}
             onVoicePlay={handleVoicePlay}
+            transformText={stripDocumentRequestTag}
+            renderAfterMessage={(m) =>
+              documents.request && m.id === documents.requestMessageId ? (
+                <DocumentRequestBlock
+                  request={documents.request}
+                  uploads={documents.uploads}
+                  adhocUploads={documents.adhocUploads}
+                  steps={documents.steps}
+                  disabled={isStreaming}
+                  onPick={documents.openForRequirement}
+                  onDelete={documents.removeUpload}
+                  onRetry={documents.retryUpload}
+                />
+              ) : null
+            }
           />
 
           {/* Starter chips: only before the user's first turn. Routes through the
@@ -448,6 +475,7 @@ function AdvisorChat() {
             onInputChange={setInputVal}
             onKeyDown={handleKeyDown}
             placeholder={advisor.placeholder}
+            onAttach={documents.openForSource}
           />
         </div>
       </div>
@@ -468,6 +496,20 @@ function AdvisorChat() {
 
       {/* ── LEAD FORM MODAL ──────────────────────────────────────────────────── */}
       <LeadFormModal planName={selectedPlan} onClose={() => setSelectedPlan(null)} />
+
+      {/* ── DOCUMENT PICKER ──────────────────────────────────────────────────── */}
+      <UploadModal
+        open={documents.picker !== null}
+        requirement={documents.picker?.requirement}
+        accept={documents.picker?.accept}
+        maxBytes={documents.picker?.maxBytes}
+        multiple={documents.picker?.multiple}
+        capture={documents.picker?.capture}
+        title={documents.picker?.title}
+        autoOpenPicker={documents.picker?.autoOpenPicker}
+        onClose={documents.closePicker}
+        onConfirm={documents.confirmFiles}
+      />
     </div>
   );
 }

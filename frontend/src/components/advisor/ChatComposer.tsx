@@ -4,6 +4,8 @@ import { RefObject } from "react";
 import { Send, ChevronLeft } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import VoiceEngine from "@/components/VoiceEngine";
+import { AttachmentMenu } from "@/components/documents";
+import type { AttachmentSource } from "@/lib/documents/attachmentSources";
 import { ADVISORS, type AdvisorKey } from "@/lib/advisors";
 
 interface ChatComposerProps {
@@ -20,13 +22,15 @@ interface ChatComposerProps {
   onInputChange: (value: string) => void;
   onKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
   placeholder: string;
+  /** Opens the file picker for a chosen source. Omit to hide the paperclip. */
+  onAttach?: (source: AttachmentSource) => void;
 }
 
 /** Bottom input area: return-to-previous pill, voice engine, textarea, send. */
 export function ChatComposer({
   previousAdvisorCategory, onReturnToPrevious, isStreaming, onSubmit,
   onFinalTranscript, speakText, onSpeakEnd, voiceAgentDomain,
-  textareaRef, inputVal, onInputChange, onKeyDown, placeholder,
+  textareaRef, inputVal, onInputChange, onKeyDown, placeholder, onAttach,
 }: ChatComposerProps) {
   return (
     <div className="p-4 border-t border-white/5 bg-slate-950/40 relative z-10 select-none flex-shrink-0">
@@ -59,6 +63,13 @@ export function ChatComposer({
       </AnimatePresence>
 
       <form onSubmit={onSubmit} className="flex items-end gap-3">
+
+        {/* Attachment menu */}
+        {onAttach && (
+          <div className="flex-shrink-0 pb-1">
+            <AttachmentMenu onSelect={onAttach} disabled={isStreaming} />
+          </div>
+        )}
 
         {/* Voice engine */}
         <div className="flex-shrink-0 pb-1">

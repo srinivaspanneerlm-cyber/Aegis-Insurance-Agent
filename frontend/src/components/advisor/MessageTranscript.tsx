@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import ChatMessage, { type ChatMsg, type RecommendationData } from "@/components/ChatMessage";
 import ThinkingEngine from "@/components/ThinkingEngine";
 import { ADVISORS, AGENT_NAME_TO_CATEGORY, type Advisor } from "@/lib/advisors";
@@ -20,6 +21,10 @@ interface MessageTranscriptProps {
   onOptionClick: (text: string) => void;
   onRegenerate: (msgId: string) => void;
   onVoicePlay: (text: string) => void;
+  /** Rewrite message prose before it is rendered — used to strip UI-only tags. */
+  transformText?: (text: string) => string;
+  /** Extra content to place under a message, e.g. the document request cards. */
+  renderAfterMessage?: (message: ChatMsg) => ReactNode;
 }
 
 /** The scrollable message stream: connecting overlay, finalized messages,
@@ -28,7 +33,7 @@ interface MessageTranscriptProps {
  *  latest" pill when they have scrolled up. */
 export function MessageTranscript({
   connectingTo, messages, advisor, streamingAdvisor, streamState, streamingTimestamp,
-  onUIAction, onOptionClick, onRegenerate, onVoicePlay,
+  onUIAction, onOptionClick, onRegenerate, onVoicePlay, transformText, renderAfterMessage,
 }: MessageTranscriptProps) {
   const { containerRef, showJump, handleScroll, scrollToBottom } =
     useStickyScroll<HTMLDivElement>([messages, streamState.text, streamState.phase]);
@@ -48,9 +53,9 @@ export function MessageTranscript({
 
         {/* Finalized messages */}
         {messages.map(m => (
+          <div key={m.id} className="space-y-3">
           <ChatMessage
-            key={m.id}
-            message={m}
+            message={transformText ? { ...m, text: transformText(m.text) } : m}
             advisorAvatar={
               m.sender === "advisor"
                 ? (AGENT_NAME_TO_CATEGORY[m.agentName || ""] ? ADVISORS[AGENT_NAME_TO_CATEGORY[m.agentName || ""]].avatar : advisor.avatar)
@@ -67,6 +72,8 @@ export function MessageTranscript({
             onRegenerate={m.sender === "advisor" ? onRegenerate : undefined}
             onVoicePlay={m.sender === "advisor" ? onVoicePlay : undefined}
           />
+          {renderAfterMessage?.(m)}
+          </div>
         ))}
 
         {/* ThinkingEngine — shown during thinking phase */}
@@ -86,7 +93,7 @@ export function MessageTranscript({
             message={{
               id: "streaming",
               sender: "advisor",
-              text: streamState.text,
+              text: transformText ? transformText(streamState.text) : streamState.text,
               timestamp: streamingTimestamp,
               agentName: streamState.agentName || advisor.name,
               agentDomain: streamState.agentDomain,
