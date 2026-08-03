@@ -64,20 +64,12 @@ salesbots/
 │   ├── layer4/        # Recommendation: scoring, risk, comparison, policy matching
 │   └── layer5/        # Executive: approval engine, analytics, executive memory
 ├── ai-python/         # FastAPI multi-agent AI engine (the "brain")
-│   └── app/
-│       ├── agents/        # Sarah/Alex/Emma/Ethan/Executive + domain engines & plans
-│       ├── orchestrator/  # CentralOrchestrator, intent router, interrupt detector, sessions
-│       ├── intent/        # IntentDetectionEngine
-│       ├── memory/        # MemoryOrchestrator, profile/conversation/recommendation stores
-│       ├── services/      # chat, stream (SSE), ui_action, llm, hybrid_search
-│       ├── routes/        # chat, stream, action, health
-│       ├── middleware/    # internal_auth, conversation_middleware
-│       └── models/        # Pydantic schemas
 ├── backend/           # Node.js + Express + Prisma API (auth, leads, policies, chat bridge, sockets)
-│   └── src/{routes,controllers,services,middleware,config,sockets,utils,validations}
 └── frontend/          # Next.js + React + TypeScript + Tailwind UI
-    └── src/{app,components,context,hooks,services}
 ```
+
+The `Aegis-AI/` layer names are opaque, so they are spelled out above. The
+service trees are not — read them with `ls` when you need them.
 
 For the full component and data-flow model, see **[ARCHITECTURE.md](ARCHITECTURE.md)**.
 
@@ -100,8 +92,6 @@ For the full component and data-flow model, see **[ARCHITECTURE.md](ARCHITECTURE
 
 ### General
 - Match the **surrounding code's** style, naming, and comment density.
-- Small, single-purpose functions; clear names over comments.
-- Comment the **why**, not the **what**.
 - No dead code, no commented-out blocks, no debug `console.log`/`print` left behind.
 
 ### TypeScript / React
@@ -188,7 +178,7 @@ you introduced**:
 | Area | Command | Must pass |
 |---|---|---|
 | Node syntax | `node --check <file>` | all changed files |
-| Backend boot | load `src/app.js` + env validation | no startup error |
+| Backend boot | load `src/app.ts` + env validation | no startup error |
 | Python syntax | `python -m py_compile app/**/*.py` | all files |
 | Python import | `python -c "import main"` | app + all agents boot |
 | Frontend types | `npx tsc --noEmit` | exit 0 |
@@ -233,7 +223,7 @@ after score**, and **attack scenario** per finding.
   check-ignore`) before every commit.
 - One logical change per commit; imperative subject; body explains **why**.
 - End commit messages with:
-  `Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>`
+  `Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>`
 
 ---
 
