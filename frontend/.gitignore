@@ -34,3 +34,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Brand assets: the 4096px renders are build output, not source. They are 18 MB
+# and regenerate in ~30s from the committed geometry:
+#   node scripts/build-brand-assets.mjs
+# Everything else in public/brand IS committed, so a clone needs no build step
+# for normal use. The SVGs are infinitely scalable regardless.
+public/brand/**/*-4096.png
