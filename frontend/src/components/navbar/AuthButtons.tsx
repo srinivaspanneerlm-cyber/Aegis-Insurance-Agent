@@ -4,18 +4,18 @@ import Link from "next/link";
 import { User, LogOut } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
-/** Login trigger, or the console/sign-out pair when authenticated. */
+/** Login trigger, or the dashboard/sign-out pair when authenticated. */
 export function AuthButtons({ onLoginClick }: { onLoginClick?: () => void }) {
-  const { isAuthenticated, logout, user } = useAuth();
+  const { isAuthenticated, logout } = useAuth();
 
   if (isAuthenticated) {
     return (
       <div className="flex items-center gap-3">
         <Link
-          href={user?.role === "admin" ? "/admin" : "/dashboard"}
+          href="/dashboard"
           className={`py-2 px-4 rounded-full text-xs font-black uppercase tracking-wider transition-all border bg-slate-100 border-slate-250 text-royal-600 hover:bg-slate-200 dark:bg-white/[0.03] dark:border-cyan-400/30 dark:text-cyan-300 dark:hover:bg-white/[0.08]`}
         >
-          <span>Console</span>
+          <span>Dashboard</span>
         </Link>
 
         <button

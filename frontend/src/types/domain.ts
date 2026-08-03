@@ -1,7 +1,7 @@
 /**
  * Shared domain models for loosely-typed API/mock data.
  *
- * These replace scattered `any[]` / `any` state in the admin and consumer
+ * These replace scattered `any[]` / `any` state in the consumer
  * dashboards. Fields are optional where the UI already guards with `||` / `?.`
  * fallbacks, so typing them changes no runtime behaviour — it only makes the
  * shapes explicit and catches mistakes at compile time.
@@ -23,7 +23,7 @@ export interface PolicyRecord {
   premium: number;
 }
 
-/** A sales/underwriting lead shown in the admin dashboard. */
+/** A sales/underwriting lead captured from the customer apply flow. */
 export interface Lead {
   id: string;
   customerName?: string;
@@ -40,7 +40,7 @@ export interface AdvisorMessage {
   text?: string;
 }
 
-/** A stored chat exchange (admin monitor + consumer history). */
+/** A stored chat exchange, shown in the customer's conversation history. */
 export interface ChatLog {
   id?: string | number;
   createdAt?: string | number;
@@ -59,10 +59,3 @@ export interface DocumentRecord {
   createdAt?: string | number;
 }
 
-/** Aggregate counters shown on the admin analytics/overview panels. */
-export interface AdminStats {
-  totalLeads: number;
-  totalChats: number;
-  uploadedDocuments: number;
-  activeUsers?: number;
-}

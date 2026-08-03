@@ -4,7 +4,7 @@ import React, { createContext, useContext, useState, useEffect } from "react";
 import { authService } from "@/services/api";
 import { useRouter } from "next/navigation";
 import { purgeCustomerSession } from "@/lib/session-cleanup";
-import { isAdminRole, routeForUser } from "@/lib/authRouting";
+import { routeForUser } from "@/lib/authRouting";
 
 interface User {
   id: string;
@@ -22,17 +22,10 @@ interface User {
   insuranceInterests?: string | null;
 }
 
-interface LoginOptions {
-  // When true, only admin/superadmin accounts are accepted. A customer who
-  // authenticates through an admin-only portal is denied and their session is
-  // cleared (used by the /admin-login page).
-  adminOnly?: boolean;
-}
-
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (email: string, password: string, options?: LoginOptions) => Promise<void>;
+  login: (email: string, password: string) => Promise<void>;
   loginWithGoogle: (credential: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -42,7 +35,6 @@ interface AuthContextType {
     insuranceInterests: string[];
   }) => Promise<void>;
   isAuthenticated: boolean;
-  isAdmin: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -80,27 +72,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [router]);
 
   // 2) Log in method
-  const login = async (email: string, password: string, options: LoginOptions = {}) => {
+  const login = async (email: string, password: string) => {
     setLoading(true);
     try {
       const res = await authService.login({ email, password });
-      // Token is delivered as an httpOnly cookie by the server; nothing to store.
+      // The session is an httpOnly cookie set by the server; nothing to store.
       const userData = res.data.user;
-      const isAdmin = isAdminRole(userData.role);
-
-      // Admin-only portal: a non-admin who authenticates here is denied. We tear
-      // down the session that was just established (clear the httpOnly cookie)
-      // so a customer can never hold a session obtained via the admin portal.
-      if (options.adminOnly && !isAdmin) {
-        try {
-          await authService.logout();
-        } catch {
-          // ignore — we still drop local state below
-        }
-        setUser(null);
-        throw new Error("Access denied: this portal is for administrators only.");
-      }
-
       setUser(userData);
       router.push(routeForUser(userData));
     } catch (err) {
@@ -130,7 +107,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   // 3) Register method — public signup always creates a standard customer.
-  // Admin/superadmin roles are assigned server-side only (never requested here).
+  // Roles are assigned server-side only and are never requested from here.
   const register = async (name: string, email: string, password: string) => {
     setLoading(true);
     try {
@@ -187,7 +164,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     logout,
     completeOnboarding,
     isAuthenticated: !!user,
-    isAdmin: isAdminRole(user?.role ?? ""),
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

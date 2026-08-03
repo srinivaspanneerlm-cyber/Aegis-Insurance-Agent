@@ -5,11 +5,9 @@ import Link from "next/link";
 import { X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/context/AuthContext";
+import { useGoogleSignIn } from "@/hooks/useGoogleSignIn";
 import { WelcomeCard } from "./login/WelcomeCard";
 import { LoginCard } from "./login/LoginCard";
-
-/** Simulated SSO delay before prompting for password (ms). */
-const SSO_SIMULATE_DELAY = 1200;
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -17,26 +15,38 @@ interface LoginModalProps {
 }
 
 /**
- * Triple-card login modal (welcome / consumer / admin) triggered from the
- * navbar and hero. Owns all of its own form state so the landing page no longer
- * has to; login itself is delegated to `AuthContext`.
+ * Login modal triggered from the navbar and hero. Owns its own form state so
+ * the landing page does not have to; login itself is delegated to `AuthContext`.
+ *
+ * This is the customer portal — there is no administrative sign-in here. Staff
+ * authenticate in the separate Enterprise Admin application against the same
+ * backend.
  */
 export function LoginModal({ isOpen, onClose }: LoginModalProps) {
-  const { login, loading } = useAuth();
+  const { login, loginWithGoogle, loading } = useAuth();
 
   // Consumer Login Form values
   const [consumerEmail, setConsumerEmail] = useState("");
   const [consumerPassword, setConsumerPassword] = useState("");
   const [showConsumerPassword, setShowConsumerPassword] = useState(false);
   const [consumerError, setConsumerError] = useState("");
-  const [consumerGoogleLoading, setConsumerGoogleLoading] = useState(false);
 
-  // Admin Login Form values
-  const [adminEmail, setAdminEmail] = useState("");
-  const [adminPassword, setAdminPassword] = useState("");
-  const [showAdminPassword, setShowAdminPassword] = useState(false);
-  const [adminError, setAdminError] = useState("");
-  const [adminGoogleLoading, setAdminGoogleLoading] = useState(false);
+
+  // Real Google sign-in. Both cards mount their own Google button because GIS
+  // renders into a specific element; the flow behind them is identical.
+  const GOOGLE_ICON_BUTTON = { type: "icon", shape: "circle", size: "large" } as const;
+
+  const consumerGoogle = useGoogleSignIn({
+    enabled: isOpen,
+    appearance: GOOGLE_ICON_BUTTON,
+    onCredential: async (credential) => {
+      setConsumerError("");
+      await loginWithGoogle(credential);
+      onClose();
+    },
+    onError: setConsumerError,
+  });
+
 
   const handleConsumerSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,39 +65,6 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
     }
   };
 
-  const handleAdminSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setAdminError("");
-
-    if (!adminEmail.trim() || !adminPassword.trim()) {
-      setAdminError("Please fill in admin email and passcode parameters.");
-      return;
-    }
-
-    try {
-      await login(adminEmail, adminPassword);
-      onClose();
-    } catch (err) {
-      setAdminError(err instanceof Error ? err.message : "Invalid admin credentials. Verify authorized keys.");
-    }
-  };
-
-  // Google SSO simulated click
-  const handleGoogleSimulate = (role: "consumer" | "admin") => {
-    if (role === "consumer") {
-      setConsumerGoogleLoading(true);
-      setTimeout(() => {
-        setConsumerGoogleLoading(false);
-        setConsumerError("SSO Active: Complete password credentials to verify session.");
-      }, SSO_SIMULATE_DELAY);
-    } else {
-      setAdminGoogleLoading(true);
-      setTimeout(() => {
-        setAdminGoogleLoading(false);
-        setAdminError("Admin SSO Active: Complete password credentials to verify session.");
-      }, SSO_SIMULATE_DELAY);
-    }
-  };
 
   return (
     <AnimatePresence>
@@ -115,13 +92,12 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
               <X className="w-5 h-5" />
             </button>
 
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+            <div className="grid grid-cols-1 lg:grid-cols-10 gap-6 items-stretch">
               {/* COLUMN 1: WELCOME CARD (Cols 1-4) */}
               <WelcomeCard />
 
-              {/* COLUMN 2: CONSUMER LOGIN CARD (Cols 5-8) */}
+              {/* Sign-in card */}
               <LoginCard
-                variant="consumer"
                 email={consumerEmail}
                 setEmail={setConsumerEmail}
                 password={consumerPassword}
@@ -129,8 +105,8 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
                 showPassword={showConsumerPassword}
                 onTogglePassword={() => setShowConsumerPassword(!showConsumerPassword)}
                 error={consumerError}
-                googleLoading={consumerGoogleLoading}
-                onGoogle={() => handleGoogleSimulate("consumer")}
+                googleRef={consumerGoogle.containerRef}
+                googleStatus={consumerGoogle.status}
                 onSubmit={handleConsumerSubmit}
                 loading={loading}
                 footer={
@@ -141,29 +117,6 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
                 }
               />
 
-              {/* COLUMN 3: ADMIN LOGIN CARD (Cols 9-12) */}
-              <LoginCard
-                variant="admin"
-                email={adminEmail}
-                setEmail={setAdminEmail}
-                password={adminPassword}
-                setPassword={setAdminPassword}
-                showPassword={showAdminPassword}
-                onTogglePassword={() => setShowAdminPassword(!showAdminPassword)}
-                error={adminError}
-                googleLoading={adminGoogleLoading}
-                onGoogle={() => handleGoogleSimulate("admin")}
-                onSubmit={handleAdminSubmit}
-                loading={loading}
-                footer={
-                  <p className="text-[11px] font-semibold text-slate-500">
-                    Not an admin?{" "}
-                    <button onClick={() => setConsumerEmail("admin@aegis.com")} className="font-black text-cyan-400 hover:underline cursor-pointer bg-transparent border-0 outline-none">
-                      Go to Consumer Login
-                    </button>
-                  </p>
-                }
-              />
             </div>
 
           </motion.div>

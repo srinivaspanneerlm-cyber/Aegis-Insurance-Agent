@@ -156,15 +156,6 @@ export const uploadService = {
   },
 };
 
-// ---------------------------------------------------------------------------
-// Admin
-// ---------------------------------------------------------------------------
-export const adminService = {
-  getStats: async () => {
-    const res = await apiClient.get("/admin/stats");
-    return res.data.data;
-  },
-};
 
 // ---------------------------------------------------------------------------
 // UI Action Engine — structured button-click dispatcher

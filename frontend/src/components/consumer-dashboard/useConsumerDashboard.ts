@@ -211,7 +211,7 @@ export function useConsumerDashboard() {
 
   const clientName = user?.name || "Premium Client";
   const clientArchetype =
-    clientName.toLowerCase().includes("admin") || clientName.toLowerCase().includes("test")
+    clientName.toLowerCase().includes("test") || clientName.toLowerCase().includes("demo")
       ? "Balanced Risk Manager"
       : "Family-Focused Planner";
 

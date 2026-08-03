@@ -1,45 +1,19 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Mail, Lock, ArrowRight, Eye, EyeOff,
-  Heart, ChevronRight
+  Heart
 } from "lucide-react";
 import { motion } from "framer-motion";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { useTheme } from "@/context/ThemeContext";
-
-// Minimal typings for the Google Identity Services global (loaded at runtime
-// from accounts.google.com/gsi/client) so we can integrate without `any`.
-interface GoogleIdConfig {
-  client_id: string;
-  callback: (response: { credential?: string }) => void;
-}
-interface GoogleButtonOptions {
-  type?: "standard" | "icon";
-  theme?: "outline" | "filled_blue" | "filled_black";
-  size?: "small" | "medium" | "large";
-  text?: "signin_with" | "signup_with" | "continue_with" | "signin";
-  shape?: "rectangular" | "pill" | "circle" | "square";
-  logo_alignment?: "left" | "center";
-  width?: number;
-}
-interface GoogleAccountsId {
-  initialize: (config: GoogleIdConfig) => void;
-  renderButton: (parent: HTMLElement, options: GoogleButtonOptions) => void;
-}
-declare global {
-  interface Window {
-    google?: { accounts: { id: GoogleAccountsId } };
-  }
-}
-
-const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "";
-const GIS_SRC = "https://accounts.google.com/gsi/client";
+import { useGoogleSignIn } from "@/hooks/useGoogleSignIn";
+import { routeForUser } from "@/lib/authRouting";
 
 export default function ConsumerLoginPage() {
   const { login, loginWithGoogle, loading, isAuthenticated, user } = useAuth();
@@ -51,24 +25,17 @@ export default function ConsumerLoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
-  // Google Identity Services: the official button renders into this container.
-  const googleBtnRef = useRef<HTMLDivElement>(null);
-  // Keep the latest sign-in handler in a ref so the init effect can stay keyed
-  // only to the client id + theme (not re-run on every context change).
-  const loginWithGoogleRef = useRef(loginWithGoogle);
-  useEffect(() => {
-    loginWithGoogleRef.current = loginWithGoogle;
-  }, [loginWithGoogle]);
+  // Google Identity Services, via the shared hook the homepage modal uses too.
+  const google = useGoogleSignIn({
+    onCredential: loginWithGoogle,
+    onError: setErrorMsg,
+    appearance: { theme: theme === "dark" ? "filled_black" : "outline", width: 320 },
+  });
 
-  // Redirect to consumer dashboard if already authenticated as consumer
+  // Already signed in? Send them wherever they belong — onboarding if they have
+  // not finished it, the dashboard otherwise.
   useEffect(() => {
-    if (isAuthenticated && user) {
-      if (user.role === "admin" || user.role === "superadmin") {
-        router.push("/admin-dashboard");
-      } else {
-        router.push("/consumer-dashboard");
-      }
-    }
+    if (isAuthenticated && user) router.push(routeForUser(user));
   }, [isAuthenticated, user, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -87,62 +54,6 @@ export default function ConsumerLoginPage() {
       setErrorMsg(err instanceof Error ? err.message : "Invalid credentials. Please verify your passcode vault.");
     }
   };
-
-  // Load Google Identity Services once and render the official Sign-in button.
-  // Re-renders on theme change so the button matches light/dark. No-op when the
-  // client id is not configured — email/password login stays fully available.
-  useEffect(() => {
-    if (!GOOGLE_CLIENT_ID) return;
-
-    const renderButton = () => {
-      const gid = window.google?.accounts?.id;
-      const container = googleBtnRef.current;
-      if (!gid || !container) return;
-
-      gid.initialize({
-        client_id: GOOGLE_CLIENT_ID,
-        callback: async (response) => {
-          if (!response.credential) return;
-          setErrorMsg("");
-          try {
-            await loginWithGoogleRef.current(response.credential);
-            // loginWithGoogle handles the role-based redirect on success.
-          } catch (err) {
-            setErrorMsg(
-              err instanceof Error ? err.message : "Google sign-in failed. Please try again."
-            );
-          }
-        },
-      });
-
-      container.innerHTML = "";
-      gid.renderButton(container, {
-        type: "standard",
-        theme: theme === "dark" ? "filled_black" : "outline",
-        size: "large",
-        text: "continue_with",
-        shape: "pill",
-        logo_alignment: "center",
-        width: 320,
-      });
-    };
-
-    if (window.google?.accounts?.id) {
-      renderButton();
-      return;
-    }
-    const existing = document.querySelector<HTMLScriptElement>(`script[src="${GIS_SRC}"]`);
-    if (existing) {
-      existing.addEventListener("load", renderButton, { once: true });
-      return;
-    }
-    const script = document.createElement("script");
-    script.src = GIS_SRC;
-    script.async = true;
-    script.defer = true;
-    script.onload = renderButton;
-    document.head.appendChild(script);
-  }, [theme]);
 
   // Theme styling computed
   const wrapperClass = "bg-surface text-content";
@@ -192,20 +103,6 @@ export default function ConsumerLoginPage() {
               Log in to access your direct, commission-free insurance vault. Aegis AI helps you coordinate coverage matrices conversationally, protecting your family without dynamic markups.
             </p>
 
-            {/* Quick Link to Admin Command Center */}
-            <div className={`p-4.5 rounded-[22px] border bg-white border-slate-200/60 shadow-sm dark:bg-white/[0.02] dark:border-white/5 dark:shadow-none max-w-md flex items-center justify-between`}>
-              <div className="text-left space-y-0.5">
-                <span className="text-[9px] text-cyan-400 font-extrabold uppercase tracking-widest block">Enterprise Console</span>
-                <p className="text-[11.5px] font-bold text-white">Security Officer Access Portal</p>
-              </div>
-              <Link
-                href="/admin-login"
-                className="py-2 px-4 rounded-xl bg-purple-650 hover:bg-purple-600 text-white font-black text-[10px] uppercase tracking-widest flex items-center gap-1 transition-all"
-              >
-                <span>Command Center</span>
-                <ChevronRight className="w-3.5 h-3.5" />
-              </Link>
-            </div>
           </div>
 
           {/* RIGHT: CONSUMER LOGIN CARD */}
@@ -225,13 +122,18 @@ export default function ConsumerLoginPage() {
               </div>
 
               {/* Google login — official Google Identity Services button */}
-              {GOOGLE_CLIENT_ID ? (
+              {google.status !== "unconfigured" ? (
                 <div className="flex justify-center">
-                  <div ref={googleBtnRef} className="min-h-[44px]" />
+                  <div ref={google.containerRef} className="min-h-[44px]" />
                 </div>
               ) : (
                 <p className="text-center text-[11px] text-slate-500 dark:text-slate-400">
                   Google sign-in is not configured. Use your email and password below.
+                </p>
+              )}
+              {google.status === "unavailable" && (
+                <p className="text-center text-[11px] text-slate-500 dark:text-slate-400">
+                  Google sign-in could not load. Use your email and password below.
                 </p>
               )}
 

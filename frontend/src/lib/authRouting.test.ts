@@ -1,30 +1,23 @@
 import { describe, it, expect } from "vitest";
-import {
-  needsOnboarding,
-  routeForUser,
-  ADMIN_HOME,
-  CUSTOMER_HOME,
-  ONBOARDING_ROUTE,
-} from "./authRouting";
-
-const customer = (onboardedAt: string | null = null) => ({ role: "customer", onboardedAt });
+import { needsOnboarding, routeForUser, CUSTOMER_HOME, ONBOARDING_ROUTE } from "./authRouting";
 
 describe("routeForUser", () => {
   it("sends a first-time customer to onboarding", () => {
-    expect(routeForUser(customer())).toBe(ONBOARDING_ROUTE);
+    expect(routeForUser({ onboardedAt: null })).toBe(ONBOARDING_ROUTE);
   });
 
   it("sends a returning customer straight to the dashboard", () => {
-    expect(routeForUser(customer("2026-08-03T09:00:00.000Z"))).toBe(CUSTOMER_HOME);
+    expect(routeForUser({ onboardedAt: "2026-08-03T09:00:00.000Z" })).toBe(CUSTOMER_HOME);
   });
 
   it("treats a missing onboardedAt the same as an explicit null", () => {
-    expect(routeForUser({ role: "customer" })).toBe(ONBOARDING_ROUTE);
+    expect(routeForUser({})).toBe(ONBOARDING_ROUTE);
   });
 
-  it("never asks staff which insurance they are shopping for", () => {
-    expect(routeForUser({ role: "admin", onboardedAt: null })).toBe(ADMIN_HOME);
-    expect(routeForUser({ role: "superadmin", onboardedAt: null })).toBe(ADMIN_HOME);
+  it("routes every signed-in user the same way — this portal has no roles", () => {
+    // Staff accounts still exist server-side; they have no separate destination
+    // here, because there is no administrative surface in the customer portal.
+    expect(routeForUser({ onboardedAt: "2026-08-03T09:00:00.000Z" })).toBe(CUSTOMER_HOME);
   });
 });
 
@@ -33,9 +26,8 @@ describe("needsOnboarding", () => {
     expect(needsOnboarding(null)).toBe(false);
   });
 
-  it("is true only for a customer who has not finished", () => {
-    expect(needsOnboarding(customer())).toBe(true);
-    expect(needsOnboarding(customer("2026-08-03T09:00:00.000Z"))).toBe(false);
-    expect(needsOnboarding({ role: "admin" })).toBe(false);
+  it("is true only until the answers are given", () => {
+    expect(needsOnboarding({ onboardedAt: null })).toBe(true);
+    expect(needsOnboarding({ onboardedAt: "2026-08-03T09:00:00.000Z" })).toBe(false);
   });
 });

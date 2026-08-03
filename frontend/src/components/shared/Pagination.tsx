@@ -7,7 +7,7 @@ interface PaginationProps {
   onPageChange: (page: number) => void;
   /** Disable both controls while a page fetch is in flight. */
   busy?: boolean;
-  /** Palette: dark admin surfaces (default) or light consumer cards. */
+  /** Palette: dark surfaces (default) or light consumer cards. */
   variant?: "dark" | "light";
 }
 

@@ -8,7 +8,11 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Aegis AI | AI-Powered Family Protection & Insurance Advisor",
+  // Internally this application is the Aegis Customer Portal: the customer-
+  // facing half of the platform. Staff tooling lives in the separate Enterprise
+  // Admin application, against the same backend.
+  title: "Aegis Customer Portal | AI-Powered Family Protection & Insurance Advisor",
+  applicationName: "Aegis Customer Portal",
   description: "Understand insurance before you buy it. Aegis pairs specialist AI advisors with a curated catalogue of health, motor, travel and home policies, and explains each recommendation in plain language.",
   keywords: "insurance, AI advisor, health insurance, term life, vehicle insurance, family protection, premium fintech",
 };

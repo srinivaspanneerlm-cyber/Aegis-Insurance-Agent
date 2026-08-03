@@ -30,7 +30,7 @@ export function getExecutiveResponse(query: string): string {
     return "To resolve your intake metrics, ensure you provide: your name (or sign in), your household matrix size, comfort budget boundaries (e.g. ₹850/mo), coverage goals, and risk preferences. The live checklist indicator in your sidebar will tick green as these are cleared.";
   }
   if (norm.includes("account") || norm.includes("login") || norm.includes("register") || norm.includes("auth")) {
-    return "Aegis AI enforces strict digital vault security. You can register an administrative account on our portal to access your unified Underwriter Dashboard, audit telemetry metrics, and manage pre-approved insurance application submissions.";
+    return "Aegis AI enforces strict digital vault security. You can create an account on our portal to access your policies, conversation history, documents and claims in one place.";
   }
   return "Query processed through executive leadership channels. Aegis AI is committed to establishing an intuitive, emotionally intelligent protection gateway. Let me know how I can further refine your consultation workflow, or direct you to a specialized underwriter command desk.";
 }
