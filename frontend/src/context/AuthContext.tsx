@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect } from "react";
 import { authService } from "@/services/api";
 import { useRouter } from "next/navigation";
 import { purgeCustomerSession } from "@/lib/session-cleanup";
+import { isAdminRole, routeForUser } from "@/lib/authRouting";
 
 interface User {
   id: string;
@@ -11,6 +12,14 @@ interface User {
   email: string;
   role: string;
   createdAt: string;
+  /** Profile picture from the identity provider (Google). */
+  image?: string | null;
+  lastLoginAt?: string | null;
+  /** Null until first-time onboarding is finished — this is what routes them. */
+  onboardedAt?: string | null;
+  preferredLanguage?: string | null;
+  /** JSON array string as stored; parsed by whoever needs it. */
+  insuranceInterests?: string | null;
 }
 
 interface LoginOptions {
@@ -27,6 +36,11 @@ interface AuthContextType {
   loginWithGoogle: (credential: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  /** Finish first-time onboarding and continue to the dashboard. */
+  completeOnboarding: (input: {
+    preferredLanguage: string;
+    insuranceInterests: string[];
+  }) => Promise<void>;
   isAuthenticated: boolean;
   isAdmin: boolean;
 }
@@ -72,13 +86,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const res = await authService.login({ email, password });
       // Token is delivered as an httpOnly cookie by the server; nothing to store.
       const userData = res.data.user;
-      const isAdminRole =
-        userData.role === "admin" || userData.role === "superadmin";
+      const isAdmin = isAdminRole(userData.role);
 
       // Admin-only portal: a non-admin who authenticates here is denied. We tear
       // down the session that was just established (clear the httpOnly cookie)
       // so a customer can never hold a session obtained via the admin portal.
-      if (options.adminOnly && !isAdminRole) {
+      if (options.adminOnly && !isAdmin) {
         try {
           await authService.logout();
         } catch {
@@ -89,13 +102,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       setUser(userData);
-
-      // Intelligent role-based redirection
-      if (isAdminRole) {
-        router.push("/admin-dashboard");
-      } else {
-        router.push("/consumer-dashboard");
-      }
+      router.push(routeForUser(userData));
     } catch (err) {
       throw err;
     } finally {
@@ -112,12 +119,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const res = await authService.googleLogin(credential);
       const userData = res.data.user;
       setUser(userData);
-
-      if (userData.role === "admin" || userData.role === "superadmin") {
-        router.push("/admin-dashboard");
-      } else {
-        router.push("/consumer-dashboard");
-      }
+      // First Google sign-in has no onboardedAt, so this sends them to the
+      // Executive AI welcome; a returning user goes straight to the dashboard.
+      router.push(routeForUser(userData));
     } catch (err) {
       throw err;
     } finally {
@@ -138,18 +142,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Token is delivered as an httpOnly cookie by the server; nothing to store.
       const userData = res.data.user;
       setUser(userData);
-      
-      // Intelligent role-based redirection
-      if (userData.role === "admin" || userData.role === "superadmin") {
-        router.push("/admin-dashboard");
-      } else {
-        router.push("/consumer-dashboard");
-      }
+      router.push(routeForUser(userData));
     } catch (err) {
       throw err;
     } finally {
       setLoading(false);
     }
+  };
+
+  // 3b) Finish onboarding — the server stamps `onboardedAt`, and we replace the
+  //     local user with what it returns so the routing rule stops sending them
+  //     back here.
+  const completeOnboarding = async (input: {
+    preferredLanguage: string;
+    insuranceInterests: string[];
+  }) => {
+    const data = await authService.completeOnboarding(input);
+    setUser(data.user);
+    router.push(routeForUser(data.user));
   };
 
   // 4) Log out method — ask the server to clear the httpOnly auth cookie.
@@ -175,8 +185,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     loginWithGoogle,
     register,
     logout,
+    completeOnboarding,
     isAuthenticated: !!user,
-    isAdmin: user?.role === "admin" || user?.role === "superadmin",
+    isAdmin: isAdminRole(user?.role ?? ""),
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

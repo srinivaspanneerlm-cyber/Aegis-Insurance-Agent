@@ -50,6 +50,13 @@ export const authService = {
     const res = await apiClient.get("/auth/me");
     return res.data.data;
   },
+  completeOnboarding: async (payload: {
+    preferredLanguage: string;
+    insuranceInterests: string[];
+  }) => {
+    const res = await apiClient.patch("/auth/me/onboarding", payload);
+    return res.data.data;
+  },
 };
 
 // ---------------------------------------------------------------------------
