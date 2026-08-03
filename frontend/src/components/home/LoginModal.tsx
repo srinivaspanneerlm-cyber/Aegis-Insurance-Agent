@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/context/AuthContext";
+import { useTheme } from "@/context/ThemeContext";
 import { useGoogleSignIn } from "@/hooks/useGoogleSignIn";
 import { WelcomeCard } from "./login/WelcomeCard";
 import { LoginCard } from "./login/LoginCard";
@@ -24,6 +25,7 @@ interface LoginModalProps {
  */
 export function LoginModal({ isOpen, onClose }: LoginModalProps) {
   const { login, loginWithGoogle, loading } = useAuth();
+  const { theme } = useTheme();
 
   // Consumer Login Form values
   const [consumerEmail, setConsumerEmail] = useState("");
@@ -34,11 +36,19 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
 
   // Real Google sign-in. Both cards mount their own Google button because GIS
   // renders into a specific element; the flow behind them is identical.
-  const GOOGLE_ICON_BUTTON = { type: "icon", shape: "circle", size: "large" } as const;
+  //
+  // Labelled, not an icon: a bare Google glyph tells a first-time buyer nothing
+  // about what pressing it does. Matches the `/login` page so the same choice
+  // looks the same wherever it is offered. No fixed width — the modal is
+  // narrower than that page, so the button is left to size to its own label.
+  const googleAppearance = useMemo(
+    () => ({ theme: theme === "dark" ? ("filled_black" as const) : ("outline" as const) }),
+    [theme]
+  );
 
   const consumerGoogle = useGoogleSignIn({
     enabled: isOpen,
-    appearance: GOOGLE_ICON_BUTTON,
+    appearance: googleAppearance,
     onCredential: async (credential) => {
       setConsumerError("");
       await loginWithGoogle(credential);
