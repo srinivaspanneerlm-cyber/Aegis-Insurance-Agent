@@ -1,4 +1,19 @@
 import "@testing-library/jest-dom";
+import { configure } from "@testing-library/react";
+
+/**
+ * Testing Library's own `waitFor` ceiling is one second, separate from vitest's
+ * `testTimeout`. Several suites wait on a Framer Motion *exit* animation to
+ * unmount an element — a menu closing, a panel collapsing. That resolves in
+ * ~200ms on an idle machine, but vitest runs one worker per core, and on a
+ * saturated box it drifts past a second and the assertion fails on time rather
+ * than on behaviour.
+ *
+ * Raising it does not hide a real failure: an element that never unmounts still
+ * fails, just five seconds later. It removes the false negatives that otherwise
+ * pick a different two or three tests to fail on every run.
+ */
+configure({ asyncUtilTimeout: 5000 });
 
 /**
  * jsdom ships no IntersectionObserver, and Framer Motion's `whileInView` needs
