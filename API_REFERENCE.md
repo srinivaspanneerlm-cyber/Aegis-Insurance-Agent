@@ -231,12 +231,53 @@ on page load.
 {
   "status": "success",
   "data": {
-    "user": { "id": "uuid", "name": "...", "email": "...", "role": "customer", "createdAt": "..." }
+    "user": {
+      "id": "uuid", "name": "...", "email": "...", "role": "customer", "createdAt": "...",
+      "image": "https://lh3.googleusercontent.com/...", "lastLoginAt": "...",
+      "onboardedAt": null, "preferredLanguage": null, "insuranceInterests": null
+    }
   }
 }
 ```
 
+`onboardedAt` is `null` until first-time onboarding is completed — the frontend
+routes on it (`lib/authRouting.ts`): a customer with `null` is sent to
+`/onboarding` rather than the dashboard. Staff accounts skip onboarding entirely.
+
+`image` and `lastLoginAt` are populated from the Google profile on sign-in;
+`insuranceInterests` is a JSON array **string** (the schema targets SQLite as
+well as Postgres, and SQLite has no list type).
+
 **Errors:**
+- `401` — no valid token
+
+#### `PATCH /api/v1/auth/me/onboarding`
+
+Complete first-time onboarding. Always applies to the **authenticated caller** —
+the user is taken from the session, never the body, so a `userId` in the payload
+is ignored.
+
+**Auth required:** Yes (`protect`)
+
+**Request:**
+```json
+{ "preferredLanguage": "ta", "insuranceInterests": ["health", "motor"] }
+```
+
+Both fields are **allowlisted**, not merely bounded (`ONBOARDING` in
+`backend/src/config/constants.ts`) — these values drive which advisor a customer
+meets, so free text is rejected outright:
+
+| Field | Accepted values |
+|---|---|
+| `preferredLanguage` | `en`, `ta`, `taEn` |
+| `insuranceInterests` | 1–5 unique ids from `health`, `motor`, `travel`, `property`, `miscellaneous` |
+
+**Response `200`:** the updated user, with `onboardedAt` now stamped.
+
+**Errors:**
+- `400` — value outside the allowlist, empty list, duplicate, or over the cap
+  (a rejected attempt leaves the profile completely untouched)
 - `401` — no valid token
 
 ---

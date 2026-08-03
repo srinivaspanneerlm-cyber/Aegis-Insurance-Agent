@@ -56,4 +56,14 @@ const getMe = catchAsync(async (req, res) => {
   sendSuccess(res, 200, { user: userWithoutPassword });
 });
 
-export { register, login, googleLogin, refresh, logout, getMe };
+// Finish first-time onboarding. The user comes from `protect`, never from the
+// body, so nobody can complete somebody else's onboarding.
+const completeOnboarding = catchAsync(async (req, res) => {
+  const user = await authService.completeOnboarding(req.user!.id, {
+    preferredLanguage: req.body.preferredLanguage,
+    insuranceInterests: req.body.insuranceInterests,
+  });
+  sendSuccess(res, 200, { user });
+});
+
+export { register, login, googleLogin, refresh, logout, getMe, completeOnboarding };

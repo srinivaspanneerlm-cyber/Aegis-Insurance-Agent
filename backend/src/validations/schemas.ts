@@ -1,3 +1,5 @@
+import { ONBOARDING } from "../config/constants";
+
 type RequestData = Record<string, unknown>;
 type ValidationErrors = string[] | null;
 
@@ -48,6 +50,32 @@ export const googleLoginSchema = (data: RequestData): ValidationErrors => {
   } else if (data.credential.length > 4096) {
     errors.push("Invalid Google credential.");
   }
+  return errors.length > 0 ? errors : null;
+};
+
+/**
+ * First-time onboarding answers. Both fields are allowlisted rather than merely
+ * bounded: these values are written to the customer's profile and later drive
+ * which advisor they meet, so free text has no business reaching them.
+ */
+export const onboardingSchema = (data: RequestData): ValidationErrors => {
+  const errors: string[] = [];
+
+  if (!ONBOARDING.LANGUAGES.includes(data.preferredLanguage as never)) {
+    errors.push(`Preferred language must be one of: ${ONBOARDING.LANGUAGES.join(", ")}.`);
+  }
+
+  const interests = data.insuranceInterests;
+  if (!Array.isArray(interests) || interests.length === 0) {
+    errors.push("Please choose at least one insurance interest.");
+  } else if (interests.length > ONBOARDING.MAX_INTERESTS) {
+    errors.push(`Please choose at most ${ONBOARDING.MAX_INTERESTS} interests.`);
+  } else if (interests.some((i) => !ONBOARDING.INTERESTS.includes(i as never))) {
+    errors.push(`Interests must be from: ${ONBOARDING.INTERESTS.join(", ")}.`);
+  } else if (new Set(interests).size !== interests.length) {
+    errors.push("Interests must not repeat.");
+  }
+
   return errors.length > 0 ? errors : null;
 };
 

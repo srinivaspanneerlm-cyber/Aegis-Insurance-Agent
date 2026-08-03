@@ -2,7 +2,12 @@ import express from "express";
 import * as authController from "../controllers/auth.controller";
 import { protect } from "../middleware/auth.middleware";
 import { validateBody } from "../middleware/validate.middleware";
-import { registerSchema, loginSchema, googleLoginSchema } from "../validations/schemas";
+import {
+  registerSchema,
+  loginSchema,
+  googleLoginSchema,
+  onboardingSchema,
+} from "../validations/schemas";
 import { authLimiter } from "../config/security";
 
 const router = express.Router();
@@ -15,5 +20,11 @@ router.post("/google", authLimiter, validateBody(googleLoginSchema), authControl
 router.post("/refresh", authLimiter, authController.refresh);
 router.post("/logout", authController.logout);
 router.get("/me", protect, authController.getMe);
+router.patch(
+  "/me/onboarding",
+  protect,
+  validateBody(onboardingSchema),
+  authController.completeOnboarding
+);
 
 export = router;

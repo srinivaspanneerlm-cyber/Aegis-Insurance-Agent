@@ -62,6 +62,18 @@ export const UPLOADS = {
   MAX_FILES: num("UPLOAD_MAX_FILES", 5),
 };
 
+// ── Onboarding ───────────────────────────────────────────────────────────────
+// What a first-time customer is asked once, right after their first sign-in.
+// Bounded server-side: these are the only values that will ever be stored, so a
+// crafted request cannot put arbitrary text on a profile.
+export const ONBOARDING = {
+  // Mirrors DocumentLocale on the frontend: English, Tamil, Thanglish.
+  LANGUAGES: ["en", "ta", "taEn"] as const,
+  // Mirrors the advisor roster — one interest per specialist domain.
+  INTERESTS: ["health", "motor", "travel", "property", "miscellaneous"] as const,
+  MAX_INTERESTS: 5,
+};
+
 export const JOBS = {
   // Retry a failed job this many times (total attempts) with exponential backoff
   // before it is dead-lettered. Applies to both queue backings.

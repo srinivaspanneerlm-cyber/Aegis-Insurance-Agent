@@ -113,7 +113,7 @@ chats with `NULL userId`) remain valid — the migration was fully additive.
 ### 4.1 Core business models
 | Model | Purpose | Key fields |
 |---|---|---|
-| **User** | Identity & auth | `email` (unique), `password` (bcrypt-12), `role`, `isActive` |
+| **User** | Identity & auth | `email` (unique), `password` (bcrypt-12), `role`, `isActive`, `googleId` (unique), `image`, `lastLoginAt`, `onboardedAt`, `preferredLanguage`, `insuranceInterests` |
 | **Company** | Insurer catalogue | `companyName`, `policies[]` |
 | **Policy** | Insurance product | `premium`, `coverage`, `companyId` (cascade) |
 | **Lead** | Sales pipeline | `status`, `assignedToId` |

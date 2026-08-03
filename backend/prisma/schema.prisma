@@ -40,6 +40,26 @@ model User {
   deletedAt DateTime?
   version   Int       @default(1) // optimistic-locking token
 
+  // ── Identity provider ──────────────────────────────────────────────────────
+  // Google's `sub` claim: stable for the life of the account, unlike the email,
+  // which a user can change. Accounts are still *matched* on the verified email
+  // (that is what existed before), but this is the durable link.
+  googleId    String?   @unique
+  image       String? // profile picture URL from the provider
+  lastLoginAt DateTime?
+
+  // ── Onboarding ─────────────────────────────────────────────────────────────
+  // `onboardedAt` is the first-login gate: null means the conversational
+  // onboarding has not been completed, so the user is sent there instead of the
+  // dashboard. A timestamp rather than a boolean — "when" is free to store and
+  // answers questions a flag cannot.
+  onboardedAt       DateTime?
+  preferredLanguage String? // en | ta | taEn
+  // JSON array of interest ids. SQLite has no list type and this schema targets
+  // both SQLite (dev) and Postgres (prod), so it is stored the same way
+  // AuditLog.metadata is.
+  insuranceInterests String?
+
   // Relations (all nullable on the owned side to preserve legacy rows)
   chats             Chat[]
   uploadedDocuments UploadedDocument[]

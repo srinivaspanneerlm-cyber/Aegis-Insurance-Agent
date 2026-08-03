@@ -34,13 +34,39 @@ async function issueTokens(userId: string): Promise<{ accessToken: string; refre
   return { accessToken: signAccessToken(userId), refreshToken: await issueRefreshToken(userId) };
 }
 
+/**
+ * Record that a session just started. Bookkeeping, not authentication: if the
+ * write fails the sign-in still succeeds, because refusing a user entry over a
+ * timestamp would be the wrong trade.
+ */
+async function touchLastLogin<T extends { id: string }>(userId: string, fallback: T): Promise<T> {
+  try {
+    return (await userRepository.update(userId, { lastLoginAt: new Date() })) as unknown as T;
+  } catch {
+    return fallback;
+  }
+}
+
 // Pre-computed bcrypt hash of a random string. A login for a non-existent email
 // still runs a comparison against this dummy so success/failure take the same
 // time — removing the user-enumeration timing side channel.
 const DUMMY_HASH = "$2b$12$C6UzMDM.H6dfI/f/IKcEeO.Vp9m9m4Zr1lJj0m2v0mQ9mE8xZ8yQK";
 
-// Fields returned to clients on register (never the password hash).
-const PUBLIC_USER_SELECT = { id: true, name: true, email: true, role: true, createdAt: true };
+// Fields returned to clients on register (never the password hash). `onboardedAt`
+// is included because the client routes on it: a user with none has not finished
+// onboarding and is sent there instead of the dashboard.
+const PUBLIC_USER_SELECT = {
+  id: true,
+  name: true,
+  email: true,
+  role: true,
+  createdAt: true,
+  image: true,
+  lastLoginAt: true,
+  onboardedAt: true,
+  preferredLanguage: true,
+  insuranceInterests: true,
+};
 
 export const authService = {
   /**
@@ -54,7 +80,14 @@ export const authService = {
 
     const hashedPassword = await bcrypt.hash(input.password, AUTH.BCRYPT_ROUNDS);
     const user = await userRepository.create(
-      { name: input.name, email: input.email, password: hashedPassword, role: "customer" },
+      // Registering signs the user in, so it is a login like any other.
+      {
+        name: input.name,
+        email: input.email,
+        password: hashedPassword,
+        role: "customer",
+        lastLoginAt: new Date(),
+      },
       { select: PUBLIC_USER_SELECT }
     );
 
@@ -77,7 +110,10 @@ export const authService = {
     const tokens = await issueTokens(user.id);
     auditService.record({ actorId: user.id, action: "auth.login.success" });
 
-    const { password: _pw, ...userWithoutPassword } = user;
+    // Best-effort: a failed bookkeeping write must never fail a valid sign-in.
+    const stamped = await touchLastLogin(user.id, user);
+
+    const { password: _pw, ...userWithoutPassword } = stamped;
     void _pw;
     return { user: userWithoutPassword, ...tokens };
   },
@@ -127,8 +163,28 @@ export const authService = {
         email,
         password: hashedPassword,
         role: "customer",
+        googleId: payload.sub,
+        image: payload.picture ?? null,
+        lastLoginAt: new Date(),
       });
       auditService.record({ actorId: user.id, action: "auth.register.google", metadata: { email } });
+    } else {
+      // Existing account — link it to the Google identity the first time, and
+      // keep the picture current. The account is still matched on the verified
+      // email, so an account created before this column existed is adopted here
+      // rather than being left permanently unlinked.
+      const patch: Record<string, unknown> = { lastLoginAt: new Date() };
+      if (!user.googleId) patch.googleId = payload.sub;
+      if (payload.picture && payload.picture !== user.image) patch.image = payload.picture;
+
+      try {
+        user = await userRepository.update(user.id, patch);
+      } catch {
+        // A googleId unique-constraint clash means this Google account is already
+        // linked elsewhere. Sign-in still proceeds on the verified email; the
+        // link is simply not rewritten.
+        user = (await userRepository.findByEmail(email)) ?? user;
+      }
     }
 
     if (!user.isActive) {
@@ -141,6 +197,40 @@ export const authService = {
     const { password: _pw, ...userWithoutPassword } = user;
     void _pw;
     return { user: userWithoutPassword, ...tokens };
+  },
+
+  /**
+   * Finish first-time onboarding: store the customer's language and what they
+   * came here for, and stamp `onboardedAt` so they are never asked again.
+   *
+   * Values are constrained to the ONBOARDING allowlists by the request schema,
+   * so nothing arbitrary reaches the profile. Interests are persisted as a JSON
+   * array string because the schema targets SQLite as well as Postgres.
+   */
+  async completeOnboarding(
+    userId: string,
+    input: { preferredLanguage: string; insuranceInterests: string[] }
+  ) {
+    const user = await userRepository.update(userId, {
+      preferredLanguage: input.preferredLanguage,
+      insuranceInterests: JSON.stringify(input.insuranceInterests),
+      onboardedAt: new Date(),
+    });
+
+    auditService.record({
+      actorId: userId,
+      action: "auth.onboarding.completed",
+      entity: "User",
+      entityId: userId,
+      metadata: {
+        preferredLanguage: input.preferredLanguage,
+        insuranceInterests: input.insuranceInterests,
+      },
+    });
+
+    const { password: _pw, ...userWithoutPassword } = user;
+    void _pw;
+    return userWithoutPassword;
   },
 
   /**
