@@ -14,7 +14,11 @@ export const corsOptions: CorsOptions = {
     if (env.allowedOrigins.includes(origin)) return callback(null, true);
     return callback(new Error(`Origin ${origin} is not allowed by CORS policy.`));
   },
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  // PATCH is required by `/auth/me/onboarding`. Omitting a method the API
+  // actually routes makes the browser fail the preflight and drop the request
+  // before it is ever sent — the client then has no response to read an error
+  // message from, so the failure surfaces as a generic one.
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true,
 };
