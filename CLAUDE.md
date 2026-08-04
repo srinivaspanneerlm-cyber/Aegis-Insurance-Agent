@@ -90,26 +90,8 @@ For the full component and data-flow model, see **[ARCHITECTURE.md](ARCHITECTURE
 
 ## 5. Coding Standards
 
-### General
-- Match the **surrounding code's** style, naming, and comment density.
-- No dead code, no commented-out blocks, no debug `console.log`/`print` left behind.
-
-### TypeScript / React
-- `interface` for props and public shapes; avoid `any` (existing `any` is debt).
-- Server/client boundaries explicit (`"use client"` only where needed).
-- Data access goes through `src/services/api.ts` (never `fetch` scattered in pages).
-- Auth state comes from `AuthContext`; **never** read the JWT from JS (it is an httpOnly cookie).
-
-### Node / Express
-- Route → `validateBody` → controller → service → Prisma. Keep that order.
-- Wrap async handlers in `catchAsync`; throw `AppError` for operational errors.
-- Never leak stack traces or internal errors to clients in production.
-
-### Python / FastAPI
-- All request/response bodies are **Pydantic models** with bounded field sizes.
-- Agent logic stays inside its domain module; cross-domain data flows through
-  `MemoryOrchestrator` only.
-- LLM calls go through `llm_service` — no direct SDK calls elsewhere.
+Per-language rules live next to the code they govern and load when you work
+there: `frontend/CLAUDE.md`, `backend/CLAUDE.md`, `ai-python/CLAUDE.md`.
 
 ---
 
@@ -133,12 +115,8 @@ The multi-agent design is the crown jewel. When touching `ai-python/`:
 ## 7. Refactoring Rules
 
 - Refactor **only** with green verification before and after (see §10).
-- Behaviour must be **identical**; a refactor never changes outputs.
 - Remove duplication by consolidating to one implementation, then updating all
   call sites in the same change.
-- Keep public interfaces stable; if a signature must change, update every caller
-  in the same commit.
-- One logical change per commit. Do not mix refactor + feature + fix.
 
 ---
 
