@@ -56,6 +56,7 @@ export default function ConsumerDashboard() {
           sidebarOpen={dash.sidebarOpen}
           setSidebarOpen={dash.setSidebarOpen}
           clientName={dash.clientName}
+          clientEmail={dash.clientEmail}
           logout={dash.logout}
         />
 

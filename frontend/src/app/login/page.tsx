@@ -13,7 +13,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { useTheme } from "@/context/ThemeContext";
 import { useGoogleSignIn } from "@/hooks/useGoogleSignIn";
-import { routeForUser } from "@/lib/authRouting";
+import { destinationForCurrentUrl } from "@/lib/authRouting";
 
 export default function ConsumerLoginPage() {
   const { login, loginWithGoogle, loading, isAuthenticated, user } = useAuth();
@@ -32,10 +32,12 @@ export default function ConsumerLoginPage() {
     appearance: { theme: theme === "dark" ? "filled_black" : "outline", width: 320 },
   });
 
-  // Already signed in? Send them wherever they belong — onboarding if they have
-  // not finished it, the dashboard otherwise.
+  // Already signed in? Nobody who has a session should be looking at a sign-in
+  // form. Send them where they belong — the page they were originally after,
+  // onboarding if they have not finished it, the dashboard otherwise — and
+  // `replace`, so this screen does not sit in their history.
   useEffect(() => {
-    if (isAuthenticated && user) router.push(routeForUser(user));
+    if (isAuthenticated && user) router.replace(destinationForCurrentUrl(user));
   }, [isAuthenticated, user, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {

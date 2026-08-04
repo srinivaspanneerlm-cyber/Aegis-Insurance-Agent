@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useRef } from "react";
 import { logger } from "@/lib/logger";
-import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { chatService, policyService } from "@/services/api";
 import type { PageInfo } from "@/types/domain";
 import type {
@@ -60,8 +60,10 @@ function archetypeExplanation(archetype: string): string {
  * unchanged from the original monolithic page.
  */
 export function useConsumerDashboard() {
-  const { user, loading, isAuthenticated, logout } = useAuth();
-  const router = useRouter();
+  // The shared guard owns the redirect; this hook only needs to know whether
+  // there is a customer to render for.
+  const { user, isReady } = useRequireAuth();
+  const { logout } = useAuth();
 
   const [activeNav, setActiveNav] = useState<NavId>("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -84,13 +86,6 @@ export function useConsumerDashboard() {
   const [uploadedFiles, setUploadedFiles] = useState<DashboardDoc[]>(INITIAL_DOCS);
   const [uploadingDoc, setUploadingDoc] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState("");
-
-  // Route protection
-  useEffect(() => {
-    if (!loading && !isAuthenticated) {
-      router.push("/login");
-    }
-  }, [loading, isAuthenticated, router]);
 
   // Load policies (one page at a time). The premium-default fallback is kept:
   // an empty first page leaves `dbPolicies` empty so `activePoliciesList` uses
@@ -209,7 +204,14 @@ export function useConsumerDashboard() {
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
   };
 
-  const clientName = user?.name || "Premium Client";
+  // Identity is read from the session and nowhere else. This used to fall back
+  // to a "Premium Client" placeholder, which meant a dashboard rendered before
+  // (or without) a session greeted the visitor by a name that was not theirs and
+  // looked signed in when it was not. There is no stand-in now: `isBooting`
+  // below holds the screen until the session resolves, and the guard above
+  // redirects anyone who turns out not to have one.
+  const clientName = user?.name ?? "";
+  const clientEmail = user?.email ?? "";
   const clientArchetype =
     clientName.toLowerCase().includes("test") || clientName.toLowerCase().includes("demo")
       ? "Balanced Risk Manager"
@@ -221,10 +223,14 @@ export function useConsumerDashboard() {
     // navigation
     activeNav, setActiveNav, sidebarOpen, setSidebarOpen,
     // status
-    isBooting: loading || isPoliciesLoading,
+    // `!isReady` covers both "the session is still resolving" and "there is no
+    // customer": without the second, the dashboard renders a frame with nobody
+    // in it — an empty name and a blank avatar — during the tick between the
+    // session resolving and the guard redirecting.
+    isBooting: !isReady || isPoliciesLoading,
     logout,
     // identity
-    clientName, clientArchetype,
+    clientName, clientEmail, clientArchetype,
     archetypeExplanation: archetypeExplanation(clientArchetype),
     // chat
     chatMessages, chatInput, setChatInput, isTyping, chatEndRef, handleSendMessage,

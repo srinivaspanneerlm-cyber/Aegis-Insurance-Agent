@@ -1,20 +1,29 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act, waitFor } from "@testing-library/react";
 
-const { authState, push, router } = vi.hoisted(() => {
+const { authState, push, replace, router } = vi.hoisted(() => {
   const push = vi.fn();
-  return {
-    authState: {
-      current: {
-        user: { name: "Premium Client" },
-        loading: false,
-        isAuthenticated: true,
-        logout: vi.fn(),
-      },
+  // The guard turns an unauthenticated visitor away with `replace`, so Back
+  // cannot return them to the page that just turned them away.
+  const replace = vi.fn();
+  // Signed out is a state the hook has to handle, so the session it stands in
+  // for has to be allowed to be absent.
+  const authState: {
+    current: {
+      user: { name: string; email?: string } | null;
+      loading: boolean;
+      isAuthenticated: boolean;
+      logout: () => void;
+    };
+  } = {
+    current: {
+      user: { name: "Aarthi Kumar", email: "aarthi@example.com" },
+      loading: false,
+      isAuthenticated: true,
+      logout: vi.fn(),
     },
-    push,
-    router: { push },
   };
+  return { authState, push, replace, router: { push, replace } };
 });
 
 vi.mock("@/context/AuthContext", () => ({ useAuth: () => authState.current }));
@@ -29,8 +38,9 @@ import { useConsumerDashboard } from "./useConsumerDashboard";
 
 beforeEach(() => {
   push.mockReset();
+  replace.mockReset();
   authState.current = {
-    user: { name: "Premium Client" },
+    user: { name: "Aarthi Kumar", email: "aarthi@example.com" },
     loading: false,
     isAuthenticated: true,
     logout: vi.fn(),
@@ -70,5 +80,39 @@ describe("useConsumerDashboard — policies pagination", () => {
     await waitFor(() => expect(result.current.activePoliciesList[0].policyName).toBe("Plan Two"));
     expect(policyService.getPolicies).toHaveBeenLastCalledWith({ page: 2, limit: 6 });
     expect(result.current.policiesPagination?.page).toBe(2);
+  });
+});
+
+describe("useConsumerDashboard — whose dashboard this is", () => {
+  it("shows the signed-in customer, not a stand-in", async () => {
+    authState.current = {
+      user: { name: "Meena Rajan", email: "meena@example.com" },
+      loading: false,
+      isAuthenticated: true,
+      logout: vi.fn(),
+    };
+
+    const { result } = renderHook(() => useConsumerDashboard());
+    await waitFor(() => expect(result.current.isBooting).toBe(false));
+
+    expect(result.current.clientName).toBe("Meena Rajan");
+    expect(result.current.clientEmail).toBe("meena@example.com");
+  });
+
+  it("holds the screen rather than render a dashboard belonging to nobody", async () => {
+    authState.current = {
+      user: null,
+      loading: false,
+      isAuthenticated: false,
+      logout: vi.fn(),
+    };
+
+    const { result } = renderHook(() => useConsumerDashboard());
+
+    // The guard sends them to sign in; until then nothing of the dashboard —
+    // and no invented name — is shown.
+    await waitFor(() => expect(replace).toHaveBeenCalledWith("/login"));
+    expect(result.current.isBooting).toBe(true);
+    expect(result.current.clientName).toBe("");
   });
 });

@@ -1,24 +1,17 @@
 "use client";
 
-import { useEffect } from "react";
-import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { Heart, Car, Sparkles, ArrowLeft, ArrowRight } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
 
 export default function ConsumerRecommendationsPage() {
-  const { loading, isAuthenticated } = useAuth();
+  const { isReady } = useRequireAuth();
 
   const router = useRouter();
 
-  useEffect(() => {
-    if (!loading && !isAuthenticated) {
-      router.push("/login");
-    }
-  }, [loading, isAuthenticated, router]);
-
-  if (loading) {
+  if (!isReady) {
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col justify-between">
         <Navbar />

@@ -13,12 +13,14 @@ interface DashboardSidebarProps {
   sidebarOpen: boolean;
   setSidebarOpen: (open: boolean) => void;
   clientName: string;
+  /** The signed-in address, shown so the customer can tell which account this is. */
+  clientEmail: string;
   logout: () => void;
 }
 
 /** Desktop sidebar + mobile nav bar and dropdown for the dashboard. */
 export function DashboardSidebar({
-  activeNav, setActiveNav, sidebarOpen, setSidebarOpen, clientName, logout,
+  activeNav, setActiveNav, sidebarOpen, setSidebarOpen, clientName, clientEmail, logout,
 }: DashboardSidebarProps) {
   const initial = clientName.charAt(0).toUpperCase();
   const [confirmLogout, setConfirmLogout] = useState(false);
@@ -44,6 +46,14 @@ export function DashboardSidebar({
 
           <div className="overflow-hidden relative z-10 text-left">
             <p className={`text-xs font-black truncate leading-none text-content`}>{clientName}</p>
+            {/* Which account this is. Full address on hover, since the badge is
+                narrow and a truncated address identifies nothing. */}
+            <p
+              title={clientEmail}
+              className="text-[10px] font-medium truncate leading-none mt-1 text-slate-500 dark:text-slate-400"
+            >
+              {clientEmail}
+            </p>
             <span className="text-[9px] text-cyan-400 font-extrabold uppercase tracking-widest mt-1.5 inline-flex items-center gap-1 leading-none">
               <Zap className="w-2.5 h-2.5 fill-cyan-400 animate-pulse" />
               <span>AI MATCHED</span>

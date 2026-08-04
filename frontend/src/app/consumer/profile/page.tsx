@@ -1,24 +1,17 @@
 "use client";
 
-import { useEffect } from "react";
-import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { User, Mail, Database, ArrowLeft, Key } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
 
 export default function ConsumerProfilePage() {
-  const { user, loading, isAuthenticated } = useAuth();
+  const { user, isReady } = useRequireAuth();
 
   const router = useRouter();
 
-  useEffect(() => {
-    if (!loading && !isAuthenticated) {
-      router.push("/login");
-    }
-  }, [loading, isAuthenticated, router]);
-
-  if (loading || !user) {
+  if (!isReady || !user) {
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col justify-between">
         <Navbar />

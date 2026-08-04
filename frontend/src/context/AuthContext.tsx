@@ -4,7 +4,8 @@ import React, { createContext, useContext, useState, useEffect } from "react";
 import { authService } from "@/services/api";
 import { useRouter } from "next/navigation";
 import { purgeCustomerSession } from "@/lib/session-cleanup";
-import { routeForUser } from "@/lib/authRouting";
+import { destinationForCurrentUrl as destinationFor } from "@/lib/authRouting";
+import { LOGIN_ROUTE } from "@/lib/routes";
 
 interface User {
   id: string;
@@ -61,10 +62,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     loadUser();
 
-    // Catch authorization event error from axios client
+    // The API reports a session that has genuinely ended — the access token
+    // could not be renewed. By the time this fires the customer has already
+    // lost the page they were on, so `replace` keeps Back from returning them
+    // to it.
     const handleAuthError = () => {
       setUser(null);
-      router.push("/login");
+      router.replace(LOGIN_ROUTE);
     };
 
     window.addEventListener("aegis_auth_error", handleAuthError);
@@ -79,7 +83,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // The session is an httpOnly cookie set by the server; nothing to store.
       const userData = res.data.user;
       setUser(userData);
-      router.push(routeForUser(userData));
+      router.push(destinationFor(userData));
     } catch (err) {
       throw err;
     } finally {
@@ -98,7 +102,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(userData);
       // First Google sign-in has no onboardedAt, so this sends them to the
       // Executive AI welcome; a returning user goes straight to the dashboard.
-      router.push(routeForUser(userData));
+      router.push(destinationFor(userData));
     } catch (err) {
       throw err;
     } finally {
@@ -119,7 +123,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Token is delivered as an httpOnly cookie by the server; nothing to store.
       const userData = res.data.user;
       setUser(userData);
-      router.push(routeForUser(userData));
+      router.push(destinationFor(userData));
     } catch (err) {
       throw err;
     } finally {
@@ -136,7 +140,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }) => {
     const data = await authService.completeOnboarding(input);
     setUser(data.user);
-    router.push(routeForUser(data.user));
+    router.push(destinationFor(data.user));
   };
 
   // 4) Log out method — ask the server to clear the httpOnly auth cookie.

@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { logger } from "@/lib/logger";
-import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { ArrowLeft, Clock } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -12,16 +12,10 @@ import { ChatLog } from "@/types/domain";
 import { EmptyState } from "@/components/ui";
 
 export default function ConsumerHistoryPage() {
-  const { loading, isAuthenticated } = useAuth();
+  const { isReady } = useRequireAuth();
 
   const router = useRouter();
   const [history, setHistory] = useState<ChatLog[]>([]);
-
-  useEffect(() => {
-    if (!loading && !isAuthenticated) {
-      router.push("/login");
-    }
-  }, [loading, isAuthenticated, router]);
 
   useEffect(() => {
     async function loadChatHistory() {
@@ -38,7 +32,7 @@ export default function ConsumerHistoryPage() {
     loadChatHistory();
   }, []);
 
-  if (loading) {
+  if (!isReady) {
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col justify-between">
         <Navbar />
