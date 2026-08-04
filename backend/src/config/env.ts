@@ -93,11 +93,12 @@ const env = {
   JWT_SECRET,
   JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || "30d",
 
-  // Access-token lifetime defaults to JWT_EXPIRES_IN (unchanged behaviour); it
-  // can be shortened once a refresh flow is active on the client. The refresh
-  // token is the long-lived, rotating, revocable credential.
-  ACCESS_TOKEN_EXPIRES_IN:
-    process.env.ACCESS_TOKEN_EXPIRES_IN || process.env.JWT_EXPIRES_IN || "30d",
+  // Short by design. The client refreshes silently in the background, so a
+  // customer never sees the difference — but a stolen access token is useless
+  // within minutes instead of a month. Deliberately no longer inherits
+  // JWT_EXPIRES_IN: that made the long legacy lifetime the silent default and
+  // left the refresh machinery below doing nothing.
+  ACCESS_TOKEN_EXPIRES_IN: process.env.ACCESS_TOKEN_EXPIRES_IN || "15m",
   REFRESH_TOKEN_EXPIRES_IN: process.env.REFRESH_TOKEN_EXPIRES_IN || "30d",
 
   // Logging. LOG_FORMAT "json" → structured pino access logs (default in prod);

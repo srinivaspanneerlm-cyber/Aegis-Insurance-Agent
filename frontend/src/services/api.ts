@@ -2,6 +2,25 @@ import axios, { AxiosProgressEvent } from "axios";
 import { API_URL } from "@/lib/config";
 import type { Lead, DocumentRecord, PolicyRecord, PageInfo } from "@/types/domain";
 
+declare module "axios" {
+  export interface AxiosRequestConfig {
+    /**
+     * Marks a request that *asks* whether a session exists rather than assuming
+     * one. A 401 is a valid answer to that question — not an expired session —
+     * so it must not trip the global sign-out in the interceptor below.
+     */
+    isSessionProbe?: boolean;
+    /**
+     * Marks the renewal call itself, so it can neither trigger a renewal of its
+     * own nor sign the customer out. Only the request that provoked it decides
+     * that.
+     */
+    isRefreshCall?: boolean;
+    /** Set once a request has been replayed after a renewal, so it is tried once and not in a loop. */
+    wasRetriedAfterRefresh?: boolean;
+  }
+}
+
 // 1) Axios base configuration
 export const apiClient = axios.create({
   baseURL: API_URL,
@@ -11,13 +30,66 @@ export const apiClient = axios.create({
   withCredentials: true,
 });
 
-// 2) Response interceptor — handle 401
+/**
+ * The renewal in flight, if any.
+ *
+ * Every request that was in the air when the access token expired comes back
+ * 401 at once. Without this they would each start their own renewal, and
+ * because renewal *rotates* the refresh token, the first to land invalidates
+ * the rest — a burst of parallel requests would sign the customer out instead
+ * of keeping them in. They all wait on the same promise.
+ */
+let renewal: Promise<void> | null = null;
+
+function renewSession(): Promise<void> {
+  if (!renewal) {
+    renewal = apiClient
+      .post("/auth/refresh", undefined, { isRefreshCall: true })
+      .then(() => undefined)
+      .finally(() => {
+        renewal = null;
+      });
+  }
+  return renewal;
+}
+
+// 2) Response interceptor — renew silently on 401, and only give up if that fails.
 apiClient.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
+    const config = error.config ?? {};
     const status = error.response ? error.response.status : null;
     const message = error.response?.data?.message || "An unexpected error occurred.";
-    if (status === 401) {
+
+    // An expired access token is the ordinary state of a long session, not a
+    // reason to interrupt the customer. Trade the refresh cookie for a new one
+    // and replay the request; they never learn it happened. Once per request —
+    // a second 401 after a successful renewal means the answer really is no.
+    if (status === 401 && !config.isRefreshCall && !config.wasRetriedAfterRefresh) {
+      let renewed = false;
+      try {
+        await renewSession();
+        renewed = true;
+      } catch {
+        // The refresh token is gone, expired or already used. Fall through and
+        // treat this as the end of the session.
+      }
+
+      if (renewed) {
+        config.wasRetriedAfterRefresh = true;
+        // Deliberately not caught: if the replay fails it re-enters this
+        // interceptor, where the flag above stops another round.
+        return apiClient.request(config);
+      }
+    }
+
+    // The session is genuinely over: say so once and let AuthContext decide
+    // where the customer goes. Two callers are exempt. The probe — the
+    // boot-time "who am I?" — 401s for every signed-out visitor, and firing
+    // this for them would bounce anyone reading the public pages to /login. The
+    // renewal call is exempt so the request that provoked it reports the loss,
+    // once, instead of both of them reporting it.
+    if (status === 401 && !config.isSessionProbe && !config.isRefreshCall) {
       if (typeof window !== "undefined") {
         window.dispatchEvent(new Event("aegis_auth_error"));
       }
@@ -46,8 +118,13 @@ export const authService = {
     const res = await apiClient.post("/auth/logout");
     return res.data;
   },
+  // The session probe: called on every mount to establish whether anyone is
+  // signed in. Signed out is an ordinary outcome, so it opts out of the
+  // interceptor's redirect — but not out of renewal, which is what lets a
+  // customer returning after their access token expired land straight on the
+  // dashboard instead of on a sign-in screen.
   getMe: async () => {
-    const res = await apiClient.get("/auth/me");
+    const res = await apiClient.get("/auth/me", { isSessionProbe: true });
     return res.data.data;
   },
   completeOnboarding: async (payload: {

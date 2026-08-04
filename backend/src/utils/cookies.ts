@@ -15,6 +15,22 @@ export const COOKIE_NAME = "aegis_token";
 export const REFRESH_COOKIE_NAME = "aegis_refresh";
 const REFRESH_COOKIE_PATH = "/api";
 
+/**
+ * Marks that a session exists, for the frontend's route guard.
+ *
+ * It carries **no credential** — its presence is the entire message. The guard
+ * needs to answer "is this visitor worth rendering a protected page for?" before
+ * any request reaches this API, and neither real token can answer it: the access
+ * cookie expires with the short-lived token it holds (so a perfectly refreshable
+ * session looks signed out minutes after sign-in), and the refresh cookie is
+ * scoped to /api, so the browser never sends it to the frontend at all.
+ *
+ * It tracks the refresh token's lifetime because that is the true length of the
+ * session. Authorisation is still decided here, on every request — this only
+ * saves the customer a redirect they would not have deserved.
+ */
+export const SESSION_COOKIE_NAME = "aegis_session";
+
 // Convert a JWT "expiresIn" style value ("30d", "12h", "3600") to milliseconds.
 export function expiresInToMs(value: string): number {
   if (!value) return 30 * 24 * 60 * 60 * 1000; // default 30d
@@ -64,6 +80,27 @@ export function clearRefreshCookie(res: Response): void {
     secure: env.COOKIE_SECURE,
     sameSite,
     path: REFRESH_COOKIE_PATH,
+  });
+}
+
+export function setSessionCookie(res: Response): void {
+  res.cookie(SESSION_COOKIE_NAME, "1", {
+    // Still httpOnly: the frontend reads this server-side in its route guard,
+    // never from JS, so there is no reason to widen its reach.
+    httpOnly: true,
+    secure: env.COOKIE_SECURE,
+    sameSite,
+    maxAge: expiresInToMs(env.REFRESH_TOKEN_EXPIRES_IN),
+    path: "/",
+  });
+}
+
+export function clearSessionCookie(res: Response): void {
+  res.clearCookie(SESSION_COOKIE_NAME, {
+    httpOnly: true,
+    secure: env.COOKIE_SECURE,
+    sameSite,
+    path: "/",
   });
 }
 

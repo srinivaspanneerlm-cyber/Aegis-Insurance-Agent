@@ -46,6 +46,11 @@ describe("API integration — auth lifecycle", () => {
     const cookies = reg.headers["set-cookie"] || [];
     assert.ok(cookies.some((c) => c.startsWith("aegis_token=")), "access cookie set");
     assert.ok(cookies.some((c) => c.startsWith("aegis_refresh=")), "refresh cookie set");
+    // The frontend's route guard reads this before any page is rendered. It is
+    // the only one of the three the frontend server ever sees: the access
+    // cookie expires with its short-lived token, and the refresh cookie is
+    // scoped to /api.
+    assert.ok(cookies.some((c) => c.startsWith("aegis_session=")), "session cookie set");
 
     const me = await agent.get("/api/v1/auth/me");
     assert.equal(me.status, 200);
@@ -54,13 +59,47 @@ describe("API integration — auth lifecycle", () => {
     const refreshed = await agent.post("/api/v1/auth/refresh");
     assert.equal(refreshed.status, 200);
     assert.ok(refreshed.body.token, "new access token issued");
+    // Renewal re-issues the whole set, so a session that keeps renewing keeps
+    // its guard cookie rather than quietly losing it and looking signed out.
+    const renewedCookies = refreshed.headers["set-cookie"] || [];
+    assert.ok(
+      renewedCookies.some((c) => c.startsWith("aegis_session=")),
+      "session cookie re-issued on renewal"
+    );
 
     const out = await agent.post("/api/v1/auth/logout");
     assert.equal(out.status, 200);
+    // Logout clears all three. A stale session cookie would keep sending a
+    // signed-out visitor to pages the API then refuses.
+    const clearedCookies = out.headers["set-cookie"] || [];
+    for (const name of ["aegis_token", "aegis_refresh", "aegis_session"]) {
+      assert.ok(
+        clearedCookies.some((c) => c.startsWith(`${name}=;`)),
+        `${name} cleared on logout`
+      );
+    }
 
     const afterLogout = await agent.post("/api/v1/auth/refresh");
     assert.equal(afterLogout.status, 401, "revoked refresh token is rejected");
     assert.equal(afterLogout.body.code, "UNAUTHORIZED");
+  });
+
+  test("the access token is short-lived, so a stolen one dies quickly", async () => {
+    // The refresh token is the long-lived credential; the access token is not.
+    // A month-long access token was what made the renewal machinery pointless.
+    const jwt = require("jsonwebtoken");
+    const agent = request.agent(app);
+    const reg = await agent
+      .post("/api/v1/auth/register")
+      .send({ name: "TTL", email: uniqueEmail(), password: PASSWORD });
+
+    const { iat, exp } = jwt.decode(reg.body.token);
+    const lifetimeMinutes = (exp - iat) / 60;
+
+    assert.ok(
+      lifetimeMinutes <= 60,
+      `access token lives ${lifetimeMinutes} minutes; expected an hour or less`
+    );
   });
 
   test("login with wrong credentials → 401 with error envelope", async () => {
