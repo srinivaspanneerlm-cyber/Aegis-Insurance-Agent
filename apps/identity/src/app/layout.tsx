@@ -37,9 +37,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </a>
         <Backdrop />
         <IdentityProvider>
-          {/* Every screen here reads `useSearchParams` for the portal or token,
-              which opts it into client rendering. The boundary is at the root so
-              a page never has to remember its own. */}
+          {/* Pages read their search params on the server and hand them down as
+              props, so this boundary no longer gates the markup — it is here for
+              the streaming of client form bundles only. An earlier version read
+              `useSearchParams` inside the pages, which opted the whole subtree
+              out of prerendering and served an empty document. */}
           <Suspense fallback={null}>{children}</Suspense>
         </IdentityProvider>
       </body>
