@@ -1,11 +1,14 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
 import { authService } from "@/services/api";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { purgeCustomerSession } from "@/lib/session-cleanup";
 import { destinationForCurrentUrl as destinationFor } from "@/lib/authRouting";
-import { LOGIN_ROUTE } from "@/lib/routes";
+import { LOGIN_ROUTE, isProtectedPath } from "@/lib/routes";
+import { publishSessionEvent, subscribeToSessionEvents } from "@/lib/session-broadcast";
+import { useIdleTimeout } from "@/hooks/useIdleTimeout";
+import SessionExpiryDialog from "@/components/SessionExpiryDialog";
 
 interface User {
   id: string;
@@ -44,6 +47,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const router = useRouter();
+  const pathname = usePathname();
+
+  // Read inside listeners that must not be re-bound on every navigation.
+  const pathnameRef = useRef(pathname);
+  useEffect(() => {
+    pathnameRef.current = pathname;
+  }, [pathname]);
 
   // 1) Verify the session on initial load. Auth now lives in an httpOnly cookie
   //    (not readable by JS), so we simply ask the server who we are.
@@ -75,6 +85,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("aegis_auth_error", handleAuthError);
   }, [router]);
 
+  // 1b) Keep this tab in step with the customer's other tabs.
+  //
+  //     Comparing two policies means two tabs, so a session change in one of
+  //     them is a session change in all of them. A tab that missed the news
+  //     would keep a dashboard full of personal detail on screen with no
+  //     session behind it — on a shared device, for the next person to read.
+  useEffect(() => {
+    return subscribeToSessionEvents((event) => {
+      if (event.type === "signed-out") {
+        purgeCustomerSession();
+        setUser(null);
+        // Only move them if they are somewhere that needs a session. A tab left
+        // on the home page or mid-conversation with the advisor has every right
+        // to stay where it is.
+        if (isProtectedPath(pathnameRef.current ?? "")) router.replace(LOGIN_ROUTE);
+        return;
+      }
+
+      // Signed in elsewhere: adopt the session rather than keep insisting they
+      // are a stranger. The cookie is already set for this tab too — this only
+      // catches up the state that decides what is rendered.
+      authService
+        .getMe()
+        .then((data) => setUser(data.user))
+        .catch(() => {
+          // The session went away between the announcement and this question.
+          // The next request will settle it; nothing to do here.
+        });
+    });
+  }, [router]);
+
   // 2) Log in method
   const login = async (email: string, password: string) => {
     setLoading(true);
@@ -83,6 +124,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // The session is an httpOnly cookie set by the server; nothing to store.
       const userData = res.data.user;
       setUser(userData);
+      publishSessionEvent({ type: "signed-in" });
       router.push(destinationFor(userData));
     } catch (err) {
       throw err;
@@ -100,6 +142,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const res = await authService.googleLogin(credential);
       const userData = res.data.user;
       setUser(userData);
+      publishSessionEvent({ type: "signed-in" });
       // First Google sign-in has no onboardedAt, so this sends them to the
       // Executive AI welcome; a returning user goes straight to the dashboard.
       router.push(destinationFor(userData));
@@ -123,6 +166,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Token is delivered as an httpOnly cookie by the server; nothing to store.
       const userData = res.data.user;
       setUser(userData);
+      publishSessionEvent({ type: "signed-in" });
       router.push(destinationFor(userData));
     } catch (err) {
       throw err;
@@ -155,9 +199,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // their conversation server-side. Runs even when the request above failed
     // — especially then, since the local copy is all that's left.
     purgeCustomerSession();
+    // Tell the other tabs before this one navigates away: leaving a signed-out
+    // customer's dashboard rendered in a second tab is the whole problem.
+    publishSessionEvent({ type: "signed-out" });
     setUser(null);
     router.push("/");
   };
+
+  // 5) The unattended session — see `useIdleTimeout`.
+  //
+  //    Ends the same way an explicit logout does, but lands on the sign-in page
+  //    carrying where they were, so "Stay signed in" arriving thirty seconds
+  //    too late still costs them only a password.
+  const endIdleSession = useCallback(async () => {
+    try {
+      await authService.logout();
+    } catch {
+      // Same reasoning as logout: the local purge matters most when the request
+      // is the thing that failed.
+    }
+    purgeCustomerSession();
+    publishSessionEvent({ type: "signed-out" });
+    setUser(null);
+    const returnTo = pathnameRef.current;
+    router.replace(
+      returnTo && isProtectedPath(returnTo)
+        ? `${LOGIN_ROUTE}?next=${encodeURIComponent(returnTo)}`
+        : LOGIN_ROUTE
+    );
+  }, [router]);
+
+  // Only where a session is actually exposed. The public advisor is never
+  // interrupted — an anonymous visitor mid-conversation has no session to
+  // protect, and cutting them off would cost us the customer.
+  const idleEnabled = !!user && isProtectedPath(pathname ?? "");
+  const idle = useIdleTimeout({ enabled: idleEnabled, onExpire: endIdleSession });
 
   const value = {
     user,
@@ -170,7 +246,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     isAuthenticated: !!user,
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+      <SessionExpiryDialog
+        open={idleEnabled && idle.phase === "warning"}
+        msUntilSignOut={idle.msUntilSignOut}
+        onStaySignedIn={idle.extend}
+        onSignOut={logout}
+      />
+    </AuthContext.Provider>
+  );
 }
 
 export function useAuth() {

@@ -22,6 +22,10 @@ export function purgeCustomerSession(): void {
     localStorage.removeItem(STORAGE_KEYS.PURCHASE_SESSION);
     localStorage.removeItem(STORAGE_KEYS.SELECTED_PLAN);
     localStorage.removeItem(STORAGE_KEYS.SESSION_ID);
+    // Leaving this behind would hand the next customer on a shared device a
+    // half-spent idle clock — signed in at 09:00, signed out at 09:02 for
+    // inactivity that was somebody else's.
+    localStorage.removeItem(STORAGE_KEYS.LAST_ACTIVITY);
     for (const advisor of Object.values(ADVISORS)) {
       localStorage.removeItem(agentHistoryKey(advisor.pythonDomain));
     }

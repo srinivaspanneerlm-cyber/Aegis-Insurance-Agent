@@ -16,6 +16,12 @@ export const STORAGE_KEYS = {
   SELECTED_PLAN: "selectedPlanDetails",
   /** Serialized multi-step purchase state. */
   PURCHASE_SESSION: "aegis_purchase_session",
+  /**
+   * When this customer was last active, shared by every open tab so the idle
+   * timeout measures the person rather than any one tab. Reading in one tab is
+   * being present, even while three others sit untouched.
+   */
+  LAST_ACTIVITY: "aegis_last_activity",
 } as const;
 
 export type StorageKey = (typeof STORAGE_KEYS)[keyof typeof STORAGE_KEYS];
