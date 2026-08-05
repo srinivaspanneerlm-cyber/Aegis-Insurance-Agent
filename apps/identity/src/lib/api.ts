@@ -39,6 +39,23 @@ export interface SessionPayload {
  * door" from "confirm your email first" — three refusals that look identical
  * as bare 401s and need three different screens.
  */
+export interface PortalOption {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  entitled: boolean;
+  /** Present only when entitled. A closed workspace carries no destination. */
+  url: string | null;
+}
+
+export interface PortalsPayload {
+  realm: Realm;
+  /** The one workspace this person belongs to — used for "return to my portal". */
+  home: string;
+  portals: PortalOption[];
+}
+
 export class ApiError extends Error {
   readonly status: number;
   readonly code: string;
@@ -123,4 +140,21 @@ export const identityApi = {
     }),
 
   logout: () => call<void>("/auth/logout", { method: "POST" }),
+
+  // ── Portal gateway ─────────────────────────────────────────────────────────
+
+  /** Every workspace, with a URL only on the one this person may enter. */
+  portals: () => call<PortalsPayload>("/auth/portals"),
+
+  /**
+   * Ask to enter a workspace.
+   *
+   * The destination comes back from the server; this app never assembles one.
+   * That is what makes a hand-edited address bar useless — there is no URL held
+   * client-side that was not granted.
+   */
+  enterPortal: (portalId: string) =>
+    call<{ portal: string; url: string }>(`/auth/portals/${encodeURIComponent(portalId)}/enter`, {
+      method: "POST",
+    }),
 };

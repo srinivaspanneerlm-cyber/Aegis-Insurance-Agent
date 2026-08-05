@@ -17,24 +17,34 @@ import { REALM_PRESENTATION, type Realm } from "@/lib/identity";
  * self-registration path into a staff realm would make a form the only barrier
  * between the public and other people's records.
  */
+/**
+ * Authentication no longer jumps straight to a portal.
+ *
+ * Everybody lands on the gateway, which asks the server which workspaces they
+ * may enter. Sending them directly would mean this app deciding a destination
+ * from a value it was handed — and it is the server's job to decide, and to
+ * record, which door somebody went through.
+ */
+const GATEWAY_PATH = "/gateway";
+
 export function RegisterForm({ realm }: { realm: Realm }) {
   const presentation = REALM_PRESENTATION[realm];
   const { register, busy, error, clearError, status, session } = useIdentity();
 
   useEffect(() => {
-    if (status === "authenticated" && session) window.location.assign(session.portalUrl);
+    if (status === "authenticated" && session) window.location.assign(GATEWAY_PATH);
   }, [status, session]);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
     try {
-      const result = await register({
+      await register({
         name: String(data.get("name") ?? ""),
         email: String(data.get("email") ?? ""),
         password: String(data.get("password") ?? ""),
       });
-      window.location.assign(result.portalUrl);
+      window.location.assign(GATEWAY_PATH);
     } catch {
       /* the provider holds the error */
     }

@@ -51,6 +51,13 @@ router.get("/me", protect, authController.getMe);
 // customer's own data, which is why they sit here rather than behind a
 // staff-only capability.
 router.get("/sessions", protect, authController.listSessions);
+
+// ── Portal gateway ───────────────────────────────────────────────────────────
+// Which workspaces this person may enter, and the act of entering one. Both
+// require a session; entering is a POST because it records an event and can be
+// refused, neither of which belongs in a prefetchable GET.
+router.get("/portals", protect, authController.listPortals);
+router.post("/portals/:portal/enter", protect, authController.enterPortal);
 router.get("/login-history", protect, authController.loginHistory);
 
 // Re-confirm the account holder. Throttled with the other credential-testing

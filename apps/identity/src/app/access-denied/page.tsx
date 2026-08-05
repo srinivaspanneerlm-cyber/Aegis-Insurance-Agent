@@ -1,36 +1,30 @@
 import type { Metadata } from "next";
-import { StatusScreen } from "@/components/StatusScreen";
-import { REALM_PRESENTATION, WEBSITE_URL } from "@/lib/identity";
-import { readAuthParams, type RawSearchParams } from "@/lib/searchParams";
+import { AccessDenied } from "@/components/forms/AccessDenied";
+import { PORTAL_NAMES } from "@/lib/identity";
+import type { RawSearchParams } from "@/lib/searchParams";
 
 export const metadata: Metadata = { title: "Access denied" };
 
 /**
- * Signed in, but not permitted here.
+ * Signed in, but not permitted here — a 403, not a 401.
  *
  * Distinct from `/unauthorized`, and the distinction is the whole point: this
- * person is authenticated and we know who they are — they simply do not hold
- * what this portal requires. Telling them to sign in again, which is what a
- * merged screen would do, sends them round a loop that cannot end.
+ * person is authenticated and we know who they are. Telling them to sign in
+ * again, which is what a merged screen would do, sends them round a loop that
+ * cannot end.
+ *
+ * `?portal=` here is a portal id, not a realm — a portal refused them and named
+ * itself. It is looked up rather than printed, so a hand-edited value cannot put
+ * arbitrary text on the page.
  */
 export default async function AccessDeniedPage({
   searchParams,
 }: {
   searchParams: Promise<RawSearchParams>;
 }) {
-  const { realm } = await readAuthParams(searchParams);
-  const presentation = REALM_PRESENTATION[realm];
+  const params = await searchParams;
+  const requested = Array.isArray(params.portal) ? params.portal[0] : params.portal;
+  const portalName = (requested && PORTAL_NAMES[requested]) ?? null;
 
-  return (
-    <StatusScreen
-      icon="shield"
-      title="You do not have access to this area"
-      description="Your account is signed in, but it does not hold the permissions this part of Aegis requires."
-      detail={`If you should have access to the ${presentation.label.toLowerCase()} portal, the person who administers it for your organisation can grant it. We do not name which permission was missing — that would map out the access model for anybody probing.`}
-      actions={[
-        { label: "Go to your own portal", href: "/", variant: "primary" },
-        { label: "Back to the Aegis website", href: WEBSITE_URL, external: true },
-      ]}
-    />
-  );
+  return <AccessDenied portalName={portalName} />;
 }

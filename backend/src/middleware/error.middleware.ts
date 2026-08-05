@@ -23,9 +23,23 @@ const handlePrismaValidationError = (err: AppErrorLike): AppError => {
   return new AppError(`Invalid database transaction parameter: ${err.message}`, 400, "VALIDATION_ERROR");
 };
 
+/**
+ * Prisma's own error codes — `P2002`, `P2025` and so on. They are internal
+ * database detail and must never reach a client, so they fall back to the
+ * generic code for the status.
+ *
+ * Matched as "P followed by digits" rather than "starts with P", which is what
+ * this used to be. That looser test silently swallowed any AppError code
+ * beginning with the letter — `PORTAL_FORBIDDEN` came out as plain `FORBIDDEN`,
+ * and every future `PASSWORD_*` or `PLATFORM_*` would have done the same. A
+ * client that switches on a code cannot tell "forbidden" from "forbidden for
+ * this specific, actionable reason".
+ */
+const PRISMA_CODE = /^P\d+$/;
+
 /** Machine `code` for the response — AppError carries its own; others map by status. */
 const resolveCode = (err: AppErrorLike, statusCode: number): string =>
-  err.code && !err.code.startsWith("P") ? err.code : codeForStatus(statusCode);
+  err.code && !PRISMA_CODE.test(err.code) ? err.code : codeForStatus(statusCode);
 
 const sendErrorDev = (err: AppErrorLike, req: Request, res: Response): void => {
   const statusCode = err.statusCode || 500;

@@ -114,3 +114,17 @@ export function safeNextPath(value: string | null | undefined): string | null {
   if (value.includes("\\")) return null;
   return value;
 }
+
+/**
+ * Portal ids to the names a person reads.
+ *
+ * Used where a portal id arrives in a query string — a refusal naming the
+ * workspace that turned somebody away. Looked up rather than printed, so a
+ * hand-edited `?portal=` cannot put arbitrary text on the page.
+ */
+export const PORTAL_NAMES: Record<string, string> = {
+  customer: "Customer Portal",
+  employee: "Employee Portal",
+  enterprise: "Enterprise Portal",
+  platform: "Platform Administration",
+};

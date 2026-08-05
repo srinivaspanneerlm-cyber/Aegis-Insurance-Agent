@@ -14,7 +14,14 @@ import { auditService } from "./audit.service";
 import { expiresInToMs, STEP_UP_TTL_MS } from "../utils/cookies";
 import { getIdentityProvider } from "../auth/providers";
 import type { VerifiedIdentity } from "../auth/providers";
-import { isRealm, realmAcceptsMethod, policyForRealm, type Realm } from "../auth/realms";
+import {
+  isRealm,
+  realmAcceptsMethod,
+  policyForRealm,
+  portalUrlForRealm,
+  type Realm,
+} from "../auth/realms";
+import { entitlementsFor, getPortal, homePortalFor } from "../auth/portals";
 import { checkPassword, type PasswordRealm } from "../auth/password";
 import { clearFailures, lockStateOf, recordFailure } from "../auth/lockout";
 import { recordLogin, type RequestContext } from "../auth/loginHistory";
@@ -857,6 +864,72 @@ export const authService = {
     const user = await userRepository.findById(userId);
     if (!user) throw new AppError("Session no longer valid. Please log in again.", 401);
     return startSitting({ id: user.id, realm: user.realm }, context);
+  },
+
+  // ── Portal gateway ─────────────────────────────────────────────────────────
+
+  /**
+   * What the gateway should show this person.
+   *
+   * The realm is read from the stored record, never from the request. A client
+   * that could name its own realm would be choosing its own authorisation.
+   */
+  async portalsFor(userId: string) {
+    const user = await userRepository.findById(userId);
+    if (!user) throw new AppError("Session no longer valid. Please log in again.", 401);
+
+    const realm: Realm = isRealm(user.realm) ? user.realm : "CUSTOMER";
+    return {
+      realm,
+      home: homePortalFor(realm).id,
+      portals: entitlementsFor(realm),
+    };
+  },
+
+  /**
+   * Ask to enter a portal, and be told where to go — or refused.
+   *
+   * The destination is returned by the server rather than assembled by the
+   * client. That is what makes a hand-edited address bar useless: there is no
+   * URL to tamper with, because the client never held one it was not entitled
+   * to. Both outcomes are audited, because a refusal here is somebody trying a
+   * door that is not theirs and that is worth being able to see later.
+   */
+  async enterPortal(userId: string, portalId: string, context?: RequestContext) {
+    const user = await userRepository.findById(userId);
+    if (!user) throw new AppError("Session no longer valid. Please log in again.", 401);
+    if (!user.isActive) throw new AppError("This account has been deactivated.", 403);
+
+    const realm: Realm = isRealm(user.realm) ? user.realm : "CUSTOMER";
+    const portal = getPortal(portalId);
+
+    // An unknown portal and a forbidden one answer identically. Telling somebody
+    // that "enterprise" exists but is refused, while "warehouse" does not exist,
+    // maps the estate out for whoever is guessing.
+    if (!portal || portal.realm !== realm) {
+      auditService.record({
+        actorId: userId,
+        action: "authz.portal.denied",
+        metadata: {
+          requested: portalId,
+          realm,
+          ip: context?.ipAddress ?? null,
+        },
+      });
+      throw new AppError(
+        "You do not have access to that workspace.",
+        403,
+        "PORTAL_FORBIDDEN"
+      );
+    }
+
+    auditService.record({
+      actorId: userId,
+      action: "authz.portal.entered",
+      metadata: { portal: portal.id, realm },
+    });
+
+    return { portal: portal.id, url: portalUrlForRealm(realm) };
   },
 
   /** What is signed in to this account right now. Carries no token material. */

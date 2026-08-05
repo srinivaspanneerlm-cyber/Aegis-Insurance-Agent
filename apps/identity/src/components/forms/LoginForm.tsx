@@ -21,6 +21,16 @@ import { identityApi } from "@/lib/api";
  * once JavaScript has run. Now the markup is in the response and this only adds
  * behaviour to it.
  */
+/**
+ * Authentication no longer jumps straight to a portal.
+ *
+ * Everybody lands on the gateway, which asks the server which workspaces they
+ * may enter. Sending them directly would mean this app deciding a destination
+ * from a value it was handed — and it is the server's job to decide, and to
+ * record, which door somebody went through.
+ */
+const GATEWAY_PATH = "/gateway";
+
 export function LoginForm({ realm, next }: { realm: Realm; next: string | null }) {
   const presentation = REALM_PRESENTATION[realm];
 
@@ -31,7 +41,7 @@ export function LoginForm({ realm, next }: { realm: Realm; next: string | null }
   // again because they arrived from the website's gateway.
   useEffect(() => {
     if (status === "authenticated" && session) {
-      window.location.assign(next ? `${session.portalUrl}${next}` : session.portalUrl);
+      window.location.assign(GATEWAY_PATH);
     }
   }, [status, session, next]);
 
@@ -48,15 +58,16 @@ export function LoginForm({ realm, next }: { realm: Realm; next: string | null }
     const data = new FormData(event.currentTarget);
 
     try {
-      const result = await signIn({
+      await signIn({
         email: String(data.get("email") ?? ""),
         password: String(data.get("password") ?? ""),
         realm,
       });
-      // A full navigation rather than a router push: the portal is a different
-      // application on a different origin, and the session cookie is what
-      // carries the person across.
-      window.location.assign(next ? `${result.portalUrl}${next}` : result.portalUrl);
+      // A full navigation rather than a router push, so the gateway loads with
+      // the freshly set session cookie already in place.
+      window.location.assign(
+        next ? `${GATEWAY_PATH}?next=${encodeURIComponent(next)}` : GATEWAY_PATH
+      );
     } catch {
       // The provider already holds the error; nothing to add here.
     }

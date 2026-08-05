@@ -189,6 +189,31 @@ const changePassword = catchAsync(async (req, res) => {
   sendSuccess(res, 200, { endedSessions }, { token: accessToken, message: "Password changed." });
 });
 
+// ── Portal gateway ───────────────────────────────────────────────────────────
+
+// What the gateway shows: every portal, with a URL only on the one this person
+// may enter. A client cannot construct a destination it was never given.
+const listPortals = catchAsync(async (req, res) => {
+  sendSuccess(res, 200, await authService.portalsFor(req.user!.id));
+});
+
+/**
+ * Ask to enter a portal.
+ *
+ * A POST rather than a GET because it is not a lookup — it records that
+ * somebody entered, and a refusal here is somebody trying a door that is not
+ * theirs. Neither belongs in a cacheable, prefetchable, link-shareable request.
+ */
+const enterPortal = catchAsync(async (req, res) => {
+  const { portal } = req.params;
+  const result = await authService.enterPortal(
+    req.user!.id,
+    typeof portal === "string" ? portal : "",
+    contextFrom(req)
+  );
+  sendSuccess(res, 200, result);
+});
+
 // ── Session monitoring ───────────────────────────────────────────────────────
 
 const listSessions = catchAsync(async (req, res) => {
@@ -251,4 +276,6 @@ export {
   changePassword,
   listSessions,
   loginHistory,
+  listPortals,
+  enterPortal,
 };
