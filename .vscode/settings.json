@@ -1,4 +1,5 @@
 {
+  // ── Python (ai-python) — pre-existing, unchanged ───────────────────────────
   "python.defaultInterpreterPath": "${workspaceFolder}/ai-python/venv/bin/python",
   "python.analysis.extraPaths": [
     "${workspaceFolder}/ai-python",
@@ -11,5 +12,40 @@
   "python.analysis.reportMissingModuleSource": "none",
   "[python]": {
     "editor.formatOnSave": true
-  }
+  },
+
+  // ── Monorepo (apps/ packages/ services/) ──────────────────────────────────
+  "[typescript]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+  "[typescriptreact]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+  "[json]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+  "[css]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  },
+
+  // Use the workspace TypeScript, not VS Code's bundled one — otherwise a
+  // developer sees different errors from CI for the same file.
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "typescript.enablePromptUseWorkspaceTsdk": true,
+  "typescript.preferences.importModuleSpecifier": "non-relative",
+  "typescript.updateImportsOnFileMove.enabled": "always",
+
+  "eslint.useFlatConfig": true,
+  "eslint.workingDirectories": [{ "mode": "auto" }],
+
+  "files.eol": "\n",
+  "files.insertFinalNewline": true,
+  "files.trimTrailingWhitespace": true,
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/.next": true,
+    "**/dist": true,
+    "**/pnpm-lock.yaml": true
+  },
+
+  "tailwindCSS.experimental.classRegex": [
+    ["cva\\(([^)]*)\\)", "[\"'`]([^\"'`]*).*?[\"'`]"],
+    ["cn\\(([^)]*)\\)", "[\"'`]([^\"'`]*).*?[\"'`]"]
+  ]
 }

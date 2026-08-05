@@ -1,0 +1,11 @@
+# Workspace membership is deliberately narrow.
+#
+# `frontend/`, `backend/` and `ai-python/` are the running production apps and
+# they install with npm today. Pulling them in here would rewrite their
+# dependency resolution as a side effect of a scaffolding change, which is not
+# something a foundation sprint should do to a live system. They join in the
+# migration sprint, one at a time, each with its own verification.
+packages:
+  - "apps/*"
+  - "packages/*"
+  - "services/*"

@@ -1,0 +1,166 @@
+/**
+ * Aegis colour system — the runtime source of truth.
+ *
+ * Colour is the one token family that must change *after* the bundle is built,
+ * because the customer picks the theme. So the values live here, as CSS custom
+ * properties, and every other layer refers to them by name: the Tailwind preset
+ * maps utilities onto these variables, and components only ever name semantic
+ * roles. Nothing downstream repeats a hex code, which is what keeps five apps
+ * from drifting into five slightly different blues.
+ *
+ * Values are space-separated RGB channels rather than `#rrggbb` so Tailwind's
+ * opacity modifiers work: `bg-surface/60` becomes
+ * `rgb(var(--aegis-surface) / 0.6)`. A hex value here would silently break
+ * every alpha in the codebase.
+ *
+ * Two rules for adding a colour:
+ *   1. Name the ROLE, not the colour. `--aegis-danger`, never `--aegis-red`.
+ *      A role survives a rebrand; a colour name becomes a lie during one.
+ *   2. Define it in BOTH themes. A token that exists in only one is a bug that
+ *      only half the users will ever see.
+ */
+
+:root {
+  /* ── Surfaces ──────────────────────────────────────────────────────────── */
+  --aegis-canvas: 248 250 252; /* page background */
+  --aegis-surface: 255 255 255; /* cards, panels */
+  --aegis-surface-raised: 255 255 255; /* menus, popovers — above surface */
+  --aegis-surface-sunken: 241 245 249; /* wells, table stripes */
+  --aegis-overlay: 15 23 42; /* modal scrim (used with alpha) */
+
+  /* ── Text ──────────────────────────────────────────────────────────────── */
+  --aegis-text: 15 23 42;
+  --aegis-text-secondary: 51 65 85;
+  --aegis-text-muted: 100 116 139;
+  --aegis-text-inverted: 248 250 252;
+
+  /* ── Borders ───────────────────────────────────────────────────────────── */
+  --aegis-border-subtle: 241 245 249;
+  --aegis-border: 226 232 240;
+  --aegis-border-strong: 203 213 225;
+
+  /* ── Brand & status ────────────────────────────────────────────────────── */
+  --aegis-brand: 37 99 235;
+  --aegis-brand-hover: 29 78 216;
+  --aegis-brand-fg: 255 255 255;
+  --aegis-accent: 217 119 6;
+  --aegis-accent-fg: 255 255 255;
+
+  --aegis-success: 5 150 105;
+  --aegis-warning: 217 119 6;
+  --aegis-danger: 220 38 38;
+  --aegis-info: 2 132 199;
+  --aegis-status-fg: 255 255 255;
+
+  /* ── Focus ─────────────────────────────────────────────────────────────── */
+  /* Deliberately its own token. Focus must stay visible against every surface,
+     so it is not allowed to inherit whatever the brand happens to be. */
+  --aegis-ring: 37 99 235;
+
+  /* ── Glassmorphism ─────────────────────────────────────────────────────── */
+  /* Glass is a material, not a colour, so it needs its own set: a tint, a
+     hairline, a shadow and a blur radius. Light glass tints WHITE over a busy
+     background; dark glass tints black. Getting that backwards is why glass
+     panels turn into grey mud in one theme. */
+  --aegis-glass-tint: 255 255 255;
+  --aegis-glass-opacity: 0.72;
+  --aegis-glass-border: 255 255 255;
+  --aegis-glass-border-opacity: 0.5;
+  --aegis-glass-blur: 14px;
+  --aegis-glass-shadow: 0 8px 32px rgb(15 23 42 / 0.08);
+}
+
+.dark {
+  --aegis-canvas: 2 6 23;
+  --aegis-surface: 15 23 42;
+  --aegis-surface-raised: 30 41 59;
+  --aegis-surface-sunken: 2 6 23;
+  --aegis-overlay: 1 4 16;
+
+  --aegis-text: 248 250 252;
+  --aegis-text-secondary: 203 213 225;
+  --aegis-text-muted: 148 163 184;
+  --aegis-text-inverted: 15 23 42;
+
+  --aegis-border-subtle: 30 41 59;
+  --aegis-border: 51 65 85;
+  --aegis-border-strong: 71 85 105;
+
+  --aegis-brand: 96 165 250;
+  --aegis-brand-hover: 147 197 253;
+  --aegis-brand-fg: 2 6 23;
+  --aegis-accent: 251 191 36;
+  --aegis-accent-fg: 2 6 23;
+
+  --aegis-success: 52 211 153;
+  --aegis-warning: 251 191 36;
+  --aegis-danger: 248 113 113;
+  --aegis-info: 56 189 248;
+  --aegis-status-fg: 2 6 23;
+
+  --aegis-ring: 96 165 250;
+
+  --aegis-glass-tint: 15 23 42;
+  --aegis-glass-opacity: 0.6;
+  --aegis-glass-border: 255 255 255;
+  --aegis-glass-border-opacity: 0.08;
+  --aegis-glass-blur: 14px;
+  --aegis-glass-shadow: 0 24px 64px rgb(0 0 0 / 0.5);
+}
+
+/**
+ * Respect the operating-system setting for people who never touch a theme
+ * toggle — which is most people. An explicit choice still wins, because
+ * `ThemeProvider` writes `.dark` / `.light` onto the root element and a class
+ * beats a media query.
+ */
+@media (prefers-color-scheme: dark) {
+  :root:not(.light):not(.dark) {
+    color-scheme: dark;
+    --aegis-canvas: 2 6 23;
+    --aegis-surface: 15 23 42;
+    --aegis-surface-raised: 30 41 59;
+    --aegis-surface-sunken: 2 6 23;
+    --aegis-overlay: 1 4 16;
+    --aegis-text: 248 250 252;
+    --aegis-text-secondary: 203 213 225;
+    --aegis-text-muted: 148 163 184;
+    --aegis-text-inverted: 15 23 42;
+    --aegis-border-subtle: 30 41 59;
+    --aegis-border: 51 65 85;
+    --aegis-border-strong: 71 85 105;
+    --aegis-brand: 96 165 250;
+    --aegis-brand-hover: 147 197 253;
+    --aegis-brand-fg: 2 6 23;
+    --aegis-accent: 251 191 36;
+    --aegis-accent-fg: 2 6 23;
+    --aegis-success: 52 211 153;
+    --aegis-warning: 251 191 36;
+    --aegis-danger: 248 113 113;
+    --aegis-info: 56 189 248;
+    --aegis-status-fg: 2 6 23;
+    --aegis-ring: 96 165 250;
+    --aegis-glass-tint: 15 23 42;
+    --aegis-glass-opacity: 0.6;
+    --aegis-glass-border-opacity: 0.08;
+    --aegis-glass-shadow: 0 24px 64px rgb(0 0 0 / 0.5);
+  }
+}
+
+/**
+ * Motion is a preference, not a default.
+ *
+ * Vestibular disorders make large transitions genuinely unpleasant, and this
+ * platform is built for people who are often older. One global rule is more
+ * reliable than asking every future component to remember.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

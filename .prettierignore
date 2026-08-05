@@ -1,0 +1,17 @@
+# Formatting is scoped to the monorepo. The existing apps have their own
+# conventions and reformatting them wholesale would bury real changes in a diff
+# nobody can review.
+frontend/
+backend/
+ai-python/
+Aegis-AI/
+presentation/
+nginx/
+
+node_modules/
+.next/
+dist/
+build/
+coverage/
+pnpm-lock.yaml
+*.min.*

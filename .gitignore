@@ -101,3 +101,11 @@ Aegis-AI/layer3/conversation_memory/sessions/
 # Local backup archives (never commit)
 /backups/
 backups/
+
+# ── Monorepo (apps/ packages/ services/) ─────────────────────────────────────
+# pnpm store and per-app Next output. `dist/`, `build/`, `.next/` and
+# `node_modules/` are already covered above.
+.pnpm-store/
+apps/*/.next/
+apps/*/next-env.d.ts
+*.tsbuildinfo

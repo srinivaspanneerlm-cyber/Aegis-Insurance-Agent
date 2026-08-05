@@ -1,0 +1,11 @@
+#!/usr/bin/env sh
+
+# Format and lint only what is being committed.
+#
+# Scoped to staged files on purpose: a hook that checks the whole repository
+# gets slower every sprint until someone reaches for `--no-verify`, and a hook
+# people routinely bypass protects nothing.
+#
+# Type checking is NOT here. It is project-wide by nature, too slow for a hook,
+# and belongs in CI where it can fail a pull request instead of a keystroke.
+pnpm exec lint-staged
