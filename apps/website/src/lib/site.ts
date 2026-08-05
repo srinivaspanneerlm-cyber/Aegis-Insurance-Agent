@@ -72,16 +72,15 @@ export const PRIMARY_NAV: readonly NavLink[] = [
 ];
 
 /**
- * Where "Get Started" leads.
+ * The identity platform — where every sign-in happens.
  *
- * Each entry points at a separate application, not at a role inside one. That
- * separation is the platform's identity model showing through: a customer and a
- * member of staff are different kinds of principal with different session
- * policies, and they do not share a front door.
- *
- * Ports match the workspace layout in MONOREPO.md. Every one is overridable by
- * environment, because in production these are domains rather than ports.
+ * The gateway below no longer links straight at a portal. It links here with
+ * the chosen realm, because authentication is one system for all four portals
+ * and a portal cannot be entered without passing through it. The identity
+ * platform decides where somebody actually lands, from their realm.
  */
+export const IDENTITY_URL = process.env.NEXT_PUBLIC_IDENTITY_URL ?? "http://localhost:3105";
+
 /**
  * A union rather than `string`, so the icon and tone lookups keyed on it are
  * exhaustive. Adding a portal without giving it an icon then fails to compile
@@ -102,6 +101,18 @@ export interface Portal {
   tone: "brand" | "accent" | "info" | "muted";
 }
 
+/**
+ * Where "Get Started" leads.
+ *
+ * Each entry names a separate application, not a role inside one. That
+ * separation is the platform's identity model showing through: a customer and a
+ * member of staff are different kinds of principal with different session
+ * policies, and they do not share a front door.
+ *
+ * `href` points at the identity platform's sign-in for that realm rather than
+ * at the portal itself. Linking a visitor straight to a portal would only
+ * bounce them back here unauthenticated, one redirect later.
+ */
 export const PORTALS: readonly Portal[] = [
   {
     id: "customer",
@@ -110,7 +121,7 @@ export const PORTALS: readonly Portal[] = [
     description:
       "Review the cover you hold, continue an application, and get a plain-language explanation of anything you do not recognise.",
     points: ["Your policies and documents", "Renewals and reminders", "Guidance in your language"],
-    href: process.env.NEXT_PUBLIC_CUSTOMER_PORTAL_URL ?? "http://localhost:3000",
+    href: `${IDENTITY_URL}/login?portal=CUSTOMER`,
     available: true,
     tone: "brand",
   },
@@ -121,7 +132,7 @@ export const PORTALS: readonly Portal[] = [
     description:
       "The daily working surface for the people who serve customers directly — enquiries, applications and the records behind them.",
     points: ["Customer enquiries", "Application progress", "Day-to-day servicing"],
-    href: process.env.NEXT_PUBLIC_EMPLOYEE_PORTAL_URL ?? "http://localhost:3102",
+    href: `${IDENTITY_URL}/login?portal=EMPLOYEE`,
     available: false,
     tone: "info",
   },
@@ -132,7 +143,7 @@ export const PORTALS: readonly Portal[] = [
     description:
       "Portfolio-level work: underwriting decisions, approvals, and the reporting that governance and compliance depend on.",
     points: ["Underwriting and approvals", "Portfolio reporting", "Audit and oversight"],
-    href: process.env.NEXT_PUBLIC_ENTERPRISE_PORTAL_URL ?? "http://localhost:3103",
+    href: `${IDENTITY_URL}/login?portal=ENTERPRISE`,
     available: false,
     tone: "accent",
   },
@@ -143,7 +154,7 @@ export const PORTALS: readonly Portal[] = [
     description:
       "Configuration, organisations and platform health. Access is granted by capability, never by job title.",
     points: ["Organisations and staff", "Platform configuration", "Audit trail"],
-    href: process.env.NEXT_PUBLIC_PLATFORM_ADMIN_URL ?? "http://localhost:3104",
+    href: `${IDENTITY_URL}/login?portal=PLATFORM`,
     available: false,
     tone: "muted",
   },
