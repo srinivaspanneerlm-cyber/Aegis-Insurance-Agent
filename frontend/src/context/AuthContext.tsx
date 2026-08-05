@@ -9,6 +9,7 @@ import { LOGIN_ROUTE, isProtectedPath } from "@/lib/routes";
 import { publishSessionEvent, subscribeToSessionEvents } from "@/lib/session-broadcast";
 import { useIdleTimeout } from "@/hooks/useIdleTimeout";
 import SessionExpiryDialog from "@/components/SessionExpiryDialog";
+import { hasPermission, type Permission } from "@/lib/permissions";
 
 interface User {
   id: string;
@@ -39,15 +40,43 @@ interface AuthContextType {
     insuranceInterests: string[];
   }) => Promise<void>;
   isAuthenticated: boolean;
+  /**
+   * Capabilities the API resolved for this session. Empty for a customer, and
+   * empty while the boot probe is still running.
+   */
+  permissions: readonly string[];
+  /**
+   * Whether to *render* something. Never whether to allow it — the API decides
+   * that again on every request. See `lib/permissions.ts`.
+   */
+  can: (permission: Permission) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [permissions, setPermissions] = useState<readonly string[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const router = useRouter();
   const pathname = usePathname();
+
+  // A session is a person *and* what they may do, so the two are always set
+  // together. Kept as one call because a path that updated only the user would
+  // leave the previous person's capabilities on screen — on a shared device,
+  // for the next customer.
+  const adoptSession = useCallback(
+    (nextUser: User, granted?: readonly string[]) => {
+      setUser(nextUser);
+      setPermissions(granted ?? []);
+    },
+    []
+  );
+
+  const clearSession = useCallback(() => {
+    setUser(null);
+    setPermissions([]);
+  }, []);
 
   // Read inside listeners that must not be re-bound on every navigation.
   const pathnameRef = useRef(pathname);
@@ -61,10 +90,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     async function loadUser() {
       try {
         const userData = await authService.getMe();
-        setUser(userData.user);
+        adoptSession(userData.user, userData.permissions);
       } catch {
         // No valid session cookie — treat as logged out.
-        setUser(null);
+        clearSession();
       } finally {
         setLoading(false);
       }
@@ -77,13 +106,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // lost the page they were on, so `replace` keeps Back from returning them
     // to it.
     const handleAuthError = () => {
-      setUser(null);
+      clearSession();
       router.replace(LOGIN_ROUTE);
     };
 
     window.addEventListener("aegis_auth_error", handleAuthError);
     return () => window.removeEventListener("aegis_auth_error", handleAuthError);
-  }, [router]);
+  }, [router, adoptSession, clearSession]);
 
   // 1b) Keep this tab in step with the customer's other tabs.
   //
@@ -95,7 +124,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return subscribeToSessionEvents((event) => {
       if (event.type === "signed-out") {
         purgeCustomerSession();
-        setUser(null);
+        clearSession();
         // Only move them if they are somewhere that needs a session. A tab left
         // on the home page or mid-conversation with the advisor has every right
         // to stay where it is.
@@ -108,13 +137,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // catches up the state that decides what is rendered.
       authService
         .getMe()
-        .then((data) => setUser(data.user))
+        .then((data) => adoptSession(data.user, data.permissions))
         .catch(() => {
           // The session went away between the announcement and this question.
           // The next request will settle it; nothing to do here.
         });
     });
-  }, [router]);
+  }, [router, adoptSession, clearSession]);
 
   // 2) Log in method
   const login = async (email: string, password: string) => {
@@ -123,7 +152,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const res = await authService.login({ email, password });
       // The session is an httpOnly cookie set by the server; nothing to store.
       const userData = res.data.user;
-      setUser(userData);
+      adoptSession(userData, res.data.permissions);
       publishSessionEvent({ type: "signed-in" });
       router.push(destinationFor(userData));
     } catch (err) {
@@ -141,7 +170,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const res = await authService.googleLogin(credential);
       const userData = res.data.user;
-      setUser(userData);
+      adoptSession(userData, res.data.permissions);
       publishSessionEvent({ type: "signed-in" });
       // First Google sign-in has no onboardedAt, so this sends them to the
       // Executive AI welcome; a returning user goes straight to the dashboard.
@@ -165,7 +194,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
       // Token is delivered as an httpOnly cookie by the server; nothing to store.
       const userData = res.data.user;
-      setUser(userData);
+      adoptSession(userData, res.data.permissions);
       publishSessionEvent({ type: "signed-in" });
       router.push(destinationFor(userData));
     } catch (err) {
@@ -183,6 +212,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     insuranceInterests: string[];
   }) => {
     const data = await authService.completeOnboarding(input);
+    // Onboarding answers language and interests, never the role — so the
+    // capabilities already in hand still stand.
     setUser(data.user);
     router.push(destinationFor(data.user));
   };
@@ -202,7 +233,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Tell the other tabs before this one navigates away: leaving a signed-out
     // customer's dashboard rendered in a second tab is the whole problem.
     publishSessionEvent({ type: "signed-out" });
-    setUser(null);
+    clearSession();
     router.push("/");
   };
 
@@ -220,14 +251,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     purgeCustomerSession();
     publishSessionEvent({ type: "signed-out" });
-    setUser(null);
+    clearSession();
     const returnTo = pathnameRef.current;
     router.replace(
       returnTo && isProtectedPath(returnTo)
         ? `${LOGIN_ROUTE}?next=${encodeURIComponent(returnTo)}`
         : LOGIN_ROUTE
     );
-  }, [router]);
+  }, [router, clearSession]);
 
   // Only where a session is actually exposed. The public advisor is never
   // interrupted — an anonymous visitor mid-conversation has no session to
@@ -244,6 +275,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     logout,
     completeOnboarding,
     isAuthenticated: !!user,
+    permissions,
+    can: (permission: Permission) => hasPermission(permissions, permission),
   };
 
   return (

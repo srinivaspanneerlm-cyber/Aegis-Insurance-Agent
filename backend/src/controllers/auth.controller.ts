@@ -36,13 +36,13 @@ const register = catchAsync(async (req, res) => {
   const { user, accessToken, refreshToken } = await authService.register(req.body);
   startSession(res, accessToken, refreshToken);
   // `token` (access) stays at the top level for backward compatibility.
-  sendSuccess(res, 201, { user }, { token: accessToken });
+  sendSuccess(res, 201, { user, permissions: permissionsForRole(user.role) }, { token: accessToken });
 });
 
 const login = catchAsync(async (req, res) => {
   const { user, accessToken, refreshToken } = await authService.login(req.body);
   startSession(res, accessToken, refreshToken);
-  sendSuccess(res, 200, { user }, { token: accessToken });
+  sendSuccess(res, 200, { user, permissions: permissionsForRole(user.role) }, { token: accessToken });
 });
 
 // Sign in with an external identity provider. The provider comes from the URL,
@@ -56,7 +56,7 @@ const providerLogin = catchAsync(async (req, res) => {
     req.body.credential
   );
   startSession(res, accessToken, refreshToken);
-  sendSuccess(res, 200, { user }, { token: accessToken });
+  sendSuccess(res, 200, { user, permissions: permissionsForRole(user.role) }, { token: accessToken });
 });
 
 // Which sign-in buttons this deployment can actually offer. Public: it reveals
