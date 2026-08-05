@@ -133,6 +133,61 @@ async function refreshProfileFromIdentity<T extends { id: string; image: string 
   }
 }
 
+/**
+ * Every rejected renewal says the same thing. Which of the four reasons it was
+ * is useful only to somebody testing tokens against us.
+ */
+const EXPIRED_SESSION_MESSAGE = "Invalid or expired session. Please log in again.";
+
+/**
+ * How long after a token is rotated its predecessor may still turn up
+ * innocently.
+ *
+ * Two of the customer's tabs can start a renewal at the same moment. Rotation
+ * is single-use, so one of them wins and the other arrives holding a token that
+ * was spent milliseconds ago. That is not an attack, and treating it as one
+ * would sign a customer out for the crime of comparing two policies
+ * side by side.
+ *
+ * The window is the honest cost of this defence: a thief replaying a stolen
+ * token within a few seconds of the real client using it escapes the sweep.
+ * That is a much narrower opening than the one it closes, and it is the
+ * trade-off the OAuth reuse-detection guidance settles on for the same reason.
+ */
+const REFRESH_REUSE_GRACE_MS = 10_000;
+
+/**
+ * Someone presented a refresh token that had already been spent.
+ *
+ * Beyond the grace window there are only two ways this happens, and both mean
+ * the same thing: a token that should have been destroyed after one use is in
+ * circulation. Since we cannot tell the thief from the victim — they hold
+ * credentials from the same lineage — the safe move is to end every session
+ * this user has. The customer signs in again, which costs them a password; the
+ * thief is left holding tokens that no longer work, which costs them
+ * everything.
+ *
+ * Doing nothing, which is what happened before, meant the *victim's* renewal
+ * failed while the thief kept the freshly rotated token they had stolen.
+ */
+async function handleRefreshReuse(userId: string, revokedAt: Date): Promise<void> {
+  const sinceRevoked = Date.now() - revokedAt.getTime();
+
+  if (sinceRevoked <= REFRESH_REUSE_GRACE_MS) {
+    // A benign race. The losing tab's next request renews normally against the
+    // cookie the winning tab just set.
+    auditService.record({ actorId: userId, action: "auth.refresh.race" });
+    return;
+  }
+
+  const endedSessions = await refreshTokenRepository.revokeAllForUser(userId);
+  auditService.record({
+    actorId: userId,
+    action: "auth.refresh.replay",
+    metadata: { endedSessions, msSinceRotation: sinceRevoked },
+  });
+}
+
 // Pre-computed bcrypt hash of a random string. A login for a non-existent email
 // still runs a comparison against this dummy so success/failure take the same
 // time — removing the user-enumeration timing side channel.
@@ -294,9 +349,21 @@ export const authService = {
     if (!rawRefresh) throw new AppError("Missing refresh token. Please log in again.", 401);
 
     const record = await refreshTokenRepository.findByHash(hashToken(rawRefresh));
-    if (!record || record.revokedAt || record.expiresAt < new Date()) {
+
+    if (!record) {
       auditService.record({ action: "auth.refresh.rejected" });
-      throw new AppError("Invalid or expired session. Please log in again.", 401);
+      throw new AppError(EXPIRED_SESSION_MESSAGE, 401);
+    }
+
+    // A token that has already been spent is the one case worth investigating.
+    if (record.revokedAt) {
+      await handleRefreshReuse(record.userId, record.revokedAt);
+      throw new AppError(EXPIRED_SESSION_MESSAGE, 401);
+    }
+
+    if (record.expiresAt < new Date()) {
+      auditService.record({ actorId: record.userId, action: "auth.refresh.rejected" });
+      throw new AppError(EXPIRED_SESSION_MESSAGE, 401);
     }
 
     await refreshTokenRepository.revokeById(record.id); // rotate: single-use

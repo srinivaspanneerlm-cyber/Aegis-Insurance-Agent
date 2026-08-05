@@ -76,6 +76,18 @@ class RefreshTokenRepository extends BaseRepository<RefreshToken> {
   revokeById(id: string): Promise<RefreshToken> {
     return this.delegate.update({ where: { id }, data: { revokedAt: new Date() } });
   }
+
+  /**
+   * End every live session this user has. Returns how many were ended, which is
+   * what makes the audit entry worth reading afterwards.
+   */
+  async revokeAllForUser(userId: string): Promise<number> {
+    const result = await this.delegate.updateMany({
+      where: { userId, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+    return result.count;
+  }
 }
 
 // LinkedIdentity — the external accounts a user can sign in with. Looked up on
