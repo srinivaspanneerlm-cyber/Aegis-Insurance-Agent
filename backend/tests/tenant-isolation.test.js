@@ -19,9 +19,9 @@ const { chatRepository, documentRepository } = require("../src/repositories");
 const { getChatHistory } = require("../src/controllers/chat.controller");
 const { getUploadedDocuments } = require("../src/controllers/upload.controller");
 
-const ALICE = { id: "user-alice", role: "customer" };
-const MALLORY = { id: "user-mallory", role: "customer" };
-const ADMIN = { id: "user-admin", role: "admin" };
+const ALICE = { id: "user-alice", role: "CUSTOMER" };
+const MALLORY = { id: "user-mallory", role: "CUSTOMER" };
+const ADMIN = { id: "user-admin", role: "EMPLOYEE" };
 
 function makeReq({ user, query = {} } = {}) {
   return { user, query, headers: {} };
@@ -189,7 +189,7 @@ describe("getUploadedDocuments", () => {
   });
 
   test("only admin and superadmin get the unscoped read", async () => {
-    for (const role of ["admin", "superadmin"]) {
+    for (const role of ["EMPLOYEE", "PLATFORM_ADMIN"]) {
       mock.restoreAll();
       const paginate = mock.method(documentRepository, "paginate", emptyPage);
 

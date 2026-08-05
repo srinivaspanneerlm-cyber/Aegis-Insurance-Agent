@@ -59,7 +59,7 @@ async function signInAsSuperadmin(tag) {
   assert.equal(res.status, 201);
 
   const userId = res.body.data.user.id;
-  await prisma.user.update({ where: { id: userId }, data: { role: "superadmin" } });
+  await prisma.user.update({ where: { id: userId }, data: { role: "PLATFORM_ADMIN" } });
   return { userId, email, cookie: cookieHeader(res) };
 }
 

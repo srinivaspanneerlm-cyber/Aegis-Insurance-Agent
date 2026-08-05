@@ -29,12 +29,29 @@ generator client {
 // ── Core identity ────────────────────────────────────────────────────────────
 
 model User {
-  id        String    @id @default(uuid())
-  name      String
-  email     String    @unique
-  password  String
-  role      String    @default("customer") // customer | admin | superadmin
-  isActive  Boolean   @default(true)
+  id       String @id @default(uuid())
+  name     String
+  email    String @unique
+  password String
+
+  // ── Identity: realm and role ───────────────────────────────────────────────
+  // Two fields because they answer two different questions, and conflating them
+  // is what produced three disagreeing role vocabularies in this codebase.
+  //
+  //   `realm` decides which portal a person enters. It is a property of who they
+  //   are to the business — a customer, a member of branch staff, an enterprise
+  //   administrator, an Aegis operator — and it changes almost never.
+  //
+  //   `role` is a named bundle of capabilities *within* a realm. It changes when
+  //   someone's job changes, and new ones are expected.
+  //
+  // Neither is ever branched on directly. Authorisation asks for a permission;
+  // the bundles live in `src/auth/permissions.ts` where a typo is a compile
+  // error rather than a silently missing capability. See `src/auth/realms.ts`.
+  realm String @default("CUSTOMER") // CUSTOMER | EMPLOYEE | ENTERPRISE | PLATFORM
+  role  String @default("CUSTOMER") // CUSTOMER | EMPLOYEE | ENTERPRISE_ADMIN | PLATFORM_ADMIN | …
+
+  isActive Boolean @default(true)
   createdAt DateTime  @default(now())
   updatedAt DateTime  @default(now()) @updatedAt
   deletedAt DateTime?
@@ -50,6 +67,24 @@ model User {
   googleId    String?   @unique
   image       String? // profile picture URL from the provider
   lastLoginAt DateTime?
+
+  // ── Credential state ───────────────────────────────────────────────────────
+  // Null means the address has never been proved. Whether that *blocks* sign-in
+  // is a policy decision per realm, not a property of the column — see
+  // `realms.ts`. A timestamp rather than a boolean because "when" is free to
+  // store and answers questions a flag cannot.
+  emailVerifiedAt   DateTime?
+  passwordChangedAt DateTime?
+
+  // Lockout. Counted rather than inferred, so the threshold is auditable and a
+  // successful sign-in can reset it in one write.
+  failedLoginAttempts Int       @default(0)
+  lockedUntil         DateTime?
+
+  // Future MFA. Present now so enrolling a factor is a data change rather than
+  // a migration on a table that by then holds every account on the platform.
+  mfaEnrolledAt DateTime?
+  mfaMethod     String? // totp | webauthn | sms
 
   // ── Onboarding ─────────────────────────────────────────────────────────────
   // `onboardedAt` is the first-login gate: null means the conversational
@@ -71,9 +106,13 @@ model User {
   recommendations   RecommendationHistory[]
   notifications     Notification[]
   auditLogs         AuditLog[]              @relation("ActorAuditLogs")
-  refreshTokens     RefreshToken[]
-  linkedIdentities  LinkedIdentity[]
+  refreshTokens      RefreshToken[]
+  linkedIdentities   LinkedIdentity[]
+  authSessions       AuthSession[]
+  verificationTokens VerificationToken[]
+  loginEvents        LoginEvent[]
 
+  @@index([realm])
   @@index([role])
   @@index([isActive])
   @@index([deletedAt])
@@ -119,8 +158,116 @@ model RefreshToken {
   revokedAt DateTime?
   createdAt DateTime  @default(now())
 
+  // The sitting this credential belongs to. Nullable because tokens issued
+  // before sessions existed have no sitting to point at, and inventing one for
+  // them would put a fiction in the audit trail.
+  sessionId String?
+  session   AuthSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+
   @@index([userId])
   @@index([expiresAt])
+  @@index([sessionId])
+}
+
+// ── Identity: sittings ───────────────────────────────────────────────────────
+// One row per "somebody signed in here, on this device, at this time".
+//
+// Deliberately NOT named `Session` — that name is already the AI conversation
+// session further down this file, and two different things called Session in
+// one schema is a defect waiting to be written. This is the *authentication*
+// sitting; a refresh token is the credential that keeps it alive.
+//
+// Its reason for existing is that "sign me out everywhere" and "what is signed
+// in to my account right now" are questions a bag of refresh tokens cannot
+// answer legibly.
+model AuthSession {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Copied at creation rather than read through to the user, because the answer
+  // to "which portal was this sitting for" must not change retroactively when
+  // somebody's realm is changed.
+  realm String
+
+  ipAddress String?
+  userAgent String?
+
+  // Future device trust. A remembered device can skip a second factor, which is
+  // only safe once there is something durable to remember it by.
+  deviceId    String?
+  deviceLabel String?
+  trustedAt   DateTime?
+
+  createdAt  DateTime  @default(now())
+  lastSeenAt DateTime  @default(now())
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  // Why it ended: LOGOUT | LOGOUT_ALL | REPLAY | IDLE | ADMIN | EXPIRED
+  revokedReason String?
+
+  refreshTokens RefreshToken[]
+
+  @@index([userId, revokedAt])
+  @@index([expiresAt])
+  @@index([userId, lastSeenAt])
+}
+
+// ── Identity: one-time proofs ────────────────────────────────────────────────
+// Email verification and password reset are the same mechanism with different
+// consequences, so they are one table with a `purpose` rather than two tables
+// that would drift apart on expiry, single-use and hashing.
+//
+// Only the SHA-256 hash is stored. A reset table readable from a database dump
+// is a table of live account takeovers.
+model VerificationToken {
+  id        String @id @default(uuid())
+  tokenHash String @unique
+  userId    String
+  user      User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  purpose String // EMAIL_VERIFICATION | PASSWORD_RESET
+
+  // Bound to the address it was issued for. A reset link must stop working if
+  // the account's email changes between issue and use.
+  email String
+
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([userId, purpose])
+  @@index([expiresAt])
+}
+
+// ── Identity: login history ──────────────────────────────────────────────────
+// Every attempt, successful or not. Separate from AuditLog because this is the
+// one trail a *customer* is entitled to read about their own account, and
+// mixing it into the platform's audit stream would make that impossible to
+// serve without leaking everything else.
+//
+// `email` is stored alongside `userId` because the interesting failures are the
+// ones where no user was found.
+model LoginEvent {
+  id     String  @id @default(uuid())
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  email String
+  // SUCCESS | BAD_CREDENTIALS | NO_ACCOUNT | LOCKED | INACTIVE | UNVERIFIED
+  // | WRONG_REALM | PROVIDER_REJECTED
+  outcome String
+  // PASSWORD | google | microsoft | apple | …
+  method String
+  realm  String?
+
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([email, createdAt])
+  @@index([createdAt])
 }
 
 // ── Catalogue: companies & policies ──────────────────────────────────────────

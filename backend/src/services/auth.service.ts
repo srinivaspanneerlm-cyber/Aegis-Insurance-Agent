@@ -1,7 +1,12 @@
 import bcrypt from "bcrypt";
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
-import { userRepository, refreshTokenRepository, linkedIdentityRepository } from "../repositories";
+import {
+  userRepository,
+  refreshTokenRepository,
+  linkedIdentityRepository,
+  loginEventRepository,
+} from "../repositories";
 import env from "../config/env";
 import { AUTH } from "../config/constants";
 import AppError from "../utils/appError";
@@ -9,6 +14,20 @@ import { auditService } from "./audit.service";
 import { expiresInToMs, STEP_UP_TTL_MS } from "../utils/cookies";
 import { getIdentityProvider } from "../auth/providers";
 import type { VerifiedIdentity } from "../auth/providers";
+import { isRealm, realmAcceptsMethod, policyForRealm, type Realm } from "../auth/realms";
+import { checkPassword, type PasswordRealm } from "../auth/password";
+import { clearFailures, lockStateOf, recordFailure } from "../auth/lockout";
+import { recordLogin, type RequestContext } from "../auth/loginHistory";
+import {
+  closeAllSessions,
+  closeSession,
+  listSessions,
+  openSession,
+  touchSession,
+} from "../auth/sessions";
+import { consumeToken, issueToken } from "../auth/verification";
+import { identityUrl, sendAuthMail } from "../auth/mailer";
+import { DEFAULT_ROLE_FOR_REALM } from "../auth/permissions";
 
 const signAccessToken = (id: string): string =>
   jwt.sign({ id }, env.JWT_SECRET, { expiresIn: env.ACCESS_TOKEN_EXPIRES_IN } as jwt.SignOptions);
@@ -17,18 +36,41 @@ const signAccessToken = (id: string): string =>
 const hashToken = (raw: string): string => crypto.createHash("sha256").update(raw).digest("hex");
 
 /** Mint a new opaque refresh token, persist its hash, return the raw value. */
-async function issueRefreshToken(userId: string): Promise<string> {
+async function issueRefreshToken(userId: string, sessionId: string | null): Promise<string> {
   const raw = crypto.randomBytes(48).toString("base64url");
   await refreshTokenRepository.create({
     tokenHash: hashToken(raw),
     userId,
+    sessionId,
     expiresAt: new Date(Date.now() + expiresInToMs(env.REFRESH_TOKEN_EXPIRES_IN)),
   });
   return raw;
 }
 
-async function issueTokens(userId: string): Promise<{ accessToken: string; refreshToken: string }> {
-  return { accessToken: signAccessToken(userId), refreshToken: await issueRefreshToken(userId) };
+async function issueTokens(
+  userId: string,
+  sessionId: string | null = null
+): Promise<{ accessToken: string; refreshToken: string }> {
+  return {
+    accessToken: signAccessToken(userId),
+    refreshToken: await issueRefreshToken(userId, sessionId),
+  };
+}
+
+/**
+ * Open a sitting and issue the credentials that belong to it.
+ *
+ * Every way in goes through here, so there is one description of what starting
+ * a session means rather than four that can drift apart.
+ */
+async function startSitting(
+  user: { id: string; realm: string },
+  context?: RequestContext
+): Promise<{ accessToken: string; refreshToken: string; sessionId: string }> {
+  const realm = isRealm(user.realm) ? user.realm : "CUSTOMER";
+  const session = await openSession({ userId: user.id, realm, ...(context ? { context } : {}) });
+  const tokens = await issueTokens(user.id, session.id);
+  return { ...tokens, sessionId: session.id };
 }
 
 /**
@@ -97,8 +139,13 @@ async function resolveUserForIdentity(identity: VerifiedIdentity) {
     name: identity.displayName || identity.email.split("@")[0],
     email: identity.email,
     password: await bcrypt.hash(unusableSecret, AUTH.BCRYPT_ROUNDS),
-    role: "customer",
+    realm: "CUSTOMER",
+    role: DEFAULT_ROLE_FOR_REALM.CUSTOMER,
     image: identity.pictureUrl,
+    // The provider refuses to vouch for an unverified address, so this account
+    // arrives with its email already proved. Asking again would send someone to
+    // a mailbox to confirm something Google just confirmed.
+    emailVerifiedAt: new Date(),
     lastLoginAt: new Date(),
   });
 
@@ -134,6 +181,98 @@ async function refreshProfileFromIdentity<T extends { id: string; image: string 
 }
 
 const STEP_UP_FAILED_MESSAGE = "We couldn't confirm it's you. Please try again.";
+
+const INVALID_CREDENTIALS_MESSAGE = "Incorrect email address or password.";
+
+/**
+ * Enforce the workspace-domain restriction that separates "Google" from
+ * "Google Workspace".
+ *
+ * Same protocol, same button, one difference: a staff realm only accepts an
+ * address belonging to an organisation this deployment recognises. Without it,
+ * anybody with a personal Google account who found the employee portal URL
+ * would be handed an account in the employee realm.
+ *
+ * An empty allowlist in a realm that requires one **fails closed** — refusing
+ * everybody is a visible, fixable misconfiguration, whereas admitting everybody
+ * is an invisible one.
+ */
+function assertWorkspaceDomain(
+  realm: Realm,
+  email: string,
+  providerId: string,
+  context?: RequestContext
+): void {
+  if (!policyForRealm(realm).requiresWorkspaceDomain) return;
+
+  const domain = email.split("@")[1]?.toLowerCase();
+  const allowed = env.workspaceDomains;
+
+  if (domain && allowed.includes(domain)) return;
+
+  auditService.record({
+    action: "authz.workspace_domain.refused",
+    metadata: { realm, provider: providerId, domain: domain ?? "none" },
+  });
+  recordLogin({
+    email,
+    outcome: "METHOD_NOT_ALLOWED",
+    method: providerId,
+    realm,
+    ...(context ? { context } : {}),
+  });
+
+  throw new AppError(
+    "That account is not part of an organisation with access to this portal.",
+    403,
+    "DOMAIN_NOT_ALLOWED"
+  );
+}
+
+/**
+ * Is this person allowed through this door, and which realm are they in?
+ *
+ * Two separate refusals live here. Knocking on the wrong door is a routing
+ * mistake — the account is fine, it simply belongs elsewhere — so it says so
+ * plainly and the identity app can offer the right portal. An unverified
+ * address in a realm that demands one is a policy refusal, and the caller is
+ * told what to do about it.
+ *
+ * Neither leaks anything an attacker did not already have to know the password
+ * to reach.
+ */
+async function assertRealmAdmits(
+  user: { id: string; realm: string; emailVerifiedAt: Date | null },
+  requested: Realm,
+  fail: (outcome: "WRONG_REALM" | "UNVERIFIED", userId: string) => void
+): Promise<Realm> {
+  const actual: Realm = isRealm(user.realm) ? user.realm : "CUSTOMER";
+
+  if (actual !== requested) {
+    fail("WRONG_REALM", user.id);
+    auditService.record({
+      actorId: user.id,
+      action: "authz.realm.mismatch",
+      metadata: { requested, actual },
+    });
+    throw new AppError(
+      `This account signs in through the ${policyForRealm(actual).label.toLowerCase()} portal.`,
+      403,
+      "WRONG_REALM"
+    );
+  }
+
+  if (policyForRealm(actual).requiresVerifiedEmail && !user.emailVerifiedAt) {
+    fail("UNVERIFIED", user.id);
+    throw new AppError(
+      "Please confirm your email address before signing in. We have sent you a new link.",
+      403,
+      "EMAIL_NOT_VERIFIED"
+    );
+  }
+
+  return actual;
+}
 
 /**
  * The step-up token is a JWT rather than a row, because it needs to say only
@@ -223,7 +362,11 @@ async function handleRefreshReuse(userId: string, revokedAt: Date): Promise<void
     return;
   }
 
-  const endedSessions = await refreshTokenRepository.revokeAllForUser(userId);
+  // Ends the sittings as well as the credentials. Revoking tokens alone would
+  // leave the session rows looking live in the "where am I signed in" list, so
+  // a customer checking after a breach would be told the attacker is still there.
+  const endedSessions = await closeAllSessions(userId, "REPLAY");
+  await refreshTokenRepository.revokeAllForUser(userId);
   auditService.record({
     actorId: userId,
     action: "auth.refresh.replay",
@@ -244,6 +387,8 @@ const PUBLIC_USER_SELECT = {
   name: true,
   email: true,
   role: true,
+  realm: true,
+  emailVerifiedAt: true,
   createdAt: true,
   image: true,
   lastLoginAt: true,
@@ -252,47 +397,190 @@ const PUBLIC_USER_SELECT = {
   insuranceInterests: true,
 };
 
+/**
+ * Reject a password that does not meet the realm's policy.
+ *
+ * Every problem is reported at once. A form that surfaces one rule per attempt
+ * teaches the rules by attrition, and people answer by appending `1!` until it
+ * stops complaining — which is how complexity rules produce weak passwords.
+ */
+function assertPasswordAcceptable(
+  password: string,
+  realm: PasswordRealm,
+  identity: { email?: string | undefined; name?: string | undefined }
+): void {
+  const check = checkPassword(password, realm, identity);
+  if (!check.ok) {
+    throw new AppError(check.problems.join(" "), 400, "WEAK_PASSWORD");
+  }
+}
+
+/**
+ * Start the email-verification flow.
+ *
+ * Never throws and never blocks the caller: a mail that fails to send must not
+ * fail the registration that triggered it, or the customer is left with an
+ * account they cannot retry creating.
+ */
+async function sendVerificationMail(user: { id: string; email: string }): Promise<void> {
+  try {
+    const { token, expiresAt } = await issueToken(user.id, user.email, "EMAIL_VERIFICATION");
+    await sendAuthMail({
+      to: user.email,
+      kind: "EMAIL_VERIFICATION",
+      subject: "Confirm your email address",
+      actionUrl: identityUrl("/verify-email", { token }),
+      expiresAt,
+    });
+  } catch (error) {
+    auditService.record({
+      actorId: user.id,
+      action: "auth.verification.send_failed",
+      metadata: { reason: error instanceof Error ? error.message : "unknown" },
+    });
+  }
+}
+
 export const authService = {
   /**
    * Public self-service registration. `role` is intentionally never read from
    * input — it is always "customer" (no privilege escalation via mass-assignment).
    * Returns the created user + access & refresh tokens; the caller sets cookies.
    */
-  async register(input: { name: string; email: string; password: string }) {
-    const existing = await userRepository.findByEmail(input.email);
+  async register(input: {
+    name: string;
+    email: string;
+    password: string;
+    context?: RequestContext;
+  }) {
+    const email = input.email.toLowerCase().trim();
+    const existing = await userRepository.findByEmail(email);
     if (existing) throw new AppError("Email address already registered.", 400);
+
+    // Public registration is always a customer, so the customer policy applies.
+    // A staff account is provisioned, not registered, and gets a stricter one.
+    assertPasswordAcceptable(input.password, "CUSTOMER", { email, name: input.name });
 
     const hashedPassword = await bcrypt.hash(input.password, AUTH.BCRYPT_ROUNDS);
     const user = await userRepository.create(
       // Registering signs the user in, so it is a login like any other.
       {
         name: input.name,
-        email: input.email,
+        email,
         password: hashedPassword,
-        role: "customer",
+        realm: "CUSTOMER",
+        role: DEFAULT_ROLE_FOR_REALM.CUSTOMER,
+        passwordChangedAt: new Date(),
         lastLoginAt: new Date(),
       },
       { select: PUBLIC_USER_SELECT }
     );
 
-    const tokens = await issueTokens(user.id);
-    auditService.record({ actorId: user.id, action: "auth.register", metadata: { email: input.email } });
+    const tokens = await startSitting({ id: user.id, realm: "CUSTOMER" }, input.context);
+    auditService.record({ actorId: user.id, action: "auth.register", metadata: { email } });
+    recordLogin({
+      userId: user.id,
+      email,
+      outcome: "SUCCESS",
+      method: "PASSWORD",
+      realm: "CUSTOMER",
+      ...(input.context ? { context: input.context } : {}),
+    });
+
+    // Deliberately not awaited into the response path: the account exists and
+    // the customer is signed in whether or not the mail provider is reachable.
+    void sendVerificationMail({ id: user.id, email });
+
     return { user, ...tokens };
   },
 
-  async login(input: { email: string; password: string }) {
-    const user = await userRepository.findByEmail(input.email);
+  /**
+   * Sign in with an email address and a password.
+   *
+   * The order of the checks is the security property. Whether the realm accepts
+   * passwords at all is decided before any credential is examined, so refusing a
+   * platform operator at the customer door reveals nothing about the account.
+   * Everything after that answers with the same message for the same reason.
+   */
+  async login(input: {
+    email: string;
+    password: string;
+    /** Which door they knocked on. Absent means the customer portal. */
+    realm?: Realm;
+    context?: RequestContext;
+  }) {
+    const email = input.email.toLowerCase().trim();
+    const requestedRealm: Realm = input.realm ?? "CUSTOMER";
+    const context = input.context;
+    const fail = (outcome: Parameters<typeof recordLogin>[0]["outcome"], userId?: string) => {
+      recordLogin({
+        ...(userId ? { userId } : {}),
+        email,
+        outcome,
+        method: "PASSWORD",
+        realm: requestedRealm,
+        ...(context ? { context } : {}),
+      });
+    };
+
+    if (!realmAcceptsMethod(requestedRealm, "PASSWORD")) {
+      fail("METHOD_NOT_ALLOWED");
+      throw new AppError(
+        `${policyForRealm(requestedRealm).label} sign-in does not use a password.`,
+        400,
+        "METHOD_NOT_ALLOWED"
+      );
+    }
+
+    const user = await userRepository.findByEmail(email);
 
     // Constant-time-ish: always run bcrypt (dummy hash when the user is absent).
     const passwordOk = await bcrypt.compare(input.password, user ? user.password : DUMMY_HASH);
 
     if (!user || !passwordOk) {
-      auditService.record({ action: "auth.login.failure", metadata: { email: input.email } });
-      throw new AppError("Incorrect email address or password.", 401);
+      auditService.record({ action: "auth.login.failure", metadata: { email } });
+      if (user) {
+        fail("BAD_CREDENTIALS", user.id);
+        // Counted per account, because the attack that matters is a stolen
+        // password list tried against one address from many addresses — which
+        // the per-IP limiter in front of this route cannot see.
+        await recordFailure(user);
+      } else {
+        fail("NO_ACCOUNT");
+      }
+      throw new AppError(INVALID_CREDENTIALS_MESSAGE, 401);
     }
 
-    const tokens = await issueTokens(user.id);
-    auditService.record({ actorId: user.id, action: "auth.login.success" });
+    // Checked after the password so a locked account cannot be used to confirm
+    // that an address exists without knowing the credential.
+    const lock = lockStateOf(user);
+    if (lock.locked) {
+      fail("LOCKED", user.id);
+      throw new AppError(
+        "Too many failed attempts. Please wait a few minutes and try again, or reset your password.",
+        423,
+        "ACCOUNT_LOCKED"
+      );
+    }
+
+    if (!user.isActive) {
+      fail("INACTIVE", user.id);
+      throw new AppError("This account has been deactivated.", 403);
+    }
+
+    const sitting = await assertRealmAdmits(user, requestedRealm, fail);
+
+    await clearFailures(user);
+    const tokens = await startSitting({ id: user.id, realm: sitting }, context);
+    auditService.record({ actorId: user.id, action: "auth.login.success", metadata: { realm: sitting } });
+    recordLogin({
+      userId: user.id,
+      email,
+      outcome: "SUCCESS",
+      method: "PASSWORD",
+      realm: sitting,
+      ...(context ? { context } : {}),
+    });
 
     // Best-effort: a failed bookkeeping write must never fail a valid sign-in.
     const stamped = await touchLastLogin(user.id, user);
@@ -311,11 +599,38 @@ export const authService = {
    * allowed to do — and get an unusable random password, so an account created
    * this way simply cannot be signed into with one.
    */
-  async signInWithProvider(providerId: string, credential: string) {
+  async signInWithProvider(
+    providerId: string,
+    credential: string,
+    options: { realm?: Realm; context?: RequestContext } = {}
+  ) {
+    const requestedRealm: Realm = options.realm ?? "CUSTOMER";
+    const context = options.context;
+
     const provider = getIdentityProvider(providerId);
     if (!provider) {
       throw new AppError("That sign-in method isn't available.", 400);
     }
+
+    // Asked before configuration, and before any credential is examined.
+    // Whether this deployment happens to have Google keys is irrelevant to a
+    // realm that would never accept Google anyway — and answering "not
+    // configured" there would imply that configuring it would open the door.
+    if (!realmAcceptsMethod(requestedRealm, "google")) {
+      recordLogin({
+        email: "",
+        outcome: "METHOD_NOT_ALLOWED",
+        method: providerId,
+        realm: requestedRealm,
+        ...(context ? { context } : {}),
+      });
+      throw new AppError(
+        `${policyForRealm(requestedRealm).label} sign-in does not use ${provider.label}.`,
+        400,
+        "METHOD_NOT_ALLOWED"
+      );
+    }
+
     if (!provider.isConfigured) {
       throw new AppError(`${provider.label} sign-in is not configured on this server.`, 400);
     }
@@ -328,20 +643,60 @@ export const authService = {
         action: "auth.login.provider.rejected",
         metadata: { provider: providerId },
       });
+      recordLogin({
+        email: "",
+        outcome: "PROVIDER_REJECTED",
+        method: providerId,
+        realm: requestedRealm,
+        ...(context ? { context } : {}),
+      });
       throw new AppError(`Could not verify your ${provider.label} account. Please try again.`, 401);
     }
+
+    // "Google Workspace" is Google, restricted to organisations we recognise.
+    // Without this a staff realm would accept any personal Google account that
+    // happened to know the portal URL.
+    assertWorkspaceDomain(requestedRealm, identity.email, providerId, context);
 
     const { user, isNewAccount } = await resolveUserForIdentity(identity);
 
     if (!user.isActive) {
+      recordLogin({
+        userId: user.id,
+        email: identity.email,
+        outcome: "INACTIVE",
+        method: providerId,
+        realm: requestedRealm,
+        ...(context ? { context } : {}),
+      });
       throw new AppError("This account has been deactivated.", 403);
     }
 
-    const tokens = await issueTokens(user.id);
+    const sitting = await assertRealmAdmits(user, requestedRealm, (outcome, userId) => {
+      recordLogin({
+        userId,
+        email: identity.email,
+        outcome,
+        method: providerId,
+        realm: requestedRealm,
+        ...(context ? { context } : {}),
+      });
+    });
+
+    await clearFailures(user);
+    const tokens = await startSitting({ id: user.id, realm: sitting }, context);
     auditService.record({
       actorId: user.id,
       action: isNewAccount ? "auth.register.provider" : "auth.login.provider.success",
-      metadata: { provider: providerId },
+      metadata: { provider: providerId, realm: sitting },
+    });
+    recordLogin({
+      userId: user.id,
+      email: identity.email,
+      outcome: "SUCCESS",
+      method: providerId,
+      realm: sitting,
+      ...(context ? { context } : {}),
     });
 
     const { password: _pw, ...userWithoutPassword } = user;
@@ -410,7 +765,14 @@ export const authService = {
     }
 
     await refreshTokenRepository.revokeById(record.id); // rotate: single-use
-    const tokens = await issueTokens(record.userId);
+
+    // The sitting outlives the credential — rotation replaces the token many
+    // times over one session — so renewal is what keeps its "last seen" honest.
+    // Without this, an actively used session looks abandoned in the session
+    // list, and any idle sweep built on that would evict live users.
+    await touchSession(record.sessionId);
+
+    const tokens = await issueTokens(record.userId, record.sessionId);
     auditService.record({ actorId: record.userId, action: "auth.refresh" });
     return { userId: record.userId, ...tokens };
   },
@@ -462,7 +824,242 @@ export const authService = {
     const record = await refreshTokenRepository.findByHash(hashToken(rawRefresh));
     if (record && !record.revokedAt) {
       await refreshTokenRepository.revokeById(record.id);
+      // Close the sitting too. Revoking only the credential would leave the
+      // session showing as live in "where am I signed in", so a customer who
+      // signed out on a shared machine would be told they had not.
+      if (record.sessionId) await closeSession(record.sessionId, "LOGOUT");
       auditService.record({ actorId: record.userId, action: "auth.logout" });
     }
+  },
+
+  /**
+   * Sign out everywhere.
+   *
+   * Separate from `logout` because they answer different needs: one ends this
+   * sitting, the other is what a person reaches for when they think somebody
+   * else has their password. Conflating them would mean either logging a
+   * customer out of their phone every time they close a laptop tab, or offering
+   * no way to actually evict an intruder.
+   */
+  async logoutEverywhere(userId: string) {
+    const endedSessions = await closeAllSessions(userId, "LOGOUT_ALL");
+    return { endedSessions };
+  },
+
+  /**
+   * Open a fresh sitting for someone who is already authenticated.
+   *
+   * Used after a password change, which deliberately ends every sitting
+   * including the caller's. Without this they would be signed out for securing
+   * their own account, which teaches people not to do it.
+   */
+  async reissueSession(userId: string, context?: RequestContext) {
+    const user = await userRepository.findById(userId);
+    if (!user) throw new AppError("Session no longer valid. Please log in again.", 401);
+    return startSitting({ id: user.id, realm: user.realm }, context);
+  },
+
+  /** What is signed in to this account right now. Carries no token material. */
+  async listSessions(userId: string) {
+    return listSessions(userId);
+  },
+
+  /** A customer's own sign-in history — successes and failures alike. */
+  async loginHistory(userId: string, take = 50) {
+    const events = await loginEventRepository.listForUser(userId, take);
+    return events.map((event) => ({
+      outcome: event.outcome,
+      method: event.method,
+      realm: event.realm,
+      ipAddress: event.ipAddress,
+      userAgent: event.userAgent,
+      at: event.createdAt,
+    }));
+  },
+
+  // ── Email verification ─────────────────────────────────────────────────────
+
+  /**
+   * Send (or re-send) a verification link.
+   *
+   * Answers identically whether or not the address belongs to an account. This
+   * endpoint is otherwise a free membership oracle: anybody could enumerate who
+   * has an Aegis account by watching which addresses produce a different reply.
+   */
+  async requestEmailVerification(rawEmail: string) {
+    const email = rawEmail.toLowerCase().trim();
+    const user = await userRepository.findByEmail(email);
+
+    if (user && !user.emailVerifiedAt) {
+      await sendVerificationMail({ id: user.id, email });
+    }
+  },
+
+  /**
+   * Confirm an address.
+   *
+   * Idempotent from the customer's point of view: a second click on the same
+   * link finds the token spent and says so, rather than appearing to fail.
+   */
+  async verifyEmail(token: string) {
+    const result = await consumeToken(token, "EMAIL_VERIFICATION");
+    if (!result.ok) {
+      throw new AppError(
+        "That confirmation link is no longer valid. Please request a new one.",
+        400,
+        "INVALID_TOKEN"
+      );
+    }
+
+    const user = await userRepository.update(result.userId, { emailVerifiedAt: new Date() });
+    auditService.record({ actorId: result.userId, action: "auth.email.verified" });
+
+    const { password: _pw, ...withoutPassword } = user;
+    void _pw;
+    return withoutPassword;
+  },
+
+  // ── Password reset ─────────────────────────────────────────────────────────
+
+  /**
+   * Begin a reset.
+   *
+   * Like verification, this answers identically for an address we do not know.
+   * A different reply — or even a noticeably different response time — turns
+   * the forgotten-password form into a list of who banks with us.
+   */
+  async requestPasswordReset(rawEmail: string, context?: RequestContext) {
+    const email = rawEmail.toLowerCase().trim();
+    const user = await userRepository.findByEmail(email);
+
+    if (!user) return;
+
+    try {
+      const { token, expiresAt } = await issueToken(user.id, email, "PASSWORD_RESET");
+      await sendAuthMail({
+        to: email,
+        kind: "PASSWORD_RESET",
+        subject: "Reset your Aegis password",
+        actionUrl: identityUrl("/reset-password", { token }),
+        expiresAt,
+      });
+      auditService.record({
+        actorId: user.id,
+        action: "auth.password.reset_requested",
+        metadata: { ip: context?.ipAddress ?? null },
+      });
+    } catch (error) {
+      auditService.record({
+        actorId: user.id,
+        action: "auth.password.reset_send_failed",
+        metadata: { reason: error instanceof Error ? error.message : "unknown" },
+      });
+    }
+  },
+
+  /**
+   * Finish a reset.
+   *
+   * Every existing sitting ends. Whoever prompted this reset may be holding a
+   * live session right now — that is the usual reason a person resets — and a
+   * new password that leaves the intruder signed in has achieved nothing.
+   */
+  async resetPassword(token: string, newPassword: string, context?: RequestContext) {
+    const result = await consumeToken(token, "PASSWORD_RESET");
+    if (!result.ok) {
+      throw new AppError(
+        "That reset link is no longer valid. Please request a new one.",
+        400,
+        "INVALID_TOKEN"
+      );
+    }
+
+    const user = await userRepository.findById(result.userId);
+    if (!user) throw new AppError("That reset link is no longer valid.", 400, "INVALID_TOKEN");
+
+    const realm: PasswordRealm = isRealm(user.realm) ? user.realm : "CUSTOMER";
+    assertPasswordAcceptable(newPassword, realm, { email: user.email, name: user.name });
+
+    await userRepository.update(user.id, {
+      password: await bcrypt.hash(newPassword, AUTH.BCRYPT_ROUNDS),
+      passwordChangedAt: new Date(),
+      // A completed reset proves control of the mailbox, which is the same
+      // thing verification asks for. Making them do it twice serves nobody.
+      emailVerifiedAt: user.emailVerifiedAt ?? new Date(),
+      failedLoginAttempts: 0,
+      lockedUntil: null,
+    });
+
+    const endedSessions = await closeAllSessions(user.id, "PASSWORD_CHANGED");
+    await refreshTokenRepository.revokeAllForUser(user.id);
+
+    auditService.record({
+      actorId: user.id,
+      action: "auth.password.reset",
+      metadata: { endedSessions, ip: context?.ipAddress ?? null },
+    });
+
+    // Told, not asked. If this reset was not theirs, this message is how they
+    // find out — so it goes even when everything succeeded.
+    void sendAuthMail({
+      to: user.email,
+      kind: "PASSWORD_CHANGED",
+      subject: "Your Aegis password was changed",
+    });
+
+    return { endedSessions };
+  },
+
+  /**
+   * Change a password from inside a session.
+   *
+   * The current password is required even though the caller is already signed
+   * in. Without it, a borrowed unlocked laptop is a permanent account takeover
+   * — and the session cookie alone cannot tell the owner from whoever sat down.
+   */
+  async changePassword(
+    userId: string,
+    input: { currentPassword: string; newPassword: string },
+    context?: RequestContext
+  ) {
+    const user = await userRepository.findById(userId);
+    if (!user) throw new AppError("Session no longer valid. Please log in again.", 401);
+
+    const currentOk = await bcrypt.compare(input.currentPassword, user.password);
+    if (!currentOk) {
+      auditService.record({ actorId: userId, action: "auth.password.change_rejected" });
+      throw new AppError("That is not your current password.", 401);
+    }
+
+    if (input.currentPassword === input.newPassword) {
+      throw new AppError("Please choose a password you have not used here before.", 400);
+    }
+
+    const realm: PasswordRealm = isRealm(user.realm) ? user.realm : "CUSTOMER";
+    assertPasswordAcceptable(input.newPassword, realm, { email: user.email, name: user.name });
+
+    await userRepository.update(user.id, {
+      password: await bcrypt.hash(input.newPassword, AUTH.BCRYPT_ROUNDS),
+      passwordChangedAt: new Date(),
+    });
+
+    // Ends other sittings, not this one — the caller keeps working. The route
+    // re-issues their credentials immediately afterwards.
+    const endedSessions = await closeAllSessions(user.id, "PASSWORD_CHANGED");
+    await refreshTokenRepository.revokeAllForUser(user.id);
+
+    auditService.record({
+      actorId: user.id,
+      action: "auth.password.changed",
+      metadata: { endedSessions, ip: context?.ipAddress ?? null },
+    });
+
+    void sendAuthMail({
+      to: user.email,
+      kind: "PASSWORD_CHANGED",
+      subject: "Your Aegis password was changed",
+    });
+
+    return { endedSessions };
   },
 };

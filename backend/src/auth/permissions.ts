@@ -72,9 +72,10 @@ export const ROLE_PERMISSIONS = {
    * optional, which is exactly the mistake that leaks one customer's records to
    * another.
    */
-  customer: [],
+  CUSTOMER: [],
 
-  admin: [
+  /** Branch and support staff: work the pipeline, read customers, no deletion. */
+  EMPLOYEE: [
     "policy.read",
     "policy.write",
     "lead.read",
@@ -83,28 +84,65 @@ export const ROLE_PERMISSIONS = {
     "analytics.read",
   ],
 
-  /** Everything. The bundle is derived so a new permission is never forgotten. */
-  superadmin: PERMISSIONS,
-
-  // ── Bundles from the staff contract (packages/auth), not yet reachable ──────
-  // No live route grants these roles today; they are here so the staff
-  // application and this API cannot disagree about what a role means.
-  "claims-adjuster": ["claim.read", "claim.assess", "customer.read", "policy.read"],
-  underwriter: ["policy.read", "policy.write", "policy.approve", "customer.read"],
-  "branch-manager": [
+  /**
+   * An organisation's own administrator. Broad authority over that
+   * organisation's book of business — and none at all over the platform, which
+   * is the distinction that keeps a customer of Aegis from becoming an operator
+   * of it.
+   */
+  ENTERPRISE_ADMIN: [
     "policy.read",
+    "policy.write",
     "policy.approve",
     "claim.read",
+    "claim.assess",
     "claim.settle",
     "customer.read",
     "customer.write",
+    "lead.read",
+    "lead.write",
+    "analytics.read",
+    "audit.read",
     "staff.manage",
   ],
-  "compliance-officer": ["audit.read", "policy.read", "claim.read", "customer.read"],
-  "platform-admin": ["staff.manage", "organization.manage", "audit.read", "platform.configure"],
+
+  /** Everything. Derived, so a permission added later is never withheld. */
+  PLATFORM_ADMIN: PERMISSIONS,
+
+  // ── Future roles ───────────────────────────────────────────────────────────
+  // Declared now and granted to nobody yet. They exist so that the day one is
+  // assigned is a data change rather than a code change, and so the staff
+  // application and this API cannot disagree about what a role name means.
+  SUPPORT: ["customer.read", "policy.read", "claim.read", "lead.read"],
+  CLAIMS: ["claim.read", "claim.assess", "claim.settle", "customer.read", "policy.read"],
+  OPERATIONS: ["policy.read", "policy.write", "lead.read", "lead.write", "analytics.read"],
+  COMPLIANCE: ["audit.read", "policy.read", "claim.read", "customer.read"],
+  /** An external broker or agency. Read-only, and only what they were sent. */
+  PARTNER: ["policy.read", "lead.read"],
 } as const satisfies Record<string, readonly Permission[]>;
 
 export type RoleName = keyof typeof ROLE_PERMISSIONS;
+
+export const ROLE_NAMES = Object.keys(ROLE_PERMISSIONS) as readonly RoleName[];
+
+export const isRoleName = (value: unknown): value is RoleName =>
+  typeof value === "string" && value in ROLE_PERMISSIONS;
+
+/**
+ * The role a realm gives someone by default.
+ *
+ * Registration only ever produces a CUSTOMER — the others are assigned by
+ * somebody who already holds the authority to assign them. This table exists so
+ * that "which role does a new EMPLOYEE start with" has an answer in one place
+ * when staff provisioning arrives, rather than being decided at whichever call
+ * site gets there first.
+ */
+export const DEFAULT_ROLE_FOR_REALM = {
+  CUSTOMER: "CUSTOMER",
+  EMPLOYEE: "EMPLOYEE",
+  ENTERPRISE: "ENTERPRISE_ADMIN",
+  PLATFORM: "PLATFORM_ADMIN",
+} as const satisfies Record<string, RoleName>;
 
 /**
  * The capabilities a role grants.

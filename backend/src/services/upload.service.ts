@@ -5,6 +5,7 @@ import { auditService } from "./audit.service";
 import { scanFile } from "../utils/fileScan";
 import AppError from "../utils/appError";
 import type { PageParams } from "../utils/pagination";
+import { roleHasPermission } from "../auth/permissions";
 
 interface DocumentInput {
   filename: string;
@@ -70,13 +71,18 @@ export const uploadService = {
   },
 
   /**
-   * Tenant scope lives here: customers see only their own documents; admins /
-   * superadmins see all. The scope is always derived from the verified session,
-   * never from caller input.
+   * Tenant scope lives here: a customer sees only their own documents; somebody
+   * holding `customer.read` sees all of them. The scope is always derived from
+   * the verified session, never from caller input.
+   *
+   * Asks for the capability rather than comparing role names. The old check
+   * listed two of them, which meant every new staff role had to be remembered
+   * here — and a miss would have silently widened one customer's documents to
+   * somebody who should not see them.
    */
   list({ role, userId, page, limit }: ListParams) {
-    const isAdmin = role === "admin" || role === "superadmin";
-    const where = isAdmin ? {} : { ownerId: userId };
+    const seesEveryone = roleHasPermission(role, "customer.read");
+    const where = seesEveryone ? {} : { ownerId: userId };
     return documentRepository.paginate(where, { page, limit, orderBy: { uploadedAt: "desc" } });
   },
 };

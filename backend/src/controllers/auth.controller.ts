@@ -16,6 +16,8 @@ import {
 import { sendSuccess } from "../utils/apiResponse";
 import { enabledProviders } from "../auth/providers";
 import { permissionsForRole } from "../auth/permissions";
+import { isRealm, portalUrlForRealm } from "../auth/realms";
+import { contextFrom } from "../auth/loginHistory";
 
 /**
  * Put a session on the wire. Every way in — register, password, Google, refresh
@@ -38,17 +40,44 @@ function endSession(res: Response): void {
   clearStepUpCookie(res);
 }
 
+/**
+ * What a client is told about a signed-in person.
+ *
+ * One shape from every entry point — register, login, provider, refresh — so
+ * the identity app has a single thing to read rather than four that can drift.
+ * `portalUrl` is included because the client's next act is always to leave for
+ * that portal, and making it derive the destination itself would put the
+ * routing rules in two places.
+ */
+function sessionPayload(user: { role: string; realm: string }) {
+  const realm = isRealm(user.realm) ? user.realm : "CUSTOMER";
+  return {
+    user,
+    permissions: permissionsForRole(user.role),
+    realm,
+    portalUrl: portalUrlForRealm(realm),
+  };
+}
+
 const register = catchAsync(async (req, res) => {
-  const { user, accessToken, refreshToken } = await authService.register(req.body);
+  const { user, accessToken, refreshToken } = await authService.register({
+    ...req.body,
+    context: contextFrom(req),
+  });
   startSession(res, accessToken, refreshToken);
   // `token` (access) stays at the top level for backward compatibility.
-  sendSuccess(res, 201, { user, permissions: permissionsForRole(user.role) }, { token: accessToken });
+  sendSuccess(res, 201, sessionPayload(user), { token: accessToken });
 });
 
 const login = catchAsync(async (req, res) => {
-  const { user, accessToken, refreshToken } = await authService.login(req.body);
+  const { user, accessToken, refreshToken } = await authService.login({
+    email: req.body.email,
+    password: req.body.password,
+    ...(req.body.realm ? { realm: req.body.realm } : {}),
+    context: contextFrom(req),
+  });
   startSession(res, accessToken, refreshToken);
-  sendSuccess(res, 200, { user, permissions: permissionsForRole(user.role) }, { token: accessToken });
+  sendSuccess(res, 200, sessionPayload(user), { token: accessToken });
 });
 
 // Sign in with an external identity provider. The provider comes from the URL,
@@ -59,10 +88,14 @@ const providerLogin = catchAsync(async (req, res) => {
   const providerId = typeof provider === "string" ? provider : "google";
   const { user, accessToken, refreshToken } = await authService.signInWithProvider(
     providerId,
-    req.body.credential
+    req.body.credential,
+    {
+      ...(req.body.realm ? { realm: req.body.realm } : {}),
+      context: contextFrom(req),
+    }
   );
   startSession(res, accessToken, refreshToken);
-  sendSuccess(res, 200, { user, permissions: permissionsForRole(user.role) }, { token: accessToken });
+  sendSuccess(res, 200, sessionPayload(user), { token: accessToken });
 });
 
 // Which sign-in buttons this deployment can actually offer. Public: it reveals
@@ -94,10 +127,84 @@ const getMe = catchAsync(async (req, res) => {
   // Resolved capabilities travel with the user so the client can decide what to
   // *render*. It is never what decides what may happen: the API re-derives this
   // from the stored role on every request it serves.
-  sendSuccess(res, 200, {
-    user: userWithoutPassword,
-    permissions: permissionsForRole(req.user!.role),
+  sendSuccess(res, 200, sessionPayload(userWithoutPassword));
+});
+
+// ── Email verification ───────────────────────────────────────────────────────
+
+// Answers identically whether or not the address belongs to an account.
+// Anything else turns this endpoint into a list of who has an Aegis account.
+const requestEmailVerification = catchAsync(async (req, res) => {
+  await authService.requestEmailVerification(req.body.email);
+  sendSuccess(res, 202, undefined, {
+    message: "If that address needs confirming, we have sent a link to it.",
   });
+});
+
+const verifyEmail = catchAsync(async (req, res) => {
+  const user = await authService.verifyEmail(req.body.token);
+  sendSuccess(res, 200, { user }, { message: "Email address confirmed." });
+});
+
+// ── Password reset ───────────────────────────────────────────────────────────
+
+const requestPasswordReset = catchAsync(async (req, res) => {
+  await authService.requestPasswordReset(req.body.email, contextFrom(req));
+  sendSuccess(res, 202, undefined, {
+    message: "If we have an account for that address, we have sent a reset link.",
+  });
+});
+
+// A completed reset ends every sitting, including any the attacker held — so
+// the person resetting is signed out too and lands on the sign-in page. That is
+// the correct outcome: they have just proved the mailbox, not the browser.
+const resetPassword = catchAsync(async (req, res) => {
+  const { endedSessions } = await authService.resetPassword(
+    req.body.token,
+    req.body.password,
+    contextFrom(req)
+  );
+  endSession(res);
+  sendSuccess(res, 200, { endedSessions }, { message: "Password changed. Please sign in." });
+});
+
+/**
+ * Change a password from inside a session.
+ *
+ * Other sittings end; this one is re-issued immediately, so the person who
+ * changed it keeps working and everybody else is evicted.
+ */
+const changePassword = catchAsync(async (req, res) => {
+  const { endedSessions } = await authService.changePassword(
+    req.user!.id,
+    { currentPassword: req.body.currentPassword, newPassword: req.body.newPassword },
+    contextFrom(req)
+  );
+
+  const { accessToken, refreshToken } = await authService.reissueSession(
+    req.user!.id,
+    contextFrom(req)
+  );
+  startSession(res, accessToken, refreshToken);
+  sendSuccess(res, 200, { endedSessions }, { token: accessToken, message: "Password changed." });
+});
+
+// ── Session monitoring ───────────────────────────────────────────────────────
+
+const listSessions = catchAsync(async (req, res) => {
+  sendSuccess(res, 200, { sessions: await authService.listSessions(req.user!.id) });
+});
+
+const loginHistory = catchAsync(async (req, res) => {
+  sendSuccess(res, 200, { events: await authService.loginHistory(req.user!.id) });
+});
+
+// Sign out everywhere. Distinct from logout because this is what a person
+// reaches for when they think somebody else has their password.
+const logoutEverywhere = catchAsync(async (req, res) => {
+  const { endedSessions } = await authService.logoutEverywhere(req.user!.id);
+  endSession(res);
+  sendSuccess(res, 200, { endedSessions }, { message: "Signed out on every device." });
 });
 
 // Re-confirm the account holder before an action that cannot be undone. The
@@ -133,7 +240,15 @@ export {
   listProviders,
   refresh,
   logout,
+  logoutEverywhere,
   getMe,
   stepUp,
   completeOnboarding,
+  requestEmailVerification,
+  verifyEmail,
+  requestPasswordReset,
+  resetPassword,
+  changePassword,
+  listSessions,
+  loginHistory,
 };

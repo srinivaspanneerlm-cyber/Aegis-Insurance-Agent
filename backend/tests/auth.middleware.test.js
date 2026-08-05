@@ -26,8 +26,8 @@ const {
   permissionsForRole,
 } = require("../src/auth/permissions");
 
-const CUSTOMER = { id: "u-1", email: "a@b.com", role: "customer" };
-const ADMIN = { id: "u-2", email: "c@d.com", role: "admin" };
+const CUSTOMER = { id: "u-1", email: "a@b.com", role: "CUSTOMER" };
+const ADMIN = { id: "u-2", email: "c@d.com", role: "EMPLOYEE" };
 
 const sign = (payload, secret = env.JWT_SECRET) =>
   jwt.sign(payload, secret, { expiresIn: "1h" });
@@ -60,8 +60,6 @@ const run = (middleware, req, next) =>
 
 // ── requirePermission ─────────────────────────────────────────────────────────
 
-const SUPERADMIN = { id: "u-3", email: "e@f.com", role: "superadmin" };
-
 describe("requirePermission", () => {
   test("lets a role holding the capability through", () => {
     const next = capture();
@@ -87,7 +85,7 @@ describe("requirePermission", () => {
      * able to open a door. The table is an allowlist, not a denylist.
      */
     const next = capture();
-    const impostor = { ...ADMIN, role: "adminn" };
+    const impostor = { ...ADMIN, role: "EMPLOYEEE" };
     requirePermission("lead.read")(makeReq({ user: impostor }), {}, next);
     assert.equal(next.errors()[0].statusCode, 403);
   });
@@ -119,16 +117,16 @@ describe("role bundles", () => {
     // The five routes that used to name roles, and the roles they named. If a
     // bundle ever drifts, this is the test that should fail first.
     const before = {
-      "lead.read": ["admin", "superadmin"],
-      "lead.write": ["admin", "superadmin"],
-      "lead.delete": ["superadmin"],
-      "policy.write": ["admin", "superadmin"],
-      "company.write": ["superadmin"],
-      "analytics.read": ["admin", "superadmin"],
+      "lead.read": ["EMPLOYEE", "PLATFORM_ADMIN"],
+      "lead.write": ["EMPLOYEE", "PLATFORM_ADMIN"],
+      "lead.delete": ["PLATFORM_ADMIN"],
+      "policy.write": ["EMPLOYEE", "PLATFORM_ADMIN"],
+      "company.write": ["PLATFORM_ADMIN"],
+      "analytics.read": ["EMPLOYEE", "PLATFORM_ADMIN"],
     };
 
     for (const [permission, allowedRoles] of Object.entries(before)) {
-      for (const role of ["customer", "admin", "superadmin"]) {
+      for (const role of ["CUSTOMER", "EMPLOYEE", "PLATFORM_ADMIN"]) {
         assert.equal(
           permissionsForRole(role).includes(permission),
           allowedRoles.includes(role),
@@ -141,7 +139,7 @@ describe("role bundles", () => {
   test("a customer holds no capability at all", () => {
     // Their authority over their own records comes from userId scoping, not
     // from this table — and it must not look like it comes from here.
-    assert.deepEqual(permissionsForRole("customer"), []);
+    assert.deepEqual(permissionsForRole("CUSTOMER"), []);
   });
 
   test("superadmin holds every declared permission", () => {
@@ -149,8 +147,8 @@ describe("role bundles", () => {
     // withheld from the only role meant to have all of them.
     for (const permission of PERMISSIONS) {
       assert.ok(
-        permissionsForRole("superadmin").includes(permission),
-        `superadmin should hold ${permission}`
+        permissionsForRole("PLATFORM_ADMIN").includes(permission),
+        `PLATFORM_ADMIN should hold ${permission}`
       );
     }
   });
@@ -236,10 +234,10 @@ describe("protect", () => {
      */
     mock.method(userRepository, "findById", async () => CUSTOMER);
     const next = capture();
-    const req = makeReq({ token: sign({ id: CUSTOMER.id, role: "superadmin" }) });
+    const req = makeReq({ token: sign({ id: CUSTOMER.id, role: "PLATFORM_ADMIN" }) });
     await run(protect, req, next);
     assert.equal(next.passed(), true);
-    assert.equal(req.user.role, "customer");
+    assert.equal(req.user.role, "CUSTOMER");
   });
 
   test("looks the user up by the id inside the token", async () => {

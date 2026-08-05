@@ -17,16 +17,20 @@ export const registerSchema = (data: RequestData): ValidationErrors => {
   if (!data.email || !validateEmail(data.email)) {
     errors.push("A valid email address is required.");
   }
-  if (!data.password || typeof data.password !== "string" || data.password.length < 6) {
-    errors.push("Password must be at least 6 characters long.");
-  } else if (Buffer.byteLength(data.password, "utf8") > 72) {
-    // bcrypt silently truncates input beyond 72 bytes, so anything longer is
-    // both a correctness hazard and a hashing-DoS vector. Reject it explicitly.
-    errors.push("Password must not exceed 72 bytes.");
+  // Presence only. How *strong* a password must be depends on the realm the
+  // account belongs to, so that judgement lives in `auth/password.ts` and is
+  // made once — including the bcrypt 72-byte ceiling, which used to be checked
+  // here and would have drifted the moment a second entry point appeared.
+  if (!data.password || typeof data.password !== "string") {
+    errors.push("A password is required.");
   }
-  if (data.role && !["customer", "admin", "superadmin"].includes(data.role as string)) {
-    errors.push("Role must be one of: customer, admin, superadmin.");
-  }
+  // `role` is deliberately NOT validated here, and must never be.
+  //
+  // Validating it implied the field was accepted, which invited exactly the
+  // wrong reading of this endpoint. Public registration always produces a
+  // CUSTOMER; the service hardcodes it and ignores the body. A role is granted
+  // by somebody who already holds the authority to grant it, through a
+  // different route entirely.
   return errors.length > 0 ? errors : null;
 };
 
@@ -38,6 +42,7 @@ export const loginSchema = (data: RequestData): ValidationErrors => {
   if (!data.password) {
     errors.push("Password is required.");
   }
+  validateOptionalRealm(data, errors);
   return errors.length > 0 ? errors : null;
 };
 
@@ -65,6 +70,62 @@ export const stepUpSchema = (data: RequestData): ValidationErrors => {
   return errors.length > 0 ? errors : null;
 };
 
+const REALM_VALUES = ["CUSTOMER", "EMPLOYEE", "ENTERPRISE", "PLATFORM"];
+
+/** Optional on every auth route; absent means the customer portal. */
+const validateOptionalRealm = (data: RequestData, errors: string[]): void => {
+  if (data.realm !== undefined && !REALM_VALUES.includes(data.realm as string)) {
+    errors.push("Unknown portal.");
+  }
+};
+
+export const emailOnlySchema = (data: RequestData): ValidationErrors => {
+  const errors: string[] = [];
+  if (!data.email || !validateEmail(data.email)) {
+    errors.push("A valid email address is required.");
+  }
+  return errors.length > 0 ? errors : null;
+};
+
+/**
+ * A one-time token from a link. Bounded and shape-checked only — whether it is
+ * *valid* is a question for the store, and answering it here would leak which
+ * tokens exist.
+ */
+const validateToken = (value: unknown, errors: string[]): void => {
+  if (!value || typeof value !== "string" || value.length < 20 || value.length > 512) {
+    errors.push("That link is not valid.");
+  }
+};
+
+export const verifyEmailSchema = (data: RequestData): ValidationErrors => {
+  const errors: string[] = [];
+  validateToken(data.token, errors);
+  return errors.length > 0 ? errors : null;
+};
+
+export const resetPasswordSchema = (data: RequestData): ValidationErrors => {
+  const errors: string[] = [];
+  validateToken(data.token, errors);
+  // Strength is judged by the realm's policy in the service, which is the only
+  // place that knows which realm the token's owner belongs to.
+  if (!data.password || typeof data.password !== "string") {
+    errors.push("A new password is required.");
+  }
+  return errors.length > 0 ? errors : null;
+};
+
+export const changePasswordSchema = (data: RequestData): ValidationErrors => {
+  const errors: string[] = [];
+  if (!data.currentPassword || typeof data.currentPassword !== "string") {
+    errors.push("Your current password is required.");
+  }
+  if (!data.newPassword || typeof data.newPassword !== "string") {
+    errors.push("A new password is required.");
+  }
+  return errors.length > 0 ? errors : null;
+};
+
 export const providerCredentialSchema = (data: RequestData): ValidationErrors => {
   const errors: string[] = [];
   // An OIDC ID token is a compact JWT — a few hundred bytes to ~2 KB. Bound it
@@ -74,6 +135,7 @@ export const providerCredentialSchema = (data: RequestData): ValidationErrors =>
   } else if (data.credential.length > 4096) {
     errors.push("Invalid sign-in credential.");
   }
+  validateOptionalRealm(data, errors);
   return errors.length > 0 ? errors : null;
 };
 

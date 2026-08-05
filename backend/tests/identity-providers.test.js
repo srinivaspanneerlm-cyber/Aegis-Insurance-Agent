@@ -129,7 +129,7 @@ describe("Identity registry — which account the customer lands on", () => {
 
     assert.equal(res.status, 200);
     assert.equal(res.body.data.user.email, email);
-    assert.equal(res.body.data.user.role, "customer", "never anything but customer");
+    assert.equal(res.body.data.user.role, "CUSTOMER", "never anything but customer");
 
     const link = await prisma.linkedIdentity.findUnique({
       where: { provider_subject: { provider: "stub", subject: "new-subject-1" } },

@@ -5,7 +5,20 @@
  *
  * Each repository is a singleton bound to the shared Prisma client.
  */
-import type { User, Chat, Lead, Policy, Company, UploadedDocument, RefreshToken, LinkedIdentity, AuditLog } from "@prisma/client";
+import type {
+  User,
+  Chat,
+  Lead,
+  Policy,
+  Company,
+  UploadedDocument,
+  RefreshToken,
+  LinkedIdentity,
+  AuthSession,
+  VerificationToken,
+  LoginEvent,
+  AuditLog,
+} from "@prisma/client";
 import prisma from "../config/db";
 import BaseRepository from "./base.repository";
 
@@ -77,6 +90,15 @@ class RefreshTokenRepository extends BaseRepository<RefreshToken> {
     return this.delegate.update({ where: { id }, data: { revokedAt: new Date() } });
   }
 
+  /** Revoke every live credential belonging to one sitting. */
+  async revokeForSession(sessionId: string): Promise<number> {
+    const result = await this.delegate.updateMany({
+      where: { sessionId, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+    return result.count;
+  }
+
   /**
    * End every live session this user has. Returns how many were ended, which is
    * what makes the audit entry worth reading afterwards.
@@ -127,6 +149,87 @@ class LinkedIdentityRepository extends BaseRepository<LinkedIdentity> {
   }
 }
 
+// AuthSession — one row per "somebody signed in here". Distinct from the AI
+// conversation `Session`; see the schema comment on why the name differs.
+class AuthSessionRepository extends BaseRepository<AuthSession> {
+  constructor() {
+    super(prisma, "authSession");
+  }
+
+  /** What is signed in to this account right now, most recent first. */
+  listActive(userId: string, take = 20): Promise<AuthSession[]> {
+    return this.delegate.findMany({
+      where: { userId, revokedAt: null, expiresAt: { gt: new Date() } },
+      orderBy: { lastSeenAt: "desc" },
+      take,
+    });
+  }
+
+  touch(id: string): Promise<AuthSession> {
+    return this.delegate.update({ where: { id }, data: { lastSeenAt: new Date() } });
+  }
+
+  revoke(id: string, reason: string): Promise<AuthSession> {
+    return this.delegate.update({
+      where: { id },
+      data: { revokedAt: new Date(), revokedReason: reason },
+    });
+  }
+
+  /** End every live sitting for this account. Returns how many ended. */
+  async revokeAllForUser(userId: string, reason: string): Promise<number> {
+    const result = await this.delegate.updateMany({
+      where: { userId, revokedAt: null },
+      data: { revokedAt: new Date(), revokedReason: reason },
+    });
+    return result.count;
+  }
+}
+
+// VerificationToken — one-time proofs for email verification and password reset.
+class VerificationTokenRepository extends BaseRepository<VerificationToken> {
+  constructor() {
+    super(prisma, "verificationToken");
+  }
+
+  findByHash(tokenHash: string): Promise<VerificationToken | null> {
+    return this.delegate.findUnique({ where: { tokenHash } });
+  }
+
+  consume(id: string): Promise<VerificationToken> {
+    return this.delegate.update({ where: { id }, data: { consumedAt: new Date() } });
+  }
+
+  /**
+   * Retire any outstanding token of this purpose before issuing a new one, so
+   * requesting a second reset link silently disables the first. Otherwise every
+   * link ever sent stays live until it expires, and a forwarded old email is a
+   * working account takeover.
+   */
+  async consumeOutstanding(userId: string, purpose: string): Promise<number> {
+    const result = await this.delegate.updateMany({
+      where: { userId, purpose, consumedAt: null },
+      data: { consumedAt: new Date() },
+    });
+    return result.count;
+  }
+}
+
+// LoginEvent — every attempt, successful or not. Append-only.
+class LoginEventRepository extends BaseRepository<LoginEvent> {
+  constructor() {
+    super(prisma, "loginEvent");
+  }
+
+  listForUser(userId: string, take = 50): Promise<LoginEvent[]> {
+    return this.delegate.findMany({
+      where: { userId },
+      orderBy: { createdAt: "desc" },
+      take,
+    });
+  }
+}
+
 // AuditLog — append-only compliance trail (writes are best-effort, never block).
 class AuditLogRepository extends BaseRepository<AuditLog> {
   constructor() {
@@ -143,4 +246,7 @@ export const companyRepository = new CompanyRepository();
 export const documentRepository = new DocumentRepository();
 export const refreshTokenRepository = new RefreshTokenRepository();
 export const linkedIdentityRepository = new LinkedIdentityRepository();
+export const authSessionRepository = new AuthSessionRepository();
+export const verificationTokenRepository = new VerificationTokenRepository();
+export const loginEventRepository = new LoginEventRepository();
 export const auditRepository = new AuditLogRepository();

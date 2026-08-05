@@ -47,7 +47,7 @@ describe("API integration — auth lifecycle", () => {
     assert.equal(reg.body.status, "success");
     assert.ok(reg.body.token, "access token returned in body");
     assert.equal(reg.body.data.user.email, email);
-    assert.equal(reg.body.data.user.role, "customer", "public registration is always a customer");
+    assert.equal(reg.body.data.user.role, "CUSTOMER", "public registration is always a customer");
     const cookies = reg.headers["set-cookie"] || [];
     assert.ok(cookies.some((c) => c.startsWith("aegis_token=")), "access cookie set");
     assert.ok(cookies.some((c) => c.startsWith("aegis_refresh=")), "refresh cookie set");

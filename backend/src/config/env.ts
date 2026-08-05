@@ -60,6 +60,16 @@ if (allowedOrigins.length === 0) {
   allowedOrigins.push("http://localhost:3000");
 }
 
+// ── Workspace domains ───────────────────────────────────────────────────────
+// The email domains a staff realm will accept a provider sign-in from — which
+// is the whole difference between "Google" and "Google Workspace". An empty
+// list means no domain qualifies, so a realm requiring one refuses everybody
+// until it is configured: a visible misconfiguration rather than an open door.
+const workspaceDomains = (process.env.WORKSPACE_EMAIL_DOMAINS || "")
+  .split(",")
+  .map((d) => d.trim().toLowerCase().replace(/^@/, ""))
+  .filter(Boolean);
+
 // ── HTTP keep-alive timeouts ──────────────────────────────────────────────────
 // Tuned to survive an upstream proxy's idle timeout (see serverTimeouts.ts). A
 // misordered pair (headers ≤ keepAlive) would silently cut requests short, so
@@ -107,6 +117,7 @@ const env = {
   LOG_LEVEL: (process.env.LOG_LEVEL || (isProd ? "info" : "debug")).toLowerCase(),
 
   allowedOrigins,
+  workspaceDomains,
 
   AI_SERVICE_URL: process.env.AI_SERVICE_URL || "http://localhost:8000/api/ai",
   AI_INTERNAL_API_KEY: process.env.AI_INTERNAL_API_KEY || "",
