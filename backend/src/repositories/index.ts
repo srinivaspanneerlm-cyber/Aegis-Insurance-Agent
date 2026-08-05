@@ -5,7 +5,7 @@
  *
  * Each repository is a singleton bound to the shared Prisma client.
  */
-import type { User, Chat, Lead, Policy, Company, UploadedDocument, RefreshToken, AuditLog } from "@prisma/client";
+import type { User, Chat, Lead, Policy, Company, UploadedDocument, RefreshToken, LinkedIdentity, AuditLog } from "@prisma/client";
 import prisma from "../config/db";
 import BaseRepository from "./base.repository";
 
@@ -78,6 +78,43 @@ class RefreshTokenRepository extends BaseRepository<RefreshToken> {
   }
 }
 
+// LinkedIdentity — the external accounts a user can sign in with. Looked up on
+// (provider, subject), which is the pair the unique index covers.
+class LinkedIdentityRepository extends BaseRepository<LinkedIdentity> {
+  constructor() {
+    super(prisma, "linkedIdentity");
+  }
+
+  findBySubject(provider: string, subject: string): Promise<LinkedIdentity | null> {
+    return this.delegate.findUnique({ where: { provider_subject: { provider, subject } } });
+  }
+
+  /**
+   * Attach an external identity to a user, or refresh the one already there.
+   *
+   * An upsert rather than a create because two tabs finishing a sign-in at once
+   * would otherwise race into the unique constraint, and the second one losing
+   * is not a reason to refuse somebody entry.
+   */
+  link(input: {
+    userId: string;
+    provider: string;
+    subject: string;
+    email: string | null;
+  }): Promise<LinkedIdentity> {
+    const { userId, provider, subject, email } = input;
+    return this.delegate.upsert({
+      where: { provider_subject: { provider, subject } },
+      create: { userId, provider, subject, email, lastUsed: new Date() },
+      update: { lastUsed: new Date() },
+    });
+  }
+
+  markUsed(id: string): Promise<LinkedIdentity> {
+    return this.delegate.update({ where: { id }, data: { lastUsed: new Date() } });
+  }
+}
+
 // AuditLog — append-only compliance trail (writes are best-effort, never block).
 class AuditLogRepository extends BaseRepository<AuditLog> {
   constructor() {
@@ -93,4 +130,5 @@ export const policyRepository = new PolicyRepository();
 export const companyRepository = new CompanyRepository();
 export const documentRepository = new DocumentRepository();
 export const refreshTokenRepository = new RefreshTokenRepository();
+export const linkedIdentityRepository = new LinkedIdentityRepository();
 export const auditRepository = new AuditLogRepository();

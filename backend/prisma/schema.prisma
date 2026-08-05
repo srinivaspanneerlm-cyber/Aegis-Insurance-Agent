@@ -41,9 +41,12 @@ model User {
   version   Int       @default(1) // optimistic-locking token
 
   // ── Identity provider ──────────────────────────────────────────────────────
-  // Google's `sub` claim: stable for the life of the account, unlike the email,
-  // which a user can change. Accounts are still *matched* on the verified email
-  // (that is what existed before), but this is the durable link.
+  // DEPRECATED: superseded by `LinkedIdentity`. One column can only ever hold
+  // one provider, so a second way in (Microsoft, Apple, an insurer's OIDC, an
+  // Aadhaar broker) would have meant a second column and a second code path.
+  // Existing values were copied into LinkedIdentity by the migration that added
+  // it; the column is kept because this schema never drops a field, but nothing
+  // reads or writes it any more.
   googleId    String?   @unique
   image       String? // profile picture URL from the provider
   lastLoginAt DateTime?
@@ -69,11 +72,39 @@ model User {
   notifications     Notification[]
   auditLogs         AuditLog[]              @relation("ActorAuditLogs")
   refreshTokens     RefreshToken[]
+  linkedIdentities  LinkedIdentity[]
 
   @@index([role])
   @@index([isActive])
   @@index([deletedAt])
   @@index([createdAt])
+}
+
+// ── Auth: external identities ────────────────────────────────────────────────
+// One row per way a person can prove who they are. Many per user, because the
+// same customer may sign in with Google on their phone and with an insurer's
+// OIDC at a branch, and both have to land on the same account.
+//
+// The pair (provider, subject) is the durable link — an email address is not,
+// because people change theirs, and matching on one is only safe when the
+// provider has told us it is verified.
+model LinkedIdentity {
+  id       String @id @default(uuid())
+  userId   String
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider String // google | microsoft | apple | oidc:<issuer> | …
+  subject  String // the provider's own stable id for this person
+
+  // What the provider said at link time. Kept for support ("which account is
+  // this?") and never used for matching — `subject` is the identity.
+  email    String?
+  linkedAt DateTime  @default(now())
+  lastUsed DateTime?
+
+  // One account per external identity. This is the constraint that stops two
+  // Aegis users from claiming the same Google account.
+  @@unique([provider, subject])
+  @@index([userId])
 }
 
 // ── Auth: rotating refresh tokens (durable session revocation) ───────────────

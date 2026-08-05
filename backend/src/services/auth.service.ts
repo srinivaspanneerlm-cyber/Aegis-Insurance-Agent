@@ -1,17 +1,14 @@
 import bcrypt from "bcrypt";
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
-import { OAuth2Client } from "google-auth-library";
-import { userRepository, refreshTokenRepository } from "../repositories";
+import { userRepository, refreshTokenRepository, linkedIdentityRepository } from "../repositories";
 import env from "../config/env";
 import { AUTH } from "../config/constants";
 import AppError from "../utils/appError";
 import { auditService } from "./audit.service";
 import { expiresInToMs } from "../utils/cookies";
-
-// Verifies Google ID tokens against our OAuth client ID. Instantiated once when
-// GOOGLE_CLIENT_ID is configured; null otherwise so the route fails closed.
-const googleClient = env.GOOGLE_CLIENT_ID ? new OAuth2Client(env.GOOGLE_CLIENT_ID) : null;
+import { getIdentityProvider } from "../auth/providers";
+import type { VerifiedIdentity } from "../auth/providers";
 
 const signAccessToken = (id: string): string =>
   jwt.sign({ id }, env.JWT_SECRET, { expiresIn: env.ACCESS_TOKEN_EXPIRES_IN } as jwt.SignOptions);
@@ -44,6 +41,95 @@ async function touchLastLogin<T extends { id: string }>(userId: string, fallback
     return (await userRepository.update(userId, { lastLoginAt: new Date() })) as unknown as T;
   } catch {
     return fallback;
+  }
+}
+
+/**
+ * Which Aegis account does this external identity belong to?
+ *
+ * Three answers, tried in order, and the order is the security property:
+ *
+ *  1. **An existing link.** The (provider, subject) pair is durable, so this is
+ *     the only answer that stays right after someone changes their email
+ *     address at the provider. Trying it first is what stops that change from
+ *     stranding a customer outside their own policies.
+ *  2. **A verified email.** Someone who registered with a password and later
+ *     uses the provider button should land on the account they already have,
+ *     not a duplicate holding none of their history. Safe only because the
+ *     provider stated the address is verified — see `VerifiedIdentity.email`.
+ *  3. **A new account.** Nothing matched, so this is a new customer.
+ *
+ * Note there is no fourth answer where an unverified email creates or adopts
+ * anything: `verify()` never returns one.
+ */
+async function resolveUserForIdentity(identity: VerifiedIdentity) {
+  const existingLink = await linkedIdentityRepository.findBySubject(
+    identity.provider,
+    identity.subject
+  );
+
+  if (existingLink) {
+    const linked = await userRepository.findById(existingLink.userId);
+    if (linked) {
+      await linkedIdentityRepository.markUsed(existingLink.id);
+      return { user: await refreshProfileFromIdentity(linked, identity), isNewAccount: false };
+    }
+    // A link whose user is gone. Fall through and treat this as a fresh
+    // sign-in; the upsert below re-points the row at whoever it resolves to.
+  }
+
+  const byEmail = await userRepository.findByEmail(identity.email);
+
+  if (byEmail) {
+    await linkedIdentityRepository.link({
+      userId: byEmail.id,
+      provider: identity.provider,
+      subject: identity.subject,
+      email: identity.email,
+    });
+    return { user: await refreshProfileFromIdentity(byEmail, identity), isNewAccount: false };
+  }
+
+  // The password is random and never disclosed, so this account is
+  // provider-only by construction rather than by a flag someone can flip.
+  const unusableSecret = crypto.randomBytes(32).toString("base64url");
+  const created = await userRepository.create({
+    name: identity.displayName || identity.email.split("@")[0],
+    email: identity.email,
+    password: await bcrypt.hash(unusableSecret, AUTH.BCRYPT_ROUNDS),
+    role: "customer",
+    image: identity.pictureUrl,
+    lastLoginAt: new Date(),
+  });
+
+  await linkedIdentityRepository.link({
+    userId: created.id,
+    provider: identity.provider,
+    subject: identity.subject,
+    email: identity.email,
+  });
+
+  return { user: created, isNewAccount: true };
+}
+
+/**
+ * Stamp the sign-in and take a newer profile picture if the provider has one.
+ *
+ * Best-effort like `touchLastLogin`: a customer is not turned away because a
+ * profile picture URL failed to save.
+ */
+async function refreshProfileFromIdentity<T extends { id: string; image: string | null }>(
+  user: T,
+  identity: VerifiedIdentity
+): Promise<T> {
+  const patch: Record<string, unknown> = { lastLoginAt: new Date() };
+  if (identity.pictureUrl && identity.pictureUrl !== user.image) {
+    patch.image = identity.pictureUrl;
+  }
+  try {
+    return (await userRepository.update(user.id, patch)) as unknown as T;
+  } catch {
+    return user;
   }
 }
 
@@ -119,80 +205,46 @@ export const authService = {
   },
 
   /**
-   * Sign in (or transparently sign up) with a Google ID token. The frontend
-   * obtains the token from Google Identity Services and posts it here; we verify
-   * its signature and audience with Google's library, then find-or-create the
-   * user by their verified email and issue our own access + refresh tokens — the
-   * same session the password flow produces. New accounts are always "customer"
-   * (no privilege escalation) and get an unusable random password, so the User
-   * schema is unchanged and Google users simply cannot log in with a password.
+   * Sign in (or transparently sign up) with any registered identity provider.
+   *
+   * The provider verifies the credential and answers with an identity; from
+   * there this is the same session every other route produces. New accounts are
+   * always "customer" — a provider can say who someone is, never what they are
+   * allowed to do — and get an unusable random password, so an account created
+   * this way simply cannot be signed into with one.
    */
-  async googleLogin(idToken: string) {
-    if (!googleClient) {
-      throw new AppError("Google sign-in is not configured on this server.", 400);
+  async signInWithProvider(providerId: string, credential: string) {
+    const provider = getIdentityProvider(providerId);
+    if (!provider) {
+      throw new AppError("That sign-in method isn't available.", 400);
+    }
+    if (!provider.isConfigured) {
+      throw new AppError(`${provider.label} sign-in is not configured on this server.`, 400);
     }
 
-    let payload;
-    try {
-      const ticket = await googleClient.verifyIdToken({
-        idToken,
-        audience: env.GOOGLE_CLIENT_ID,
+    const identity = await provider.verify(credential);
+    if (!identity) {
+      // Every rejection reason reaches the customer identically. The difference
+      // between "expired" and "not yours" is only useful to someone probing.
+      auditService.record({
+        action: "auth.login.provider.rejected",
+        metadata: { provider: providerId },
       });
-      payload = ticket.getPayload();
-    } catch {
-      payload = undefined;
+      throw new AppError(`Could not verify your ${provider.label} account. Please try again.`, 401);
     }
 
-    // Reject anything Google didn't vouch for: bad signature/audience, or an
-    // unverified email (which we must not trust for account matching).
-    if (!payload || !payload.email || !payload.email_verified) {
-      auditService.record({ action: "auth.login.google.rejected" });
-      throw new AppError("Could not verify your Google account. Please try again.", 401);
-    }
-
-    const email = payload.email.toLowerCase();
-    let user = await userRepository.findByEmail(email);
-
-    if (!user) {
-      // Google-verified email → transparent signup. The password is random and
-      // never disclosed, so these accounts are Google-only by construction.
-      const randomSecret = crypto.randomBytes(32).toString("base64url");
-      const hashedPassword = await bcrypt.hash(randomSecret, AUTH.BCRYPT_ROUNDS);
-      user = await userRepository.create({
-        name: payload.name || email.split("@")[0],
-        email,
-        password: hashedPassword,
-        role: "customer",
-        googleId: payload.sub,
-        image: payload.picture ?? null,
-        lastLoginAt: new Date(),
-      });
-      auditService.record({ actorId: user.id, action: "auth.register.google", metadata: { email } });
-    } else {
-      // Existing account — link it to the Google identity the first time, and
-      // keep the picture current. The account is still matched on the verified
-      // email, so an account created before this column existed is adopted here
-      // rather than being left permanently unlinked.
-      const patch: Record<string, unknown> = { lastLoginAt: new Date() };
-      if (!user.googleId) patch.googleId = payload.sub;
-      if (payload.picture && payload.picture !== user.image) patch.image = payload.picture;
-
-      try {
-        user = await userRepository.update(user.id, patch);
-      } catch {
-        // A googleId unique-constraint clash means this Google account is already
-        // linked elsewhere. Sign-in still proceeds on the verified email; the
-        // link is simply not rewritten.
-        user = (await userRepository.findByEmail(email)) ?? user;
-      }
-    }
+    const { user, isNewAccount } = await resolveUserForIdentity(identity);
 
     if (!user.isActive) {
       throw new AppError("This account has been deactivated.", 403);
     }
 
     const tokens = await issueTokens(user.id);
-    auditService.record({ actorId: user.id, action: "auth.login.google.success" });
+    auditService.record({
+      actorId: user.id,
+      action: isNewAccount ? "auth.register.provider" : "auth.login.provider.success",
+      metadata: { provider: providerId },
+    });
 
     const { password: _pw, ...userWithoutPassword } = user;
     void _pw;

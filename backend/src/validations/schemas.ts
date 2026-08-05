@@ -41,14 +41,14 @@ export const loginSchema = (data: RequestData): ValidationErrors => {
   return errors.length > 0 ? errors : null;
 };
 
-export const googleLoginSchema = (data: RequestData): ValidationErrors => {
+export const providerCredentialSchema = (data: RequestData): ValidationErrors => {
   const errors: string[] = [];
-  // The Google ID token is a compact JWT — a few hundred to ~2 KB. Bound it so
-  // an oversized body can't be pushed into the verifier.
+  // An OIDC ID token is a compact JWT — a few hundred bytes to ~2 KB. Bound it
+  // so an oversized body can't be pushed into a provider's verifier.
   if (!data.credential || typeof data.credential !== "string") {
-    errors.push("A Google credential is required.");
+    errors.push("A sign-in credential is required.");
   } else if (data.credential.length > 4096) {
-    errors.push("Invalid Google credential.");
+    errors.push("Invalid sign-in credential.");
   }
   return errors.length > 0 ? errors : null;
 };

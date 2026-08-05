@@ -11,6 +11,7 @@ import {
   readRefreshFromCookies,
 } from "../utils/cookies";
 import { sendSuccess } from "../utils/apiResponse";
+import { enabledProviders } from "../auth/providers";
 
 /**
  * Put a session on the wire. Every way in — register, password, Google, refresh
@@ -43,10 +44,24 @@ const login = catchAsync(async (req, res) => {
   sendSuccess(res, 200, { user }, { token: accessToken });
 });
 
-const googleLogin = catchAsync(async (req, res) => {
-  const { user, accessToken, refreshToken } = await authService.googleLogin(req.body.credential);
+// Sign in with an external identity provider. The provider comes from the URL,
+// never from the body — the route is what decides who is trusted to identify a
+// customer, and that should not be something a request body can rewrite.
+const providerLogin = catchAsync(async (req, res) => {
+  const { provider } = req.params;
+  const providerId = typeof provider === "string" ? provider : "google";
+  const { user, accessToken, refreshToken } = await authService.signInWithProvider(
+    providerId,
+    req.body.credential
+  );
   startSession(res, accessToken, refreshToken);
   sendSuccess(res, 200, { user }, { token: accessToken });
+});
+
+// Which sign-in buttons this deployment can actually offer. Public: it reveals
+// nothing that the login page does not already show.
+const listProviders = catchAsync(async (_req, res) => {
+  sendSuccess(res, 200, { providers: enabledProviders() });
 });
 
 // Exchange the refresh cookie for a fresh access token (rotates the refresh
@@ -82,4 +97,13 @@ const completeOnboarding = catchAsync(async (req, res) => {
   sendSuccess(res, 200, { user });
 });
 
-export { register, login, googleLogin, refresh, logout, getMe, completeOnboarding };
+export {
+  register,
+  login,
+  providerLogin,
+  listProviders,
+  refresh,
+  logout,
+  getMe,
+  completeOnboarding,
+};
