@@ -6,6 +6,7 @@ import AppError from "../utils/appError";
 import catchAsync from "../utils/catchAsync";
 import { readTokenFromCookies } from "../utils/cookies";
 import { auditService } from "../services/audit.service";
+import { roleHasPermission, type Permission } from "../auth/permissions";
 
 const protect = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
   // 1) Prefer the httpOnly cookie (XSS-safe); fall back to the Bearer header
@@ -47,13 +48,25 @@ const protect = catchAsync(async (req: Request, res: Response, next: NextFunctio
   next();
 });
 
-const restrictTo = (...roles: string[]): RequestHandler => {
-  return (req, res, next) => {
-    if (!req.user || !roles.includes(req.user.role)) {
+/**
+ * Gate a route on a capability rather than on a job title.
+ *
+ * The permission is resolved from the stored role on every request, never from
+ * anything the client sent — `protect` has already replaced whatever the token
+ * claimed with the record in the database, and this reads only that.
+ *
+ * The denial is deliberately uninformative to the caller and fully informative
+ * to the audit trail. Telling someone which capability they lack maps out the
+ * permission model for them; not recording it leaves nobody able to answer why
+ * a legitimate colleague was refused.
+ */
+const requirePermission = (required: Permission): RequestHandler => {
+  return (req, _res, next) => {
+    if (!req.user || !roleHasPermission(req.user.role, required)) {
       auditService.record({
         actorId: req.user?.id,
-        action: "authz.rbac.denied",
-        metadata: { role: req.user?.role, required: roles, path: req.originalUrl },
+        action: "authz.permission.denied",
+        metadata: { role: req.user?.role, required, path: req.originalUrl },
       });
       return next(
         new AppError("You do not have permission to perform this action.", 403)
@@ -63,4 +76,4 @@ const restrictTo = (...roles: string[]): RequestHandler => {
   };
 };
 
-export { protect, restrictTo };
+export { protect, requirePermission };

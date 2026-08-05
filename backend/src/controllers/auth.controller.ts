@@ -12,6 +12,7 @@ import {
 } from "../utils/cookies";
 import { sendSuccess } from "../utils/apiResponse";
 import { enabledProviders } from "../auth/providers";
+import { permissionsForRole } from "../auth/permissions";
 
 /**
  * Put a session on the wire. Every way in — register, password, Google, refresh
@@ -84,7 +85,13 @@ const getMe = catchAsync(async (req, res) => {
   // req.user has already been verified and injected by the protect middleware.
   const { password: _pw, ...userWithoutPassword } = req.user!;
   void _pw;
-  sendSuccess(res, 200, { user: userWithoutPassword });
+  // Resolved capabilities travel with the user so the client can decide what to
+  // *render*. It is never what decides what may happen: the API re-derives this
+  // from the stored role on every request it serves.
+  sendSuccess(res, 200, {
+    user: userWithoutPassword,
+    permissions: permissionsForRole(req.user!.role),
+  });
 });
 
 // Finish first-time onboarding. The user comes from `protect`, never from the

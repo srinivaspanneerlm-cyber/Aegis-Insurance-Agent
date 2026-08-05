@@ -1,6 +1,6 @@
 import express from "express";
 import * as policyController from "../controllers/policy.controller";
-import { protect, restrictTo } from "../middleware/auth.middleware";
+import { protect, requirePermission } from "../middleware/auth.middleware";
 import { validateBody, validateParams, validateQuery } from "../middleware/validate.middleware";
 import { policySchema, idParamSchema, paginationQuerySchema } from "../validations/schemas";
 
@@ -14,7 +14,7 @@ router.get("/:id", validateParams(idParamSchema), policyController.getPolicyById
 router.post(
   "/",
   protect,
-  restrictTo("admin", "superadmin"),
+  requirePermission("policy.write"),
   validateBody(policySchema),
   policyController.createPolicy
 );
