@@ -41,6 +41,30 @@ export const loginSchema = (data: RequestData): ValidationErrors => {
   return errors.length > 0 ? errors : null;
 };
 
+/**
+ * Re-confirmation before an irreversible action. Either a password or a
+ * provider credential — an account created through a provider has a random
+ * password it was never told, so demanding one would lock those holders out of
+ * exactly the actions this protects.
+ */
+export const stepUpSchema = (data: RequestData): ValidationErrors => {
+  const errors: string[] = [];
+  const hasPassword = typeof data.password === "string" && data.password.length > 0;
+  const hasCredential =
+    typeof data.credential === "string" && typeof data.provider === "string";
+
+  if (!hasPassword && !hasCredential) {
+    errors.push("A password or a provider credential is required.");
+  }
+  if (hasPassword && (data.password as string).length > 200) {
+    errors.push("Invalid password.");
+  }
+  if (hasCredential && (data.credential as string).length > 4096) {
+    errors.push("Invalid sign-in credential.");
+  }
+  return errors.length > 0 ? errors : null;
+};
+
 export const providerCredentialSchema = (data: RequestData): ValidationErrors => {
   const errors: string[] = [];
   // An OIDC ID token is a compact JWT — a few hundred bytes to ~2 KB. Bound it

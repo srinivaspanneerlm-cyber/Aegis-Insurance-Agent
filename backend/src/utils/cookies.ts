@@ -31,6 +31,25 @@ const REFRESH_COOKIE_PATH = "/api";
  */
 export const SESSION_COOKIE_NAME = "aegis_session";
 
+/**
+ * Proof that the person at the keyboard proved themselves *just now*.
+ *
+ * A session says somebody signed in; it does not say who is holding the laptop
+ * an hour later. For the handful of actions that cannot be undone, that
+ * difference matters, so those ask again — and this is where the answer lives
+ * until it goes stale. Short-lived by design: see `STEP_UP_TTL_MS`.
+ */
+export const STEP_UP_COOKIE_NAME = "aegis_stepup";
+
+/**
+ * How long a re-authentication stands.
+ *
+ * Long enough to finish the job that prompted it — find the record, confirm,
+ * act — and short enough that walking away from the desk ends it. Five minutes
+ * is the usual answer and there is nothing special about ours.
+ */
+export const STEP_UP_TTL_MS = 5 * 60 * 1000;
+
 // Convert a JWT "expiresIn" style value ("30d", "12h", "3600") to milliseconds.
 export function expiresInToMs(value: string): number {
   if (!value) return 30 * 24 * 60 * 60 * 1000; // default 30d
@@ -102,6 +121,29 @@ export function clearSessionCookie(res: Response): void {
     sameSite,
     path: "/",
   });
+}
+
+export function setStepUpCookie(res: Response, token: string): void {
+  res.cookie(STEP_UP_COOKIE_NAME, token, {
+    httpOnly: true,
+    secure: env.COOKIE_SECURE,
+    sameSite,
+    maxAge: STEP_UP_TTL_MS,
+    path: "/",
+  });
+}
+
+export function clearStepUpCookie(res: Response): void {
+  res.clearCookie(STEP_UP_COOKIE_NAME, {
+    httpOnly: true,
+    secure: env.COOKIE_SECURE,
+    sameSite,
+    path: "/",
+  });
+}
+
+export function readStepUpFromCookies(req: Request): string | null {
+  return readCookie(req, STEP_UP_COOKIE_NAME);
 }
 
 export function readRefreshFromCookies(req: Request): string | null {

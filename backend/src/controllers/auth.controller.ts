@@ -9,6 +9,9 @@ import {
   setSessionCookie,
   clearSessionCookie,
   readRefreshFromCookies,
+  setStepUpCookie,
+  clearStepUpCookie,
+  STEP_UP_TTL_MS,
 } from "../utils/cookies";
 import { sendSuccess } from "../utils/apiResponse";
 import { enabledProviders } from "../auth/providers";
@@ -30,6 +33,9 @@ function endSession(res: Response): void {
   clearAuthCookie(res);
   clearRefreshCookie(res);
   clearSessionCookie(res);
+  // A confirmation outlives the session it was granted in unless it is cleared
+  // here — which on a shared device would hand the next person a head start.
+  clearStepUpCookie(res);
 }
 
 const register = catchAsync(async (req, res) => {
@@ -94,6 +100,22 @@ const getMe = catchAsync(async (req, res) => {
   });
 });
 
+// Re-confirm the account holder before an action that cannot be undone. The
+// user comes from `protect`, so this can only ever raise the caller's own
+// confidence level — never somebody else's.
+const stepUp = catchAsync(async (req, res) => {
+  const token = await authService.stepUp(req.user!.id, {
+    password: req.body.password,
+    provider: req.body.provider,
+    credential: req.body.credential,
+  });
+  setStepUpCookie(res, token);
+  // The client is told how long the confirmation lasts so it can avoid
+  // prompting again inside the window — the cookie itself is httpOnly and
+  // unreadable to it.
+  sendSuccess(res, 200, { expiresInMs: STEP_UP_TTL_MS }, { message: "Confirmed." });
+});
+
 // Finish first-time onboarding. The user comes from `protect`, never from the
 // body, so nobody can complete somebody else's onboarding.
 const completeOnboarding = catchAsync(async (req, res) => {
@@ -112,5 +134,6 @@ export {
   refresh,
   logout,
   getMe,
+  stepUp,
   completeOnboarding,
 };

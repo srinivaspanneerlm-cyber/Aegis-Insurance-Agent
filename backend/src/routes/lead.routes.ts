@@ -1,6 +1,6 @@
 import express from "express";
 import * as leadController from "../controllers/lead.controller";
-import { protect, requirePermission } from "../middleware/auth.middleware";
+import { protect, requirePermission, requireFreshAuth } from "../middleware/auth.middleware";
 import { validateBody, validateParams, validateQuery } from "../middleware/validate.middleware";
 import { leadSchema, idParamSchema, paginationQuerySchema } from "../validations/schemas";
 
@@ -19,7 +19,14 @@ router.get("/:id", requirePermission("lead.read"), validateParams(idParamSchema)
 router.put("/:id", requirePermission("lead.write"), validateParams(idParamSchema), leadController.updateLead);
 
 // Destroying a lead record is its own capability — it is the one action here
-// that cannot be undone.
-router.delete("/:id", requirePermission("lead.delete"), validateParams(idParamSchema), leadController.deleteLead);
+// that cannot be undone — and the one place we ask the person to confirm they
+// are still the account holder before we do it.
+router.delete(
+  "/:id",
+  requirePermission("lead.delete"),
+  requireFreshAuth,
+  validateParams(idParamSchema),
+  leadController.deleteLead
+);
 
 export = router;

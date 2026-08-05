@@ -53,6 +53,21 @@ function renewSession(): Promise<void> {
   return renewal;
 }
 
+/**
+ * The action needs the account holder to confirm themselves first.
+ *
+ * A distinct type rather than a flag on a generic error, so a caller has to
+ * decide what to do about it. Swallowing this into the ordinary error path is
+ * how a confirmation prompt silently becomes a failure message.
+ */
+export class ReauthRequiredError extends Error {
+  readonly reauthRequired = true;
+  constructor(message: string) {
+    super(message);
+    this.name = "ReauthRequiredError";
+  }
+}
+
 // 2) Response interceptor — renew silently on 401, and only give up if that fails.
 apiClient.interceptors.response.use(
   (response) => response,
@@ -60,6 +75,14 @@ apiClient.interceptors.response.use(
     const config = error.config ?? {};
     const status = error.response ? error.response.status : null;
     const message = error.response?.data?.message || "An unexpected error occurred.";
+
+    // "Confirm it's you" and "your session is over" are both 401s and look
+    // identical from here. Told apart by the code, because renewing the session
+    // would not help — the session is fine — and signing the customer out for
+    // it would end their work at the exact moment they were being careful.
+    if (status === 401 && error.response?.data?.code === "REAUTH_REQUIRED") {
+      return Promise.reject(new ReauthRequiredError(message));
+    }
 
     // An expired access token is the ordinary state of a long session, not a
     // reason to interrupt the customer. Trade the refresh cookie for a new one
@@ -125,6 +148,16 @@ export const authService = {
   // dashboard instead of on a sign-in screen.
   getMe: async () => {
     const res = await apiClient.get("/auth/me", { isSessionProbe: true });
+    return res.data.data;
+  },
+  /**
+   * Re-confirm the account holder before an irreversible action. Either a
+   * password or a provider credential — an account created through Google was
+   * never told a password, and demanding one would bar it from these actions
+   * entirely. The proof is set as an httpOnly cookie; nothing to store here.
+   */
+  stepUp: async (proof: { password?: string; provider?: string; credential?: string }) => {
+    const res = await apiClient.post("/auth/step-up", proof);
     return res.data.data;
   },
   completeOnboarding: async (payload: {

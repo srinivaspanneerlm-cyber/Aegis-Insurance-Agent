@@ -6,6 +6,7 @@ import {
   registerSchema,
   loginSchema,
   providerCredentialSchema,
+  stepUpSchema,
   onboardingSchema,
 } from "../validations/schemas";
 import { authLimiter } from "../config/security";
@@ -30,6 +31,15 @@ router.post(
 router.post("/refresh", authLimiter, authController.refresh);
 router.post("/logout", authController.logout);
 router.get("/me", protect, authController.getMe);
+// Re-confirm the account holder. Throttled with the other credential-testing
+// endpoints, because that is exactly what it is.
+router.post(
+  "/step-up",
+  authLimiter,
+  protect,
+  validateBody(stepUpSchema),
+  authController.stepUp
+);
 router.patch(
   "/me/onboarding",
   protect,

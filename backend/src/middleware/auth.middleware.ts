@@ -4,7 +4,7 @@ import { userRepository } from "../repositories";
 import env from "../config/env";
 import AppError from "../utils/appError";
 import catchAsync from "../utils/catchAsync";
-import { readTokenFromCookies } from "../utils/cookies";
+import { readTokenFromCookies, readStepUpFromCookies } from "../utils/cookies";
 import { auditService } from "../services/audit.service";
 import { roleHasPermission, type Permission } from "../auth/permissions";
 
@@ -76,4 +76,56 @@ const requirePermission = (required: Permission): RequestHandler => {
   };
 };
 
-export { protect, requirePermission };
+/**
+ * Demand that the account holder proved themselves in the last few minutes.
+ *
+ * A session establishes that somebody signed in. It says nothing about who is
+ * at the keyboard an hour later, on an office machine that was left unlocked or
+ * a shared device in a family home. For actions that cannot be undone, that gap
+ * is worth one more question.
+ *
+ * Deliberately a *separate* gate from `requirePermission`, not a stricter
+ * version of it. They answer different questions — may this role do it, and is
+ * this really them — and collapsing the two would mean every capability check
+ * had to decide about freshness too.
+ *
+ * The 401 carries `REAUTH_REQUIRED` so the portal can tell "prompt for a
+ * password" apart from "the session is over", which look identical otherwise
+ * and would otherwise sign the customer out mid-task.
+ */
+const requireFreshAuth: RequestHandler = (req, _res, next) => {
+  const token = readStepUpFromCookies(req);
+  const failed = () => {
+    auditService.record({
+      actorId: req.user?.id,
+      action: "authz.stepup.required",
+      metadata: { path: req.originalUrl },
+    });
+    return next(
+      new AppError(
+        "Please confirm it's you before completing this action.",
+        401,
+        "REAUTH_REQUIRED"
+      )
+    );
+  };
+
+  if (!req.user || !token) return failed();
+
+  try {
+    const claims = jwt.verify(token, env.JWT_SECRET) as JwtPayload & {
+      id?: string;
+      purpose?: string;
+    };
+    // Both checks matter. Without `purpose`, an ordinary access token — same
+    // key, same shape, and already in the browser — would satisfy this gate and
+    // the confirmation would never actually be asked for.
+    if (claims.purpose !== "step-up" || claims.id !== req.user.id) return failed();
+  } catch {
+    return failed(); // expired or tampered with: ask again
+  }
+
+  next();
+};
+
+export { protect, requirePermission, requireFreshAuth };

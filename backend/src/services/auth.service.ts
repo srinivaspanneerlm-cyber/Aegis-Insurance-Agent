@@ -6,7 +6,7 @@ import env from "../config/env";
 import { AUTH } from "../config/constants";
 import AppError from "../utils/appError";
 import { auditService } from "./audit.service";
-import { expiresInToMs } from "../utils/cookies";
+import { expiresInToMs, STEP_UP_TTL_MS } from "../utils/cookies";
 import { getIdentityProvider } from "../auth/providers";
 import type { VerifiedIdentity } from "../auth/providers";
 
@@ -131,6 +131,49 @@ async function refreshProfileFromIdentity<T extends { id: string; image: string 
   } catch {
     return user;
   }
+}
+
+const STEP_UP_FAILED_MESSAGE = "We couldn't confirm it's you. Please try again.";
+
+/**
+ * The step-up token is a JWT rather than a row, because it needs to say only
+ * one thing for a very short time and there is nothing worth keeping afterwards.
+ *
+ * `purpose` is what stops it being interchangeable with an access token. Both
+ * are signed with the same key and both name a user, so without it a step-up
+ * token would authenticate ordinary requests — and, worse, an access token
+ * would satisfy the step-up check, which would make the whole gate decorative.
+ */
+const STEP_UP_PURPOSE = "step-up";
+
+const signStepUpToken = (id: string): string =>
+  jwt.sign({ id, purpose: STEP_UP_PURPOSE }, env.JWT_SECRET, {
+    expiresIn: Math.floor(STEP_UP_TTL_MS / 1000),
+  });
+
+/**
+ * Does this provider credential belong to the account being acted on?
+ *
+ * Both halves are needed. Verifying the credential proves the provider vouches
+ * for somebody; checking the link proves that somebody is *this* customer. On
+ * its own, the first would let anyone with any Google account step up as
+ * anyone else.
+ */
+async function providerCredentialBelongsTo(
+  userId: string,
+  providerId: string | undefined,
+  credential: string | undefined
+): Promise<boolean> {
+  if (!providerId || !credential) return false;
+
+  const provider = getIdentityProvider(providerId);
+  if (!provider?.isConfigured) return false;
+
+  const identity = await provider.verify(credential);
+  if (!identity) return false;
+
+  const link = await linkedIdentityRepository.findBySubject(identity.provider, identity.subject);
+  return link?.userId === userId;
 }
 
 /**
@@ -370,6 +413,47 @@ export const authService = {
     const tokens = await issueTokens(record.userId);
     auditService.record({ actorId: record.userId, action: "auth.refresh" });
     return { userId: record.userId, ...tokens };
+  },
+
+  /**
+   * Prove, again and just now, that the account holder is the one acting.
+   *
+   * Two ways to answer, because there are two ways in. Requiring a password
+   * would permanently bar anyone whose account was created through a provider
+   * — their password is random and was never disclosed — from the very actions
+   * this is meant to guard. So a provider credential is accepted too, on the
+   * condition that the identity it resolves to is already linked to *this*
+   * account. Verifying it in isolation would only prove that somebody,
+   * somewhere, can sign in to something.
+   *
+   * Returns a short-lived token; the caller puts it on the wire.
+   */
+  async stepUp(
+    userId: string,
+    input: { password?: string; provider?: string; credential?: string }
+  ): Promise<string> {
+    const user = await userRepository.findById(userId);
+    if (!user) throw new AppError(STEP_UP_FAILED_MESSAGE, 401);
+
+    const proven = input.password
+      ? await bcrypt.compare(input.password, user.password)
+      : await providerCredentialBelongsTo(userId, input.provider, input.credential);
+
+    if (!proven) {
+      auditService.record({
+        actorId: userId,
+        action: "auth.stepup.failed",
+        metadata: { method: input.password ? "password" : "provider" },
+      });
+      throw new AppError(STEP_UP_FAILED_MESSAGE, 401);
+    }
+
+    auditService.record({
+      actorId: userId,
+      action: "auth.stepup.success",
+      metadata: { method: input.password ? "password" : "provider" },
+    });
+    return signStepUpToken(userId);
   },
 
   /** Best-effort revoke on logout so the refresh token can't be reused. */
