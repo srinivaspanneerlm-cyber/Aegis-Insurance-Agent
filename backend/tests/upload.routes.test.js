@@ -26,6 +26,11 @@ const { test, describe, after } = require("node:test");
 const request = require("supertest");
 const app = require("../src/app");
 
+// A real browser states where it came from, and the CSRF guard requires that on
+// any state-changing request carrying a session cookie. These agents hold
+// cookies, so they have to look like the browser they stand in for.
+const BROWSER_ORIGIN = "http://localhost:3000";
+
 const ascii = (s) => [...s].map((c) => c.charCodeAt(0));
 const iso = (brand) => Buffer.from([0, 0, 0, 0x20, ...ascii("ftyp"), ...ascii(brand), 0, 0, 0, 0]);
 
@@ -50,7 +55,7 @@ after(() => {
 });
 
 const signIn = async () => {
-  const agent = request.agent(app);
+  const agent = request.agent(app).set("Origin", BROWSER_ORIGIN);
   const email = `upload-${Date.now()}-${Math.random().toString(36).slice(2)}@test.com`;
   const reg = await agent.post("/api/v1/auth/register").send({
     name: "Uploader",

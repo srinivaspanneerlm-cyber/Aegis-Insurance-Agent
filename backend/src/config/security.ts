@@ -12,7 +12,19 @@ export const corsOptions: CorsOptions = {
     // server-to-server, health checks.
     if (!origin) return callback(null, true);
     if (env.allowedOrigins.includes(origin)) return callback(null, true);
-    return callback(new Error(`Origin ${origin} is not allowed by CORS policy.`));
+
+    // Withhold the CORS headers rather than raise. CORS is not an authorisation
+    // layer — it tells the *browser* whether to hand the response to the page,
+    // and without these headers the browser refuses, which is the whole
+    // mechanism working as intended.
+    //
+    // Raising here instead produced a 500 for what is a perfectly ordinary
+    // client mistake, buried a real signal in the error handler, and left the
+    // impression that CORS was stopping forged requests. It was not: a forged
+    // request that sends no Origin at all never reaches this callback's
+    // rejection path. Refusing state-changing requests is `verifyRequestOrigin`'s
+    // job, and it answers with a 403.
+    return callback(null, false);
   },
   // PATCH is required by `/auth/me/onboarding`. Omitting a method the API
   // actually routes makes the browser fail the preflight and drop the request

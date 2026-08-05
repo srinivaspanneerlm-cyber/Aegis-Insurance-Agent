@@ -23,6 +23,11 @@ const { test, describe, after } = require("node:test");
 const request = require("supertest");
 const app = require("../src/app");
 
+// A real browser states where it came from, and the CSRF guard requires that on
+// any state-changing request carrying a session cookie. These agents hold
+// cookies, so they have to look like the browser they stand in for.
+const BROWSER_ORIGIN = "http://localhost:3000";
+
 const uniqueEmail = () => `itest-${Date.now()}-${Math.random().toString(36).slice(2)}@test.com`;
 const PASSWORD = "verylongpassword123";
 
@@ -34,7 +39,7 @@ after(() => {
 
 describe("API integration — auth lifecycle", () => {
   test("register → me → refresh → logout → refresh fails", async () => {
-    const agent = request.agent(app);
+    const agent = request.agent(app).set("Origin", BROWSER_ORIGIN);
     const email = uniqueEmail();
 
     const reg = await agent.post("/api/v1/auth/register").send({ name: "IT", email, password: PASSWORD });
@@ -88,7 +93,7 @@ describe("API integration — auth lifecycle", () => {
     // The refresh token is the long-lived credential; the access token is not.
     // A month-long access token was what made the renewal machinery pointless.
     const jwt = require("jsonwebtoken");
-    const agent = request.agent(app);
+    const agent = request.agent(app).set("Origin", BROWSER_ORIGIN);
     const reg = await agent
       .post("/api/v1/auth/register")
       .send({ name: "TTL", email: uniqueEmail(), password: PASSWORD });
@@ -114,7 +119,7 @@ describe("API integration — auth lifecycle", () => {
 
 describe("API integration — authorization", () => {
   test("a customer is forbidden from the admin leads list (403 FORBIDDEN)", async () => {
-    const agent = request.agent(app);
+    const agent = request.agent(app).set("Origin", BROWSER_ORIGIN);
     await agent.post("/api/v1/auth/register").send({ name: "Cust", email: uniqueEmail(), password: PASSWORD });
     const res = await agent.get("/api/v1/leads");
     assert.equal(res.status, 403);

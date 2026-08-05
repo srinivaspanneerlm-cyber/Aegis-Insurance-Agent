@@ -7,6 +7,7 @@ import path from "path";
 
 import { corsOptions, apiLimiter } from "./config/security";
 import { protect } from "./middleware/auth.middleware";
+import { verifyRequestOrigin } from "./middleware/csrf.middleware";
 import { FEATURES, API_VERSION } from "./config/constants";
 import AppError from "./utils/appError";
 import globalErrorHandler from "./middleware/error.middleware";
@@ -109,6 +110,12 @@ app.get("/metrics", async (_req, res) => {
 
 // Rate Limiter (covers both /api/v1 and the bare /api alias below).
 app.use("/api", apiLimiter);
+
+// Cross-site request forgery defence. Mounted here so it covers both the
+// versioned router and its bare `/api` alias, and runs before anything acts on
+// the request. Only touches state-changing requests that carry one of our
+// cookies — see the middleware for why that is the whole attack surface.
+app.use("/api", verifyRequestOrigin);
 
 // 2) API ROUTER — one definition, mounted at the versioned prefix (canonical)
 // and aliased at the bare /api path so existing clients keep working unchanged.
