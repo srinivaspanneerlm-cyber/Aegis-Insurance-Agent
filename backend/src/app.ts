@@ -21,6 +21,7 @@ import uploadRoutes from "./routes/upload.routes";
 import companyRoutes from "./routes/company.routes";
 import employeeRoutes from "./routes/employee.routes";
 import enterpriseRoutes from "./routes/enterprise.routes";
+import platformRoutes from "./routes/platform.routes";
 import adminRoutes from "./routes/admin.routes";
 import uiActionRoutes from "./routes/ui_action.routes";
 import healthRoutes from "./routes/health.routes";
@@ -132,6 +133,8 @@ apiRouter.use("/leads", leadRoutes);
 apiRouter.use("/employee", employeeRoutes);
 // Enterprise administration. Realm-walled as a whole — see enterprise.routes.ts.
 apiRouter.use("/enterprise", enterpriseRoutes);
+// Platform administration. The narrowest door: PLATFORM realm + platform.configure.
+apiRouter.use("/platform", platformRoutes);
 apiRouter.use("/policies", policyRoutes);
 apiRouter.use("/chat", chatRoutes);
 apiRouter.use("/upload", uploadRoutes);

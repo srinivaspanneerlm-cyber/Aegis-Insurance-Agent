@@ -117,8 +117,14 @@ model User {
   employeeProfile EmployeeProfile? @relation("EmployeeIdentity")
   customerWork    WorkItem[]       @relation("CustomerWork")
 
+  // Which tenant this person belongs to. Null for customers, who are the
+  // platform's users rather than any organisation's staff.
+  organizationId String?
+  organization   Organization? @relation("OrganizationMembers", fields: [organizationId], references: [id], onDelete: SetNull)
+
   @@index([realm])
   @@index([role])
+  @@index([organizationId])
   @@index([isActive])
   @@index([deletedAt])
   @@index([createdAt])
@@ -706,4 +712,113 @@ model KnowledgeArticle {
 
   @@index([category])
   @@index([publishedAt])
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// PLATFORM ADMINISTRATION
+//
+// The tenancy, configuration and licensing the platform operator manages.
+// Everything here is above an organisation rather than inside one.
+// ═════════════════════════════════════════════════════════════════════════════
+
+/// A tenant: an insurer, a broker, an agency using Aegis.
+///
+/// Distinct from `Company`, which is the *product catalogue* — the insurers
+/// whose policies customers compare. The two look similar and are not: an
+/// organisation is somebody who pays for Aegis and whose staff sign in; a
+/// company is a name on a policy. Conflating them would mean deleting a tenant
+/// silently removed products from every customer's comparison.
+model Organization {
+  id   String @id @default(uuid())
+  /// Stable, human-facing, used in support conversations and URLs.
+  slug String @unique
+  name String
+
+  /// ACTIVE | SUSPENDED | ARCHIVED
+  ///
+  /// Suspension is reversible and archival is not-quite-deletion. A hard delete
+  /// of a tenant would orphan every record their staff created, so the console
+  /// archives instead and says so.
+  status String @default("ACTIVE")
+
+  /// Where their people sign in from. Drives the workspace-domain check that
+  /// separates "Google" from "Google Workspace" for this tenant.
+  emailDomains String? // comma-separated
+
+  contactEmail String?
+  contactPhone String?
+
+  /// Free-form operator notes. Never shown to the tenant.
+  notes String?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now()) @updatedAt
+  archivedAt DateTime?
+
+  members User[]    @relation("OrganizationMembers")
+  license License?
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+/// What an organisation has bought.
+///
+/// One per organisation, replaced rather than versioned — the question this
+/// answers is "what are they entitled to right now", and a history of past
+/// plans belongs in the audit trail rather than here.
+model License {
+  id             String       @id @default(uuid())
+  organizationId String       @unique
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  /// TRIAL | STANDARD | ENTERPRISE
+  plan String @default("TRIAL")
+
+  /// How many staff accounts they may hold. Customers are not seats — they are
+  /// the product's users, not its licensees, and charging per customer would
+  /// make the platform's incentives point the wrong way.
+  seats Int @default(5)
+
+  startsAt  DateTime  @default(now())
+  /// Null means perpetual. A trial without an end date is a bug, not a gift.
+  expiresAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([plan])
+  @@index([expiresAt])
+}
+
+/// Platform configuration held in the database rather than only in environment.
+///
+/// Environment variables are the right home for secrets and for anything a
+/// process needs before it can talk to a database. Everything else — feature
+/// flags, thresholds, branding — is better here, because changing it should not
+/// require a deployment and every change should leave a trace.
+///
+/// Values are stored as strings with a declared `type`, so a reader can coerce
+/// safely and a bad value is a visible parse failure rather than a silent
+/// `NaN` somewhere downstream.
+model PlatformSetting {
+  key   String @id
+  value String
+  /// string | number | boolean | json
+  type String @default("string")
+
+  /// Grouping for the console: auth | security | email | storage | ai | branding
+  category String @default("general")
+  label       String
+  description String?
+
+  /// Whether the value may be shown in full. A secret is stored elsewhere; this
+  /// flag is for values that are not secret but are noisy or misleading out of
+  /// context.
+  sensitive Boolean @default(false)
+
+  updatedAt DateTime @default(now()) @updatedAt
+  updatedBy String?
+
+  @@index([category])
 }
