@@ -8,6 +8,7 @@ const nextConfig = {
   // here immediately, with no watch task in between.
   transpilePackages: [
     "@aegis/ui",
+    "@aegis/documents",
     "@aegis/design-system",
     "@aegis/utils",
     "@aegis/auth",

@@ -22,6 +22,7 @@ import companyRoutes from "./routes/company.routes";
 import employeeRoutes from "./routes/employee.routes";
 import enterpriseRoutes from "./routes/enterprise.routes";
 import platformRoutes from "./routes/platform.routes";
+import documentRoutes from "./routes/documents.routes";
 import adminRoutes from "./routes/admin.routes";
 import uiActionRoutes from "./routes/ui_action.routes";
 import healthRoutes from "./routes/health.routes";
@@ -135,6 +136,9 @@ apiRouter.use("/employee", employeeRoutes);
 apiRouter.use("/enterprise", enterpriseRoutes);
 // Platform administration. The narrowest door: PLATFORM realm + platform.configure.
 apiRouter.use("/platform", platformRoutes);
+// The document platform. Scoped by caller rather than realm-walled — a customer
+// legitimately manages their own documents. See documents.routes.ts.
+apiRouter.use("/documents", documentRoutes);
 apiRouter.use("/policies", policyRoutes);
 apiRouter.use("/chat", chatRoutes);
 apiRouter.use("/upload", uploadRoutes);

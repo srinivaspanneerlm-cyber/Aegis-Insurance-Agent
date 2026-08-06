@@ -54,7 +54,6 @@ export const NAVIGATION: readonly NavGroup[] = [
         href: "/documents",
         icon: "book",
         permission: "work.read",
-        comingSoon: true,
       },
     ],
   },

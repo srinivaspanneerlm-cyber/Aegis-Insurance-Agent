@@ -114,8 +114,9 @@ model User {
 
   // Employee operations. Both optional: a customer has neither, and an employee
   // has a profile but is on the other side of `customerWork`.
-  employeeProfile EmployeeProfile? @relation("EmployeeIdentity")
-  customerWork    WorkItem[]       @relation("CustomerWork")
+  employeeProfile  EmployeeProfile?  @relation("EmployeeIdentity")
+  customerWork     WorkItem[]        @relation("CustomerWork")
+  documentRequests DocumentRequest[] @relation("DocumentRequests")
 
   // Which tenant this person belongs to. Null for customers, who are the
   // platform's users rather than any organisation's staff.
@@ -385,7 +386,43 @@ model UploadedDocument {
   updatedAt   DateTime  @default(now()) @updatedAt
   deletedAt   DateTime?
 
-  owner User? @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+  // ── Document intelligence ──────────────────────────────────────────────────
+  // Added in the document platform sprint. Until then a document recorded who
+  // uploaded it and when, and nothing about whether anybody had looked at it —
+  // which the platform's own compliance check surfaced as a finding.
+
+  /// What kind of document this is. Null until classification has run.
+  category String?
+  /// The requirement it was uploaded against, if it answered one.
+  documentKey String?
+  /// The domain that asked for it: health | motor | travel | home-property.
+  domain String?
+
+  /// UPLOADED | PROCESSING | PENDING_REVIEW | VERIFIED | REJECTED | REPLACED
+  ///
+  /// A pipeline stage and a verification outcome are deliberately one field:
+  /// they are the same question — "can this be relied on yet" — and two fields
+  /// would allow the impossible state of VERIFIED while still PROCESSING.
+  status String @default("UPLOADED")
+
+  /// Set when a person decides. Never set by the pipeline.
+  verifiedAt   DateTime?
+  verifiedById String?
+  /// Why it was rejected. Shown to the customer, so it must be actionable.
+  rejectionReason String?
+
+  /// The document that replaced this one, when a customer re-supplied it.
+  replacedById String?
+
+  /// JSON from the extraction stage. Free-form because what is worth pulling
+  /// out of a passport differs entirely from a hospital bill.
+  extractedData String?
+  /// 0–1 from the fraud stage. Null when the stage has not run.
+  riskScore   Float?
+  riskReason  String?
+
+  owner  User?           @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+  events DocumentEvent[]
 
   @@index([ownerId])
   @@index([deletedAt])
@@ -821,4 +858,93 @@ model PlatformSetting {
   updatedBy String?
 
   @@index([category])
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// DOCUMENT INTELLIGENCE
+//
+// The lifecycle a document goes through after it is uploaded, and the requests
+// that asked for it in the first place.
+// ═════════════════════════════════════════════════════════════════════════════
+
+/// What a document is *for*, and where it has reached.
+///
+/// These columns are additive on `UploadedDocument` rather than a new table,
+/// because they describe the same object — splitting them would mean every read
+/// of a document became a join, and every write a transaction, for fields that
+/// are never absent once the pipeline has run.
+model DocumentEvent {
+  id         String           @id @default(uuid())
+  documentId String
+  document   UploadedDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  /// UPLOADED | SCANNING | SCANNED | EXTRACTING | EXTRACTED | VALIDATING
+  /// | VALIDATED | ANALYSING | ANALYSED | VERIFIED | REJECTED | REPLACED | DELETED
+  stage String
+  /// SYSTEM | ASSISTANT | EMPLOYEE — who moved it. "The software verified it"
+  /// is not an acceptable answer months later, so the actor is always recorded.
+  actorKind String
+  actorId   String?
+
+  /// What happened, in a sentence a colleague can read.
+  summary String
+  /// JSON. Structured findings from whichever service produced this stage.
+  detail String?
+
+  createdAt DateTime @default(now())
+
+  @@index([documentId, createdAt])
+  @@index([stage])
+}
+
+/// A document the platform has asked somebody for.
+///
+/// The requirements are *not* hardcoded per product in the UI. An agent decides
+/// what a given application needs and writes these rows; the upload surface
+/// renders whatever it finds. That is what lets a new product, or a customer
+/// whose circumstances change the requirement, work without a front-end change.
+model DocumentRequest {
+  id String @id @default(uuid())
+
+  /// Who is being asked.
+  subjectId String
+  subject   User   @relation("DocumentRequests", fields: [subjectId], references: [id], onDelete: Cascade)
+
+  /// Which piece of work this belongs to. Empty string when it belongs to none.
+  ///
+  /// A sentinel rather than NULL, because the unique constraint below includes
+  /// this column — and in SQL `NULL != NULL`, so a nullable column in a unique
+  /// index does not constrain anything. With NULL here, asking the same
+  /// customer for the same document twice outside a work item would insert a
+  /// second row every time.
+  workItemId String @default("")
+
+  /// health | motor | travel | home-property | general — the domain that asked.
+  domain String
+  /// Stable key, e.g. `rc_book`. What the platform calls this document.
+  documentKey String
+  /// What a person reads: "Vehicle registration certificate".
+  label       String
+  description String?
+
+  /// Whether the application can proceed without it.
+  required Boolean @default(true)
+  /// PENDING | SUPPLIED | WAIVED | EXPIRED
+  status String @default("PENDING")
+
+  /// Why it was asked for. Shown to the customer, because "we need your RC book"
+  /// is far less useful than "to confirm the vehicle is registered to you".
+  reason String?
+
+  /// The document that satisfied it, once one has.
+  fulfilledById String?
+  fulfilledAt   DateTime?
+
+  requestedBy String? // agent or employee id
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@unique([subjectId, workItemId, documentKey])
+  @@index([subjectId, status])
+  @@index([workItemId])
 }

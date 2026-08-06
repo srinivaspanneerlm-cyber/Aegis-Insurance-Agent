@@ -99,6 +99,9 @@ importers:
       '@aegis/design-system':
         specifier: workspace:*
         version: link:../../packages/design-system
+      '@aegis/documents':
+        specifier: workspace:*
+        version: link:../../packages/documents
       '@aegis/shared-types':
         specifier: workspace:*
         version: link:../../packages/shared-types
@@ -415,6 +418,46 @@ importers:
       eslint:
         specifier: ^9.17.0
         version: 9.39.5(jiti@1.21.7)
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+
+  packages/documents:
+    dependencies:
+      '@aegis/design-system':
+        specifier: workspace:*
+        version: link:../design-system
+      '@aegis/ui':
+        specifier: workspace:*
+        version: link:../ui
+      '@aegis/utils':
+        specifier: workspace:*
+        version: link:../utils
+      class-variance-authority:
+        specifier: ^0.7.1
+        version: 0.7.1
+    devDependencies:
+      '@aegis/eslint-config':
+        specifier: workspace:*
+        version: link:../eslint-config
+      '@aegis/tsconfig':
+        specifier: workspace:*
+        version: link:../tsconfig
+      '@types/react':
+        specifier: ^19.0.2
+        version: 19.2.18
+      '@types/react-dom':
+        specifier: ^19.0.2
+        version: 19.2.4(@types/react@19.2.18)
+      eslint:
+        specifier: ^9.17.0
+        version: 9.39.5(jiti@1.21.7)
+      react:
+        specifier: ^19.0.0
+        version: 19.2.8
+      react-dom:
+        specifier: ^19.0.0
+        version: 19.2.8(react@19.2.8)
       typescript:
         specifier: ^5.7.2
         version: 5.9.3
