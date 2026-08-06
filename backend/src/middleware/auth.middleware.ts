@@ -128,4 +128,35 @@ const requireFreshAuth: RequestHandler = (req, _res, next) => {
   next();
 };
 
-export { protect, requirePermission, requireFreshAuth };
+/**
+ * Refuse anybody who is not in this realm.
+ *
+ * Separate from `requirePermission`, and both are used together on the employee
+ * routes, because they answer different questions. A permission check asks what
+ * somebody may do; a realm check asks whether they belong on this side of the
+ * platform at all. Without the realm wall, a customer who ever acquired a stray
+ * capability — through a misconfigured bundle, a bad migration, a future
+ * self-service feature — would reach staff endpoints. With it, that mistake is
+ * contained to the realm it happened in.
+ *
+ * The realm comes from the stored record via `protect`, never from the request.
+ */
+const requireRealm = (...realms: string[]): RequestHandler => {
+  return (req, _res, next) => {
+    const realm = req.user?.realm;
+    if (!realm || !realms.includes(realm)) {
+      auditService.record({
+        actorId: req.user?.id,
+        action: "authz.realm.denied",
+        metadata: { realm: realm ?? null, required: realms, path: req.originalUrl },
+      });
+      // Deliberately the same message the permission check gives. Which of the
+      // two refused somebody is not information they need, and it maps the
+      // platform's shape for anybody probing.
+      return next(new AppError("You do not have permission to perform this action.", 403));
+    }
+    next();
+  };
+};
+
+export { protect, requirePermission, requireRealm, requireFreshAuth };

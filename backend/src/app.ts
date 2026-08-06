@@ -19,6 +19,7 @@ import policyRoutes from "./routes/policy.routes";
 import chatRoutes from "./routes/chat.routes";
 import uploadRoutes from "./routes/upload.routes";
 import companyRoutes from "./routes/company.routes";
+import employeeRoutes from "./routes/employee.routes";
 import adminRoutes from "./routes/admin.routes";
 import uiActionRoutes from "./routes/ui_action.routes";
 import healthRoutes from "./routes/health.routes";
@@ -126,6 +127,8 @@ apiRouter.use((_req, res, next) => {
 });
 apiRouter.use("/auth", authRoutes);
 apiRouter.use("/leads", leadRoutes);
+// Employee operations. Realm-walled as a whole — see employee.routes.ts.
+apiRouter.use("/employee", employeeRoutes);
 apiRouter.use("/policies", policyRoutes);
 apiRouter.use("/chat", chatRoutes);
 apiRouter.use("/upload", uploadRoutes);

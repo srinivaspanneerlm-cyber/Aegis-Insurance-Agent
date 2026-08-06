@@ -17,6 +17,12 @@ import type {
   AuthSession,
   VerificationToken,
   LoginEvent,
+  EmployeeProfile,
+  WorkItem,
+  WorkItemEvent,
+  WorkflowRun,
+  WorkflowStep,
+  KnowledgeArticle,
   AuditLog,
 } from "@prisma/client";
 import prisma from "../config/db";
@@ -230,6 +236,153 @@ class LoginEventRepository extends BaseRepository<LoginEvent> {
   }
 }
 
+// ── Employee operations ─────────────────────────────────────────────────────
+
+class EmployeeProfileRepository extends BaseRepository<EmployeeProfile> {
+  constructor() {
+    super(prisma, "employeeProfile");
+  }
+
+  findByUserId(userId: string): Promise<EmployeeProfile | null> {
+    return this.delegate.findUnique({ where: { userId } });
+  }
+
+  /** Everyone a router may hand work to, with how much they already hold. */
+  async routingCandidates(
+    department: string
+  ): Promise<
+    { id: string; department: string; status: string; workloadLimit: number; openCount: number }[]
+  > {
+    const people: {
+      id: string;
+      department: string;
+      status: string;
+      workloadLimit: number;
+    }[] = await this.delegate.findMany({
+      where: { department, status: "ACTIVE" },
+      select: { id: true, department: true, status: true, workloadLimit: true },
+    });
+
+    // One grouped count rather than a query per person — this runs on every
+    // piece of work that arrives.
+    const open = await prisma.workItem.groupBy({
+      by: ["assigneeId"],
+      where: { assigneeId: { in: people.map((p) => p.id) }, closedAt: null },
+      _count: { _all: true },
+    });
+    const counts = new Map<string | null, number>(
+      (open as { assigneeId: string | null; _count: { _all: number } }[]).map((row) => [
+        row.assigneeId,
+        row._count._all,
+      ])
+    );
+
+    return people.map((person) => ({ ...person, openCount: counts.get(person.id) ?? 0 }));
+  }
+}
+
+class WorkItemRepository extends BaseRepository<WorkItem> {
+  constructor() {
+    super(prisma, "workItem");
+  }
+
+  findByReference(reference: string): Promise<WorkItem | null> {
+    return this.delegate.findUnique({ where: { reference } });
+  }
+
+  /**
+   * Somebody's queue. Overdue and urgent surface first, because a queue sorted
+   * by arrival is a queue where the thing about to breach is on page three.
+   */
+  queueFor(assigneeId: string, take = 50): Promise<WorkItem[]> {
+    return this.delegate.findMany({
+      where: { assigneeId, closedAt: null },
+      orderBy: [{ dueAt: "asc" }, { priority: "desc" }],
+      take,
+    });
+  }
+
+  openForEscalation(take = 200): Promise<WorkItem[]> {
+    return this.delegate.findMany({
+      where: { closedAt: null },
+      orderBy: { dueAt: "asc" },
+      take,
+    });
+  }
+}
+
+class WorkItemEventRepository extends BaseRepository<WorkItemEvent> {
+  constructor() {
+    super(prisma, "workItemEvent");
+  }
+
+  timeline(workItemId: string, take = 100): Promise<WorkItemEvent[]> {
+    return this.delegate.findMany({
+      where: { workItemId },
+      orderBy: { createdAt: "desc" },
+      take,
+    });
+  }
+}
+
+class WorkflowRunRepository extends BaseRepository<WorkflowRun> {
+  constructor() {
+    super(prisma, "workflowRun");
+  }
+
+  findByWorkItem(workItemId: string): Promise<WorkflowRun | null> {
+    return this.delegate.findUnique({ where: { workItemId } });
+  }
+}
+
+class WorkflowStepRepository extends BaseRepository<WorkflowStep> {
+  constructor() {
+    super(prisma, "workflowStep");
+  }
+
+  forRun(runId: string): Promise<WorkflowStep[]> {
+    return this.delegate.findMany({ where: { runId }, orderBy: { order: "asc" } });
+  }
+
+  findByKey(runId: string, key: string): Promise<WorkflowStep | null> {
+    return this.delegate.findUnique({ where: { runId_key: { runId, key } } });
+  }
+}
+
+class KnowledgeArticleRepository extends BaseRepository<KnowledgeArticle> {
+  constructor() {
+    super(prisma, "knowledgeArticle");
+  }
+
+  /**
+   * Search by substring across title, summary and tags.
+   *
+   * Deliberately simple, and deliberately not pretending otherwise: SQLite has
+   * no full-text index here and a `contains` scan is honest about what it is.
+   * It is bounded by `take`, so it degrades predictably rather than surprising
+   * somebody at ten thousand articles — which is when this earns a real index.
+   */
+  search(term: string, category?: string, take = 20): Promise<KnowledgeArticle[]> {
+    const query = term.trim();
+    return this.delegate.findMany({
+      where: {
+        ...(category ? { category } : {}),
+        ...(query
+          ? {
+              OR: [
+                { title: { contains: query } },
+                { summary: { contains: query } },
+                { tags: { contains: query } },
+              ],
+            }
+          : {}),
+      },
+      orderBy: { publishedAt: "desc" },
+      take,
+    });
+  }
+}
+
 // AuditLog — append-only compliance trail (writes are best-effort, never block).
 class AuditLogRepository extends BaseRepository<AuditLog> {
   constructor() {
@@ -249,4 +402,10 @@ export const linkedIdentityRepository = new LinkedIdentityRepository();
 export const authSessionRepository = new AuthSessionRepository();
 export const verificationTokenRepository = new VerificationTokenRepository();
 export const loginEventRepository = new LoginEventRepository();
+export const employeeProfileRepository = new EmployeeProfileRepository();
+export const workItemRepository = new WorkItemRepository();
+export const workItemEventRepository = new WorkItemEventRepository();
+export const workflowRunRepository = new WorkflowRunRepository();
+export const workflowStepRepository = new WorkflowStepRepository();
+export const knowledgeArticleRepository = new KnowledgeArticleRepository();
 export const auditRepository = new AuditLogRepository();

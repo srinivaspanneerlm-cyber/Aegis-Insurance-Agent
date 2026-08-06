@@ -41,6 +41,21 @@ export const PERMISSIONS = [
   "lead.write",
   "lead.delete",
 
+  // Employee operations.
+  //
+  // `work.read` is deliberately narrower than `work.read.all`: an employee sees
+  // the queue assigned to them, a team lead sees everybody's. Collapsing the two
+  // would mean every employee could read every customer's claim, which is the
+  // exact leak the realm split exists to prevent.
+  "work.read",
+  "work.read.all",
+  "work.write",
+  "work.assign",
+  "workflow.advance",
+  "workflow.approve",
+  "knowledge.read",
+  "knowledge.write",
+
   // Product catalogue
   "company.write",
 
@@ -82,6 +97,13 @@ export const ROLE_PERMISSIONS = {
     "lead.write",
     "customer.read",
     "analytics.read",
+    // Their own queue, and the ability to move work through it. Not
+    // `work.read.all` — that is a team lead's view — and not
+    // `workflow.approve`, which is the human gate a claim must clear.
+    "work.read",
+    "work.write",
+    "workflow.advance",
+    "knowledge.read",
   ],
 
   /**
@@ -104,6 +126,14 @@ export const ROLE_PERMISSIONS = {
     "analytics.read",
     "audit.read",
     "staff.manage",
+    "work.read",
+    "work.read.all",
+    "work.write",
+    "work.assign",
+    "workflow.advance",
+    "workflow.approve",
+    "knowledge.read",
+    "knowledge.write",
   ],
 
   /** Everything. Derived, so a permission added later is never withheld. */
@@ -113,9 +143,35 @@ export const ROLE_PERMISSIONS = {
   // Declared now and granted to nobody yet. They exist so that the day one is
   // assigned is a data change rather than a code change, and so the staff
   // application and this API cannot disagree about what a role name means.
-  SUPPORT: ["customer.read", "policy.read", "claim.read", "lead.read"],
-  CLAIMS: ["claim.read", "claim.assess", "claim.settle", "customer.read", "policy.read"],
-  OPERATIONS: ["policy.read", "policy.write", "lead.read", "lead.write", "analytics.read"],
+  SUPPORT: ["customer.read", "policy.read", "claim.read", "lead.read", "work.read", "work.write", "knowledge.read"],
+  CLAIMS: [
+    "claim.read",
+    "claim.assess",
+    "claim.settle",
+    "customer.read",
+    "policy.read",
+    "work.read",
+    "work.read.all",
+    "work.write",
+    "workflow.advance",
+    "workflow.approve",
+    "knowledge.read",
+    // A claims lead is measured on resolution time and backlog; withholding the
+    // numbers they are judged by would be an odd bundle.
+    "analytics.read",
+  ],
+  OPERATIONS: [
+    "policy.read",
+    "policy.write",
+    "lead.read",
+    "lead.write",
+    "analytics.read",
+    "work.read",
+    "work.read.all",
+    "work.assign",
+    "knowledge.read",
+    "knowledge.write",
+  ],
   COMPLIANCE: ["audit.read", "policy.read", "claim.read", "customer.read"],
   /** An external broker or agency. Read-only, and only what they were sent. */
   PARTNER: ["policy.read", "lead.read"],

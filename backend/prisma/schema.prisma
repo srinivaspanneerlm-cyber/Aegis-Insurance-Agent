@@ -112,6 +112,11 @@ model User {
   verificationTokens VerificationToken[]
   loginEvents        LoginEvent[]
 
+  // Employee operations. Both optional: a customer has neither, and an employee
+  // has a profile but is on the other side of `customerWork`.
+  employeeProfile EmployeeProfile? @relation("EmployeeIdentity")
+  customerWork    WorkItem[]       @relation("CustomerWork")
+
   @@index([realm])
   @@index([role])
   @@index([isActive])
@@ -482,4 +487,223 @@ model AuditLog {
   @@index([actorId, createdAt])
   @@index([action, createdAt])
   @@index([entity, entityId])
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// EMPLOYEE OPERATIONS
+//
+// The work an insurance employee actually does, and the record of doing it.
+// Nothing here is customer-facing; every query is scoped by the employee's
+// assignment or by a capability they hold.
+// ═════════════════════════════════════════════════════════════════════════════
+
+/// Who somebody is *at work* — distinct from who they are as an account.
+///
+/// Separate from `User` because the two have different lifetimes and different
+/// owners: an account exists the moment somebody can sign in, while a
+/// department, a branch and a reporting line are facts HR maintains and change
+/// without the account changing at all. Folding them into `User` would also put
+/// staff-only columns on every customer row.
+model EmployeeProfile {
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation("EmployeeIdentity", fields: [userId], references: [id], onDelete: Cascade)
+
+  /// The number on the badge. Human-facing, unique, and not the primary key —
+  /// employee numbering schemes get reissued and reformatted; ids must not.
+  employeeCode String @unique
+
+  department  String // claims | underwriting | servicing | support | operations
+  designation String
+  branch      String
+
+  /// Reporting line. Self-referential and nullable, because somebody has to be
+  /// at the top and a new joiner may not be assigned yet.
+  managerId String?
+  manager   EmployeeProfile?  @relation("ReportsTo", fields: [managerId], references: [id], onDelete: SetNull)
+  reports   EmployeeProfile[] @relation("ReportsTo")
+
+  status   String    @default("ACTIVE") // ACTIVE | ON_LEAVE | SUSPENDED | EXITED
+  joinedAt DateTime  @default(now())
+  exitedAt DateTime?
+
+  /// How much work the router may hand them at once. A number rather than a
+  /// policy so a team lead can lower it for somebody who is training.
+  workloadLimit Int @default(20)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  assignedWork WorkItem[]     @relation("AssignedTo")
+  workflowActs WorkflowStep[] @relation("StepActor")
+
+  @@index([department, status])
+  @@index([branch])
+  @@index([managerId])
+}
+
+/// One piece of work, whatever kind it is.
+///
+/// A claim, a KYC check, a renewal and a complaint are different *processes*
+/// but the same *thing* to the person doing them: something arrived, it has a
+/// priority and a due time, somebody owns it, and it ends. Modelling them as
+/// one table with a `kind` is what makes "my queue", "team workload" and
+/// "average resolution time" single queries rather than four unions that drift.
+///
+/// The process-specific detail lives in the workflow attached to it.
+model WorkItem {
+  id   String @id @default(uuid())
+  /// CLAIM | KYC | RENEWAL | COMPLAINT | APPOINTMENT | TASK
+  kind String
+  /// Human reference, e.g. CLM-2026-000123. What people say on the phone.
+  reference String @unique
+
+  title   String
+  summary String?
+
+  /// OPEN | IN_PROGRESS | AWAITING_CUSTOMER | AWAITING_APPROVAL | RESOLVED | CLOSED | CANCELLED
+  status String @default("OPEN")
+  /// LOW | NORMAL | HIGH | URGENT
+  priority String @default("NORMAL")
+
+  assigneeId String?
+  assignee   EmployeeProfile? @relation("AssignedTo", fields: [assigneeId], references: [id], onDelete: SetNull)
+
+  /// The customer this concerns. Nullable because internal tasks have none.
+  customerId String?
+  customer   User?   @relation("CustomerWork", fields: [customerId], references: [id], onDelete: SetNull)
+
+  /// When it should be done by, and the promise it was measured against.
+  dueAt       DateTime?
+  slaMinutes  Int?
+  openedAt    DateTime  @default(now())
+  firstTouchAt DateTime?
+  resolvedAt  DateTime?
+  closedAt    DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  workflow WorkflowRun?
+  events   WorkItemEvent[]
+
+  // "My open queue, most urgent first" is the hottest read in the product.
+  @@index([assigneeId, status, dueAt])
+  @@index([status, priority])
+  @@index([kind, status])
+  @@index([customerId])
+  @@index([openedAt])
+}
+
+/// The timeline on a piece of work. Append-only.
+///
+/// Separate from AuditLog because this is operational history a colleague reads
+/// to pick up somebody else's case — not a compliance trail. Mixing them would
+/// mean either leaking the platform's audit stream into a case view, or
+/// building a second one later anyway.
+model WorkItemEvent {
+  id         String   @id @default(uuid())
+  workItemId String
+  workItem   WorkItem @relation(fields: [workItemId], references: [id], onDelete: Cascade)
+
+  /// ASSIGNED | STATUS_CHANGED | NOTE | STEP_COMPLETED | ESCALATED | CONTACTED
+  kind String
+  /// Who did it. Null when the system or a scheduled job did.
+  actorId String?
+  summary String
+  detail  String? // JSON; SQLite has no native type and this targets Postgres too
+
+  createdAt DateTime @default(now())
+
+  @@index([workItemId, createdAt])
+}
+
+/// A running instance of one of the agentic workflows.
+///
+/// The definition is a name, not a stored graph. The steps a claim goes through
+/// are business rules that belong in reviewed code, not in rows somebody can
+/// edit into an unreachable state — and a workflow that can be rewritten at
+/// runtime cannot be reasoned about when a claim is disputed months later.
+model WorkflowRun {
+  id         String   @id @default(uuid())
+  workItemId String   @unique
+  workItem   WorkItem @relation(fields: [workItemId], references: [id], onDelete: Cascade)
+
+  /// CLAIM_APPROVAL | KYC | RENEWAL | COMPLAINT
+  definition String
+  /// The step key it is sitting on. Null once finished.
+  currentStep String?
+  /// RUNNING | AWAITING_HUMAN | COMPLETED | REJECTED | ABANDONED
+  status String @default("RUNNING")
+
+  startedAt   DateTime  @default(now())
+  completedAt DateTime?
+
+  steps WorkflowStep[]
+
+  @@index([definition, status])
+  @@index([status])
+}
+
+/// One step of a running workflow, and who completed it.
+///
+/// `actorKind` records whether a person, a rule or the assistant did it. That
+/// distinction is the whole point of a human-approval gate: months later,
+/// "who approved this claim" must have an answer that is not "the software".
+model WorkflowStep {
+  id    String      @id @default(uuid())
+  runId String
+  run   WorkflowRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  /// Stable key from the definition, e.g. "document_validation".
+  key   String
+  name  String
+  order Int
+
+  /// PENDING | IN_PROGRESS | COMPLETED | SKIPPED | REJECTED
+  status String @default("PENDING")
+  /// SYSTEM | ASSISTANT | EMPLOYEE
+  actorKind String?
+  actorId   String?
+  actor     EmployeeProfile? @relation("StepActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  /// APPROVE | REJECT | ESCALATE | REQUEST_INFO — set on decision steps only.
+  decision String?
+  notes    String?
+  /// What the assistant suggested, kept even when a human overrode it. That
+  /// disagreement is the most useful record this table holds.
+  suggestion String?
+
+  startedAt   DateTime?
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@unique([runId, key])
+  @@index([runId, order])
+  @@index([status])
+}
+
+/// The knowledge an employee searches: SOPs, circulars, product notes, IRDAI
+/// guidance. Stored rather than fetched from a wiki so search, permissions and
+/// versioning are the platform's problem and not a second system's.
+model KnowledgeArticle {
+  id    String @id @default(uuid())
+  slug  String @unique
+  title String
+  /// POLICY | SOP | CIRCULAR | GUIDELINE | FAQ | TRAINING | PRODUCT
+  category String
+  summary  String
+  body     String
+  /// Comma-separated; SQLite has no list type and this schema targets both.
+  tags String?
+
+  /// Which departments it applies to. Null means everyone.
+  departments String?
+
+  version     Int      @default(1)
+  publishedAt DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@index([category])
+  @@index([publishedAt])
 }
