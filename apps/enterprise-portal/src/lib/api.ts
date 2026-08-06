@@ -1,0 +1,161 @@
+import { API_URL } from "@/lib/console";
+import type {
+  AiSystem,
+  ComplianceFinding,
+  ComplianceSummary,
+  DashboardPayload,
+} from "@/lib/console";
+
+/** The only place this console talks to the API. */
+export class ConsoleError extends Error {
+  readonly status: number;
+  readonly code: string;
+  constructor(message: string, status: number, code: string) {
+    super(message);
+    this.name = "ConsoleError";
+    this.status = status;
+    this.code = code;
+  }
+}
+
+async function call<T>(path: string): Promise<T> {
+  let response: Response;
+  try {
+    response = await fetch(`${API_URL}${path}`, { credentials: "include" });
+  } catch {
+    throw new ConsoleError("We could not reach Aegis.", 0, "NETWORK");
+  }
+  const body = (await response.json().catch(() => ({}))) as {
+    data?: T;
+    code?: string;
+    message?: string;
+  };
+  if (!response.ok) {
+    throw new ConsoleError(
+      body.message ?? "Something went wrong.",
+      response.status,
+      body.code ?? "UNKNOWN"
+    );
+  }
+  return body.data as T;
+}
+
+export const consoleApi = {
+  dashboard: () => call<DashboardPayload>("/enterprise/dashboard"),
+  analytics: () =>
+    call<{
+      overview: DashboardPayload["overview"];
+      trend: DashboardPayload["trend"];
+      branches: DashboardPayload["branches"];
+    }>("/enterprise/analytics"),
+  customers: (search: string) =>
+    call<{ total: number; customers: CustomerRow[] }>(
+      `/enterprise/customers${search ? `?search=${encodeURIComponent(search)}` : ""}`
+    ),
+  employees: () =>
+    call<{ employees: EmployeeRow[]; departments: { department: string; count: number }[] }>(
+      "/enterprise/employees"
+    ),
+  products: () => call<ProductsPayload>("/enterprise/products"),
+  claims: () => call<ClaimsPayload>("/enterprise/claims"),
+  aiSystems: () => call<{ systems: AiSystem[] }>("/enterprise/ai-systems"),
+  workflows: () => call<WorkflowsPayload>("/enterprise/workflows"),
+  compliance: () =>
+    call<{ summary: ComplianceSummary; findings: ComplianceFinding[] }>("/enterprise/compliance"),
+  audit: (action: string) =>
+    call<{ total: number; entries: AuditEntry[]; actions: { action: string; count: number }[] }>(
+      `/enterprise/audit${action ? `?action=${encodeURIComponent(action)}` : ""}`
+    ),
+};
+
+/** Where a CSV download points. A plain link, so the browser handles it. */
+export const reportUrl = (kind: string, format?: "csv") =>
+  `${API_URL}/enterprise/reports/${kind}${format ? `?format=${format}` : ""}`;
+
+export interface CustomerRow {
+  id: string;
+  name: string;
+  email: string;
+  createdAt: string;
+  lastLoginAt: string | null;
+  emailVerifiedAt: string | null;
+  isActive: boolean;
+  _count: { uploadedDocuments: number; customerWork: number };
+}
+
+export interface EmployeeRow {
+  id: string;
+  employeeCode: string;
+  department: string;
+  designation: string;
+  branch: string;
+  status: string;
+  workloadLimit: number;
+  openWork: number;
+  overdue: number;
+  trainingStatus: null;
+  user: { id: string; name: string; email: string; lastLoginAt: string | null };
+}
+
+export interface ProductsPayload {
+  companies: { id: string; companyName: string; isActive: boolean; _count: { policies: number } }[];
+  policies: {
+    id: string;
+    policyName: string;
+    premium: number;
+    coverage: string;
+    isActive: boolean;
+    version: number;
+    updatedAt: string;
+    company: { companyName: string };
+  }[];
+  versionHistory: { available: false; reason: string; needs: string };
+}
+
+export interface ClaimsPayload {
+  byStatus: Record<string, number>;
+  byPriority: Record<string, number>;
+  averageProcessingHours: number | null;
+  recent: {
+    id: string;
+    reference: string;
+    title: string;
+    status: string;
+    priority: string;
+    openedAt: string;
+    dueAt: string | null;
+  }[];
+  fraudIndicators: { available: false; reason: string; needs: string };
+}
+
+export interface WorkflowsPayload {
+  catalogue: {
+    definition: string;
+    label: string;
+    kind: string;
+    totalSteps: number;
+    humanSteps: number;
+    decisionSteps: number;
+    steps: {
+      key: string;
+      name: string;
+      description: string;
+      actorKind: string;
+      requiresDecision: boolean;
+    }[];
+  }[];
+  activity: {
+    byDefinition: { definition: string; status: string; count: number }[];
+    totals: Record<string, number>;
+  };
+}
+
+export interface AuditEntry {
+  id: string;
+  action: string;
+  actorId: string | null;
+  entity: string | null;
+  entityId: string | null;
+  metadata: string | null;
+  createdAt: string;
+}
