@@ -13,6 +13,7 @@ export default {
   content: [
     "./src/**/*.{ts,tsx,mdx}",
     "../../packages/ui/src/**/*.{ts,tsx}",
+    "../../packages/intelligence/src/**/*.{ts,tsx}",
     "../../packages/documents/src/**/*.{ts,tsx}",
   ],
 } satisfies Config;

@@ -18,7 +18,8 @@
     "next": "^15.1.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "@aegis/documents": "workspace:*"
+    "@aegis/documents": "workspace:*",
+    "@aegis/intelligence": "workspace:*"
   },
   "devDependencies": {
     "@aegis/eslint-config": "workspace:*",

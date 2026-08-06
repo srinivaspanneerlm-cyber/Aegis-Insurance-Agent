@@ -10,5 +10,9 @@ import { aegisPreset } from "@aegis/design-system/preset";
  */
 export default {
   presets: [aegisPreset],
-  content: ["./src/**/*.{ts,tsx,mdx}", "../../packages/ui/src/**/*.{ts,tsx}"],
+  content: [
+    "./src/**/*.{ts,tsx,mdx}",
+    "../../packages/ui/src/**/*.{ts,tsx}",
+    "../../packages/intelligence/src/**/*.{ts,tsx}",
+  ],
 } satisfies Config;

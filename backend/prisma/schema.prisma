@@ -101,6 +101,8 @@ model User {
   // Relations (all nullable on the owned side to preserve legacy rows)
   chats             Chat[]
   uploadedDocuments UploadedDocument[]
+  insuranceProfile  InsuranceProfile?
+  intelligenceRuns  IntelligenceRun[]
   leads             Lead[]                  @relation("AssignedLeads")
   sessions          Session[]
   recommendations   RecommendationHistory[]
@@ -947,4 +949,139 @@ model DocumentRequest {
   @@unique([subjectId, workItemId, documentKey])
   @@index([subjectId, status])
   @@index([workItemId])
+}
+
+// ── Insurance intelligence ───────────────────────────────────────────────────
+//
+// Everything the platform needs to reason about a customer's *protection*, as
+// opposed to their conversation. The AI keeps a conversational profile of its
+// own under `Aegis-AI/layer3`; this is the structured, auditable version that
+// survives a session ending and that an employee can look at.
+//
+// The two are not duplicates. The conversational profile is what the customer
+// has said so far; this is what the business knows and is prepared to act on.
+
+///
+/// A customer's insurance profile.
+///
+/// One per customer. Every field is optional because a profile is built up over
+/// time — a customer who has answered three questions has a real profile, and
+/// refusing to store it until it is complete is how platforms lose the three
+/// answers. Completeness is computed, not enforced.
+model InsuranceProfile {
+  id     String @id @default(uuid())
+  userId String @unique
+
+  // Who they are
+  age         Int?
+  occupation  String?
+  incomeRange String? // BELOW_3L | 3L_6L | 6L_12L | 12L_25L | ABOVE_25L
+  city        String?
+  state       String?
+
+  // Who depends on them. `dependents` is not `familyMembers`: a household of
+  // four with two earners carries different risk from one with a single earner,
+  // and that distinction drives the whole life-cover recommendation.
+  maritalStatus String? // SINGLE | MARRIED | WIDOWED | SEPARATED
+  familyMembers Int?
+  dependents    Int?
+  parentsDependent Boolean?
+
+  // What they own and do
+  vehicleOwnership  String? // JSON array: [{ kind, make, year, commercial }]
+  propertyOwnership String? // JSON array: [{ kind, ownership, valueRange }]
+  travelFrequency   String? // NEVER | RARE | OCCASIONAL | FREQUENT | INTERNATIONAL
+
+  // Health. Optional in the strongest sense: never required to get a
+  // recommendation, and absence is treated as unknown rather than as healthy.
+  healthConditions String? // JSON array of strings
+  smoker           Boolean?
+
+  // What they want
+  financialGoals String? // JSON array: RETIREMENT | CHILD_EDUCATION | WEALTH | …
+  riskPreference String? // CONSERVATIVE | BALANCED | AGGRESSIVE
+
+  // What they have been through. Prior claims and lapses change both risk and
+  // how the platform should talk to somebody.
+  insuranceHistory String? // JSON: { yearsHeld, priorClaims, lapses }
+
+  // Bookkeeping
+  profileHash String? // snapshot identity, so a cached analysis can be invalidated
+  completeness Int    @default(0) // 0–100, computed on write
+  source      String  @default("SELF") // SELF | ADVISOR | AI | IMPORT
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  heldPolicies   HeldPolicy[]
+  analyses       IntelligenceRun[]
+
+  @@index([updatedAt])
+  @@index([profileHash])
+}
+
+///
+/// A policy the customer actually holds — here or anywhere else.
+///
+/// Distinct from `Policy`, which is a product in a company's catalogue. Coverage
+/// gap analysis is impossible without knowing what somebody already has,
+/// including cover bought elsewhere, and a customer who is told to buy health
+/// insurance they already own stops trusting the platform.
+model HeldPolicy {
+  id        String @id @default(uuid())
+  profileId String
+
+  domain      String // motor | health | life | travel | property | commercial
+  insurer     String?
+  productName String?
+  policyNumber String?
+
+  sumInsured  Float?
+  premium     Float?
+  startDate   DateTime?
+  renewalDate DateTime?
+
+/// Whether Aegis sold it. Cover held elsewhere still counts as cover.
+  external Boolean @default(true)
+  status   String  @default("ACTIVE") // ACTIVE | LAPSED | EXPIRED | CANCELLED
+
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  profile InsuranceProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([profileId, domain])
+  @@index([renewalDate])
+  @@index([status])
+}
+
+///
+/// One run of the intelligence engine, kept.
+///
+/// Recommendations are retained rather than recomputed on demand for two
+/// reasons: a customer must be able to ask why they were told something last
+/// month, and a regulator may require the same. The `profileHash` records which
+/// version of the facts produced it, so "the advice changed" can be answered
+/// with "because your circumstances did".
+model IntelligenceRun {
+  id        String @id @default(uuid())
+  profileId String
+  userId    String?
+
+  kind        String // NEED | RECOMMENDATION | GAP | RISK | RENEWAL | FULL
+  profileHash String
+  payload     String // JSON of the full report, including every explanation
+  confidence  Float?
+
+/// Which engine produced it, so a change in advice can be traced to a change in code.
+  engineVersion String @default("1.0.0")
+  createdAt     DateTime @default(now())
+
+  profile InsuranceProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  user    User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([profileId, kind, createdAt])
+  @@index([userId, createdAt])
+  @@index([profileHash])
 }
