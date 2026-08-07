@@ -1,11 +1,18 @@
-# Workspace membership is deliberately narrow.
+# Workspace membership grows one application at a time.
 #
-# `frontend/`, `backend/` and `ai-python/` are the running production apps and
-# they install with npm today. Pulling them in here would rewrite their
-# dependency resolution as a side effect of a scaffolding change, which is not
-# something a foundation sprint should do to a live system. They join in the
-# migration sprint, one at a time, each with its own verification.
+# `frontend/` joined in Phase 2, which is the migration this file always
+# anticipated: it is the customer portal people actually reach, and it could not
+# import a single shared package while it sat outside. Being outside meant the
+# only way to give it the document, advice, communication and knowledge UI would
+# have been to copy those components into it — which is the duplication the
+# monorepo exists to prevent.
+#
+# `backend/` and `ai-python/` remain outside deliberately. Neither is a
+# TypeScript front end; the backend installs with npm and ai-python with pip,
+# and neither consumes an `@aegis/*` package. Pulling them in would rewrite
+# their dependency resolution for no benefit at all.
 packages:
   - "apps/*"
   - "packages/*"
   - "services/*"
+  - "frontend"
