@@ -6,6 +6,7 @@ import { STORAGE_KEYS } from "@/lib/storage-keys";
 import { logger } from "@/lib/logger";
 import { advisorPlanUrl } from "./botRouter";
 import { MOCK_HOSPITALS, DEFAULT_PLAN } from "./constants";
+import { policyService } from "@/services/api";
 import type { PlanDetails, DetailTab } from "./types";
 
 /** GST rate applied to the interactive premium calculator. */
@@ -57,6 +58,37 @@ export function usePolicyDetails() {
         logger.error("Failed to parse stored plan details", err);
       }
     } else {
+      // No plan chosen yet: show the catalogue's cheapest, with the next tier up
+      // as the comparison. Both come from the backend, so the page cannot quote
+      // a plan that no longer exists or a premium that has changed.
+      policyService
+        .getPolicies({ limit: 50 })
+        .then(({ policies }) => {
+          const sorted = [...policies].sort((a, b) => a.premium - b.premium);
+          const cheapest = sorted[0];
+          const nextUp = sorted[1];
+          if (!cheapest) return;
+
+          setBasePremium(cheapest.premium);
+          setPlan({
+            ...DEFAULT_PLAN,
+            planName: cheapest.policyName,
+            coverage: cheapest.coverage,
+            premium: `₹${cheapest.premium.toLocaleString("en-IN")}/month`,
+            alternativePlan: nextUp
+              ? {
+                  ...DEFAULT_PLAN.alternativePlan!,
+                  planName: nextUp.policyName,
+                  coverage: nextUp.coverage,
+                  premium: `₹${nextUp.premium.toLocaleString("en-IN")}/month`,
+                }
+              : undefined,
+          });
+        })
+        .catch(() => {
+          // Catalogue unreachable; the shape set below still renders a page.
+        });
+
       // Fallback default details if none saved yet
       setPlan(DEFAULT_PLAN);
     }

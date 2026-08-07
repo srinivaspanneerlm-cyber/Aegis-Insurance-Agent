@@ -12,12 +12,26 @@ export const MOCK_HOSPITALS = [
 ];
 
 /** Fallback plan shown when no plan was saved to localStorage yet. */
+/**
+ * The shape a plan detail page renders while no plan has been chosen.
+ *
+ * Several fields are deliberately empty rather than filled with plausible
+ * values. A claim settlement ratio is an IRDAI-published figure per insurer,
+ * and it is the number people actually decide on — inventing 99.1% here was
+ * both the most consequential fabrication on the page and the most easily
+ * checked. The same applies to hospital network counts and to benefit lines
+ * asserting policy terms: "Day-1 Pre-Existing Illness Cover" sat two lines
+ * above a waiting period that contradicted it.
+ *
+ * The components already render `NOT_DISCLOSED` for an empty value, so an
+ * unknown is shown as unknown rather than as a number.
+ */
 export const DEFAULT_PLAN: PlanDetails = {
   planName: "Aegis Supreme Health Shield",
   coverage: "₹1 Crore Cover",
   premium: "₹850/month",
-  benefits: ["Unlimited Cashless network beds", "Day-1 Pre-Existing Illness Cover", "Zero Co-Pay Required", "No Room Rent sublimits"],
-  claimSettlementRatio: "99.1%",
+  benefits: [],
+  claimSettlementRatio: "",
   riskLevel: "Low Risk",
   score: 98,
   confidenceScore: 0.98,
@@ -25,7 +39,7 @@ export const DEFAULT_PLAN: PlanDetails = {
   exclusions: ["Cosmetic surgery", "Self-inflicted injuries", "Experimental therapies"],
   waitingPeriod: "12 months for pre-existing diseases, 30 days initial waiting period.",
   claimProcess: "1. Intimate claim at desk. 2. Submit cashless digital health card. 3. Direct billing settlement in 15 mins.",
-  hospitalNetwork: "12,000+ Empanelled Cashless Care Centers",
+  hospitalNetwork: "",
   premiumBreakdown: "Base Premium: ₹720, GST (18%): ₹130",
   executiveNotes: "Underwritten under premium guidelines. Optimized for growing households.",
   alternativePlan: {
@@ -33,7 +47,7 @@ export const DEFAULT_PLAN: PlanDetails = {
     coverage: "₹8 Lakh Cover",
     premium: "₹1800/month",
     benefits: ["Day Care Procedures", "Cashless Hospitalization", "Restore Benefit"],
-    claimSettlementRatio: "98.4%",
+    claimSettlementRatio: "",
     riskLevel: "Low Risk",
     score: 85,
     confidenceScore: 0.92,
@@ -41,7 +55,7 @@ export const DEFAULT_PLAN: PlanDetails = {
     exclusions: ["Global coverage benefits"],
     waitingPeriod: "24 months for pre-existing diseases.",
     claimProcess: "Cashless approval within 4 hours.",
-    hospitalNetwork: "8,500+ cashless hospitals",
+    hospitalNetwork: "",
     premiumBreakdown: "Base Premium: ₹1600, GST: ₹200",
     executiveNotes: "Alternative choice for smaller budget limits.",
   },
