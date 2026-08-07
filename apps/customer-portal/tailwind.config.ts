@@ -14,5 +14,6 @@ export default {
     "./src/**/*.{ts,tsx,mdx}",
     "../../packages/ui/src/**/*.{ts,tsx}",
     "../../packages/intelligence/src/**/*.{ts,tsx}",
+    "../../packages/communication/src/**/*.{ts,tsx}",
   ],
 } satisfies Config;

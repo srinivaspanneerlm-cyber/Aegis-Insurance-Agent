@@ -24,6 +24,8 @@ import enterpriseRoutes from "./routes/enterprise.routes";
 import platformRoutes from "./routes/platform.routes";
 import documentRoutes from "./routes/documents.routes";
 import intelligenceRoutes from "./routes/intelligence.routes";
+import communicationRoutes from "./routes/communication.routes";
+import { registerWorkflowCommunication } from "./communication/workflows";
 import adminRoutes from "./routes/admin.routes";
 import uiActionRoutes from "./routes/ui_action.routes";
 import healthRoutes from "./routes/health.routes";
@@ -141,6 +143,12 @@ apiRouter.use("/platform", platformRoutes);
 // legitimately manages their own documents. See documents.routes.ts.
 apiRouter.use("/documents", documentRoutes);
 apiRouter.use("/intelligence", intelligenceRoutes);
+apiRouter.use("/communication", communicationRoutes);
+
+// Wire the event subscribers that turn platform events into notifications.
+// Idempotent, and done here rather than in server.ts so the test suite — which
+// imports the app without booting a server — exercises the same wiring.
+registerWorkflowCommunication();
 apiRouter.use("/policies", policyRoutes);
 apiRouter.use("/chat", chatRoutes);
 apiRouter.use("/upload", uploadRoutes);

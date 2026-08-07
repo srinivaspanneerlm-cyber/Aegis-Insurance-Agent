@@ -4,6 +4,7 @@ import { userRepository, chatRepository } from "../repositories";
 import env from "../config/env";
 import { logger } from "../config/logger";
 import aiService = require("../services/ai.service");
+import { attachRealtime, userRoom } from "../communication/eventBus";
 
 type SocketNext = (err?: Error) => void;
 
@@ -38,18 +39,28 @@ const socketAuthMiddleware = async (socket: Socket, next: SocketNext): Promise<v
 };
 
 const initSockets = (io: Server): void => {
+  // Hand the server to the communication platform so notifications raised
+  // anywhere in the process can reach a connected portal.
+  attachRealtime(io);
+
   io.on("connection", (socket: Socket) => {
     logger.info({ socketId: socket.id }, "Socket client connected");
 
-    // There is no `join_room` here on purpose. It used to let a client join any
-    // room it named, with no check that the room was theirs — and every reply
-    // below was broadcast to that room. Nothing joins rooms now, so a caller
-    // cannot put itself in the path of someone else's conversation.
+    // There is still no `join_room` here, and there never will be. It used to
+    // let a client join any room it named, with no check that the room was
+    // theirs — and every reply below was broadcast to that room.
     //
-    // An advisor conversation is between one customer and their advisor, so
-    // replies go back to the socket that asked. If group chat is ever needed,
-    // the room a socket may join has to be derived from `socket.data.user`
-    // server-side — never accepted from the client.
+    // The one room a socket occupies is its own, derived from the authenticated
+    // identity attached during the handshake. That is exactly the shape this
+    // comment previously specified as the only safe way to add rooms: the room
+    // is computed server-side from `socket.data.user` and the client never
+    // names it, so a caller cannot put itself in the path of someone else's
+    // conversation. Delivery to that room is addressed by user id through
+    // `RealtimeService`, which has no way to express "any room".
+    const identity = socket.data.user as { id: string } | undefined;
+    if (identity?.id) {
+      void socket.join(userRoom(identity.id));
+    }
 
     // Simple sliding-window throttle: cap AI-backed socket messages per client.
     const RATE_WINDOW_MS = 60 * 1000;

@@ -19,7 +19,8 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "@aegis/documents": "workspace:*",
-    "@aegis/intelligence": "workspace:*"
+    "@aegis/intelligence": "workspace:*",
+    "@aegis/communication": "workspace:*"
   },
   "devDependencies": {
     "@aegis/eslint-config": "workspace:*",

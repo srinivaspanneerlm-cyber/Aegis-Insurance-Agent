@@ -102,6 +102,10 @@ model User {
   chats             Chat[]
   uploadedDocuments UploadedDocument[]
   insuranceProfile  InsuranceProfile?
+  conversations     ConversationParticipant[]
+  mentions          Mention[]
+  notificationPrefs NotificationPreference?
+  announcementReads AnnouncementRead[]
   intelligenceRuns  IntelligenceRun[]
   leads             Lead[]                  @relation("AssignedLeads")
   sessions          Session[]
@@ -510,10 +514,43 @@ model Notification {
   createdAt DateTime  @default(now())
   readAt    DateTime?
 
+  // ── Sprint 10 additions ────────────────────────────────────────────────────
+  // Added to the existing model rather than replacing it. `isRead` stays and
+  // stays authoritative for read/unread; `status` adds the third state the
+  // original two booleans could not express. Code that predates this keeps
+  // working, which is the point of extending rather than migrating.
+
+  /// POLICY | CLAIM | DOCUMENT | RENEWAL | SECURITY | ANNOUNCEMENT | MAINTENANCE | AI_SUGGESTION | TASK | MESSAGE
+  category String @default("ANNOUNCEMENT")
+  /// UNREAD | READ | ARCHIVED
+  status   String @default("UNREAD")
+  /// LOW | NORMAL | HIGH | URGENT
+  priority String @default("NORMAL")
+
+  /// Where this notification points. A relative portal path, never a full URL —
+  /// an absolute URL in a notification is a phishing vector waiting for someone
+  /// to write it into the wrong field.
+  deepLink String?
+
+  /// What it is about, so a timeline can group by subject without a join table.
+  subjectKind String? // workItem | document | policy | conversation | intelligenceRun
+  subjectId   String?
+
+  /// Collapses repeats. Two "renewal due" notices for one policy in a week is
+  /// how people learn to ignore the notification bell.
+  dedupeKey String?
+
+  archivedAt  DateTime?
+  deliveredAt DateTime?
+
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, isRead, createdAt])
   @@index([type])
+  @@index([userId, status, createdAt])
+  @@index([userId, category, createdAt])
+  @@index([dedupeKey])
+  @@index([subjectKind, subjectId])
 }
 
 model AuditLog {
@@ -628,6 +665,24 @@ model WorkItem {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
+
+  // ── Sprint 10 additions ────────────────────────────────────────────────────
+  // This is the platform's task system and it already had assignment, priority,
+  // due dates, status, owner and a workflow link. Building a second `Task`
+  // model beside it would have split every employee's queue in two.
+
+  /// Which team owns it. Null when it is personal rather than departmental.
+  department String?
+
+  /// HUMAN | AI | SYSTEM — who proposed this task.
+  ///
+  /// An AI-suggested task is created in the same table as any other so it lands
+  /// in the same queue, but it is labelled, because an employee is entitled to
+  /// know whether a person or a model decided this needed doing.
+  origin String @default("HUMAN")
+
+  /// For an AI suggestion: why it was raised, in words the assignee can judge.
+  originRationale String?
 
   workflow WorkflowRun?
   events   WorkItemEvent[]
@@ -1084,4 +1139,255 @@ model IntelligenceRun {
   @@index([profileId, kind, createdAt])
   @@index([userId, createdAt])
   @@index([profileHash])
+}
+
+// ── Communication & collaboration ────────────────────────────────────────────
+//
+// The platform already had two kinds of conversation: `Chat`, which is a
+// customer talking to the AI, and `WorkItemEvent`, which is the operational
+// history of a case. Neither is a conversation *between people*, and that is
+// what this section adds.
+//
+// One model serves every pairing — customer to advisor, advisor to advisor,
+// admin to department — because a thread is a thread. What differs is who may
+// join and what may be said, and that is authorisation, not schema.
+
+/// A thread.
+model Conversation {
+  id String @id @default(uuid())
+
+  /// DIRECT | CASE | INTERNAL | ANNOUNCEMENT
+  ///
+  /// CASE threads hang off a work item and are visible to its participants.
+  /// INTERNAL threads are staff-only and must never be shown to a customer —
+  /// that distinction is enforced in the service, and this field is what it
+  /// reads.
+  kind String
+
+  subject String?
+
+  /// The work item this concerns, when it concerns one.
+  workItemId String?
+
+  /// The customer this concerns. Set even on INTERNAL threads, so a colleague
+  /// can find the internal discussion about a case — it does not imply the
+  /// customer can read it.
+  customerId String?
+
+  /// OPEN | RESOLVED | ARCHIVED
+  status String @default("OPEN")
+
+  createdById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
+  /// Denormalised so an inbox can sort without touching the messages table.
+  lastMessageAt DateTime @default(now())
+
+  participants ConversationParticipant[]
+  messages     Message[]
+
+  @@index([kind, status, lastMessageAt])
+  @@index([workItemId])
+  @@index([customerId, kind])
+  @@index([lastMessageAt])
+}
+
+/// Who is in a thread, and what they have read.
+///
+/// Membership is a row rather than a computed rule. A computed rule ("everyone
+/// with claim.read may see claim threads") means a person's access to an old
+/// conversation changes silently when their role changes, and nobody can answer
+/// "who saw this?" afterwards.
+model ConversationParticipant {
+  id             String @id @default(uuid())
+  conversationId String
+  userId         String
+
+  /// OWNER | MEMBER | OBSERVER — observers may read but not post.
+  role String @default("MEMBER")
+
+  lastReadAt DateTime?
+  mutedAt    DateTime?
+  leftAt     DateTime?
+  addedAt    DateTime @default(now())
+  addedById  String?
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, userId])
+  @@index([userId, lastReadAt])
+}
+
+/// One message.
+model Message {
+  id             String @id @default(uuid())
+  conversationId String
+
+  /// Null when the sender is the platform or an AI agent — see `senderKind`.
+  senderId   String?
+  /// USER | AI | SYSTEM
+  senderKind String @default("USER")
+  /// Which agent, when senderKind is AI. Named so a customer can be told.
+  senderAgent String?
+
+  body String
+
+  /// NOTE | REPLY | SUMMARY | SUGGESTION | SYSTEM_EVENT
+  ///
+  /// SUGGESTION is a draft the Communication AI proposed. It is stored like any
+  /// other message but never delivered until a person sends it, which is the
+  /// difference between an assistant and an impersonation.
+  kind String @default("REPLY")
+
+  /// True for staff-only notes on a customer-visible thread.
+  internal Boolean @default(false)
+
+  /// Uploaded documents referenced by this message, as a JSON array of ids.
+  /// Ids only — the document platform stays the single authority on access.
+  attachmentIds String?
+
+  editedAt  DateTime?
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  mentions     Mention[]
+
+  @@index([conversationId, createdAt])
+  @@index([senderId, createdAt])
+  @@index([conversationId, internal, createdAt])
+}
+
+/// Somebody named in a message.
+model Mention {
+  id        String @id @default(uuid())
+  messageId String
+  userId    String
+
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId])
+  @@index([userId, readAt])
+}
+
+/// How somebody wants to be contacted.
+///
+/// Channels that do not exist yet are stored but reported as unavailable rather
+/// than silently accepted. A user who switches on SMS and hears nothing has
+/// been lied to; one who is told SMS is not connected yet has been informed.
+model NotificationPreference {
+  id     String @id @default(uuid())
+  userId String @unique
+
+  inApp Boolean @default(true)
+  email Boolean @default(true)
+  sms   Boolean @default(false)
+  push  Boolean @default(false)
+
+  /// IMMEDIATE | DAILY | WEEKLY — how often reminders may repeat.
+  reminderFrequency String @default("IMMEDIATE")
+
+  /// BCP 47. The platform serves Tamil, Thanglish and English speakers.
+  language String @default("en")
+
+  /// Categories the user has switched off, as a JSON array.
+  /// Security alerts are never suppressible and the service enforces that.
+  mutedCategories String?
+
+  /// Local time window during which only urgent notifications are delivered.
+  quietHoursStart String? // "22:00"
+  quietHoursEnd   String? // "07:00"
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+/// A broadcast to a realm, department or the whole platform.
+///
+/// Kept apart from Notification because an announcement is written once and
+/// read by thousands. Fanning one out into a row per recipient would turn a
+/// company-wide message into a hundred thousand writes.
+model Announcement {
+  id String @id @default(uuid())
+
+  title String
+  body  String
+
+  /// ALL | CUSTOMER | EMPLOYEE | ENTERPRISE | PLATFORM
+  audienceRealm String @default("ALL")
+  /// Narrows further within a realm. Null means the whole realm.
+  audienceDepartment String?
+
+  /// NORMAL | HIGH | URGENT
+  priority String @default("NORMAL")
+  /// ANNOUNCEMENT | MAINTENANCE | SECURITY | POLICY_BROADCAST
+  category String @default("ANNOUNCEMENT")
+
+  publishedAt DateTime?
+  expiresAt   DateTime?
+
+  createdById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  reads AnnouncementRead[]
+
+  @@index([audienceRealm, publishedAt])
+  @@index([publishedAt, expiresAt])
+}
+
+/// Who has seen an announcement. Written on read, so the table stays small.
+model AnnouncementRead {
+  id             String   @id @default(uuid())
+  announcementId String
+  userId         String
+  readAt         DateTime @default(now())
+
+  announcement Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([announcementId, userId])
+  @@index([userId])
+}
+
+/// A record that something happened and who was told.
+///
+/// This is the delivery ledger, not the timeline. The timeline is assembled at
+/// read time from the systems that already record their own history — work
+/// items, documents, intelligence runs — because copying their events here
+/// would create a second version of the truth that drifts from the first.
+///
+/// What this table adds is the part nobody else records: which channel a
+/// message went out on, and whether it arrived.
+model DeliveryRecord {
+  id String @id @default(uuid())
+
+  notificationId String?
+  userId         String
+
+  /// IN_APP | EMAIL | SMS | PUSH | REALTIME
+  channel String
+  /// PENDING | SENT | DELIVERED | FAILED | SUPPRESSED
+  status String @default("PENDING")
+
+  /// Why it was suppressed or failed. Populated for anything but SENT.
+  reason String?
+
+  /// Milliseconds from the event being raised to this row reaching SENT.
+  latencyMs Int?
+
+  attemptedAt DateTime  @default(now())
+  settledAt   DateTime?
+
+  @@index([userId, attemptedAt])
+  @@index([channel, status])
+  @@index([notificationId])
+  @@index([status, attemptedAt])
 }

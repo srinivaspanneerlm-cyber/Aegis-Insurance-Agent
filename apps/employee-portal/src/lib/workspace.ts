@@ -45,6 +45,7 @@ export const NAVIGATION: readonly NavGroup[] = [
     title: "Work",
     items: [
       { label: "Dashboard", href: "/", icon: "chart" },
+      { label: "Inbox", href: "/inbox", icon: "mail" },
       { label: "My Tasks", href: "/tasks", icon: "check", permission: "work.read" },
       { label: "Claims Management", href: "/claims", icon: "shield", permission: "work.read" },
       { label: "KYC Verification", href: "/kyc", icon: "users", permission: "work.read" },

@@ -4,9 +4,16 @@
  * `join_room` used to put a socket in any room it asked for, and every reply
  * was broadcast to the room the sender named. Nothing checked the room was
  * theirs, so a caller could sit in the path of another customer's conversation.
- * These tests hold the surface closed: the fake socket and io throw if any
- * room-targeting call is reachable at all, so a reintroduced broadcast fails
- * here rather than in production.
+ *
+ * These tests hold that surface closed. `socket.to` and `io.to` are still
+ * booby-trapped — nothing in the connection path may target a room by name.
+ *
+ * `socket.join` is now reachable, and the assertion on it is *tighter* than the
+ * old "never called": it must be called with exactly the room derived from the
+ * handshake identity and nothing else. That is what lets a notification reach
+ * one person's open portal while keeping the original property — a client
+ * cannot name a room, because the only room that exists is computed from the
+ * authenticated user id on the server.
  */
 
 process.env.NODE_ENV = "test";
@@ -33,7 +40,16 @@ function makeSocket(user = ALICE) {
     emitted,
     on: (event, fn) => { handlers[event] = fn; },
     emit: (event, payload) => emitted.push({ event, payload }),
-    join: () => assert.fail("socket.join must not be reachable — rooms are client-named"),
+    joined: [],
+    join: function (room) {
+      // The one room a socket may occupy: its own, derived server-side.
+      assert.equal(
+        room,
+        `user:${user.id}`,
+        "a socket may only join the room derived from its handshake identity"
+      );
+      this.joined.push(room);
+    },
     to: () => assert.fail("socket.to must not be reachable — rooms are client-named"),
   };
 }
@@ -57,7 +73,14 @@ describe("socket rooms", () => {
   beforeEach(() => mock.restoreAll());
 
   test("there is no join_room handler to abuse", () => {
+    // The client still has no way to ask for a room.
     assert.equal(connectedSocket().handlers.join_room, undefined);
+  });
+
+  test("a socket joins exactly one room, and it is its own", () => {
+    const socket = connectedSocket();
+    // The assertion inside the fake `join` has already rejected any other room.
+    assert.deepEqual(socket.joined, [`user:${ALICE.id}`]);
   });
 
   test("no handler broadcasts to a room the client named", async () => {

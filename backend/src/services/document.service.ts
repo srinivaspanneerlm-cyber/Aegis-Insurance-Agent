@@ -17,6 +17,7 @@ import prisma from "../config/db";
 import { logger } from "../config/logger";
 import AppError from "../utils/appError";
 import { auditService } from "./audit.service";
+import { emit } from "../communication/eventBus";
 import { roleHasPermission } from "../auth/permissions";
 import { documentPipeline, uploadsPermitted, type DocumentRef } from "../documents/services";
 import {
@@ -118,6 +119,17 @@ export const documentService = {
       data: { status: "PROCESSING" },
     });
     record({ documentId, stage: "UPLOADED", actorKind: "SYSTEM", summary: "Received." });
+
+    // Raised here rather than at the route, because this is the point at which
+    // the document actually enters the queue somebody has to work through.
+    emit({
+      name: "document.uploaded",
+      actorId: null,
+      actorKind: "SYSTEM",
+      subjectKind: "document",
+      subjectId: documentId,
+      payload: { ownerId: document.ownerId, filename: document.filename },
+    });
 
     // 1 — Scanning. Nothing else touches the bytes until this has answered.
     const scan = await pipeline.virusScan.scan(ref);
@@ -264,6 +276,22 @@ export const documentService = {
         })
         .catch(() => undefined);
     }
+
+    // The customer is told either way. A rejection carries the reason in the
+    // notification itself rather than behind a link, because a rejection the
+    // customer has to go looking for stalls their application for a week.
+    emit({
+      name: verified ? "document.verified" : "document.rejected",
+      actorId: actor.id,
+      actorKind: "USER",
+      subjectKind: "document",
+      subjectId: documentId,
+      payload: {
+        ownerId: document.ownerId,
+        filename: document.filename,
+        reason: verified ? null : (input.reason ?? "").trim(),
+      },
+    });
 
     return updated;
   },
@@ -468,6 +496,19 @@ export const documentService = {
       entityId: subjectId,
       metadata: { domain: context.domain, count: requirements.length },
     });
+
+    // Only when something was actually asked for. A resolve that produced no
+    // new requirements must not tell the customer we need documents.
+    if (requirements.length > 0) {
+      emit({
+        name: "document.requested",
+        actorId: requestedBy ?? null,
+        actorKind: requestedBy ? "USER" : "AI",
+        subjectKind: "documentRequest",
+        subjectId,
+        payload: { subjectId, count: requirements.length, domain: context.domain },
+      });
+    }
 
     return this.requirementsFor(subjectId, workItemId || null);
   },

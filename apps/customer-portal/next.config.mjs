@@ -9,6 +9,7 @@ const nextConfig = {
   transpilePackages: [
     "@aegis/ui",
     "@aegis/intelligence",
+    "@aegis/communication",
     "@aegis/design-system",
     "@aegis/utils",
     "@aegis/auth",

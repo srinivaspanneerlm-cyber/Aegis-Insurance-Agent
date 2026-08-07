@@ -18,6 +18,7 @@
 import prisma from "../config/db";
 import AppError from "../utils/appError";
 import { auditService } from "./audit.service";
+import { emit } from "../communication/eventBus";
 import { roleHasPermission } from "../auth/permissions";
 import { intelligenceEngine, hashProfile } from "../intelligence/engine";
 import { profileCompleteness } from "../intelligence/explain";
@@ -369,6 +370,36 @@ export const intelligenceService = {
           payload: JSON.stringify(report),
           confidence: report.need.explanation.confidence.score,
           engineVersion: report.engineVersion,
+        },
+      });
+    }
+
+    // The most serious finding, and any renewal that is close, become
+    // notifications. Only the top one — telling somebody about seven gaps at
+    // once is how a person learns to ignore the platform.
+    const worst = report.gaps.find((g) => g.severity === "CRITICAL") ?? report.gaps[0];
+    if (worst) {
+      emit({
+        name: "intelligence.gap_found",
+        actorId: null,
+        actorKind: "AI",
+        subjectKind: "intelligenceRun",
+        subjectId: hash,
+        payload: { userId, summary: worst.summary, severity: worst.severity },
+      });
+    }
+
+    for (const renewal of report.renewals.filter((r) => r.priority === "CRITICAL")) {
+      emit({
+        name: "policy.renewal_due",
+        actorId: null,
+        actorKind: "AI",
+        subjectKind: "heldPolicy",
+        subjectId: renewal.policyId,
+        payload: {
+          userId,
+          daysAway: renewal.daysAway,
+          improvement: renewal.improvements[0] ?? null,
         },
       });
     }
