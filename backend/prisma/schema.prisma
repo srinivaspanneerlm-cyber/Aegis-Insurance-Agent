@@ -804,8 +804,111 @@ model KnowledgeArticle {
   publishedAt DateTime @default(now())
   updatedAt   DateTime @default(now()) @updatedAt
 
+  // ── Sprint 11 additions ────────────────────────────────────────────────────
+  // The table already held articles and was already searched. What it lacked
+  // was governance: nothing recorded whether an article had been approved, who
+  // approved it, when it stopped being true, or what it said last month.
+  //
+  // For a platform quoting IRDAI regulation to customers, "what did our
+  // guidance say on the day we gave that advice" is a question with regulatory
+  // weight, and an UPDATE that overwrites the answer destroys it.
+
+  /// DRAFT | IN_REVIEW | APPROVED | ARCHIVED
+  ///
+  /// Only APPROVED is ever served to an assistant or a customer. A draft
+  /// regulation summary that reached a customer would be worse than no
+  /// summary — they would act on it.
+  status String @default("APPROVED")
+
+  /// PUBLIC | INTERNAL | RESTRICTED — who may read it, independent of role.
+  /// RESTRICTED needs an explicit grant; INTERNAL needs any staff realm.
+  classification String @default("INTERNAL")
+
+  /// When the guidance takes effect and when it stops being true. A circular
+  /// superseded in March must not be quoted in April.
+  effectiveFrom DateTime?
+  effectiveTo   DateTime?
+
+  /// Where it came from — an IRDAI circular number, an internal doc, a URL.
+  /// Advice that cannot be traced to a source cannot be defended.
+  sourceRef  String?
+  sourceKind String? // IRDAI | INTERNAL | INSURER | STATUTE | MANUAL
+
+  authorId   String?
+  approvedById String?
+  approvedAt   DateTime?
+  /// When it should next be checked. Regulation goes stale silently.
+  reviewDueAt  DateTime?
+  archivedAt   DateTime?
+
+  /// Read counters, so knowledge analytics can show what is actually used
+  /// rather than what was merely written.
+  viewCount     Int       @default(0)
+  lastViewedAt  DateTime?
+
+  /// The domain category. Nullable so existing rows stay valid — an article
+  /// filed before categories existed is uncategorised, not broken.
+  categoryId String?
+  taxonomy   KnowledgeCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  versions    KnowledgeVersion[]
+  reviews     KnowledgeReview[]
+  articleTags KnowledgeArticleTag[]
+  permissions KnowledgePermission[]
+
   @@index([category])
   @@index([publishedAt])
+  @@index([status, category])
+  @@index([classification, status])
+  @@index([reviewDueAt])
+  @@index([effectiveFrom, effectiveTo])
+  @@index([categoryId, status])
+}
+
+/// What an article said at a point in time.
+///
+/// Append-only. Every approved change writes a row before the article is
+/// updated, so "what did our guidance say when we told the customer that" has
+/// an answer. This is the whole reason the knowledge base is not just a table
+/// with an `updatedAt`.
+model KnowledgeVersion {
+  id        String @id @default(uuid())
+  articleId String
+
+  version Int
+  title   String
+  summary String
+  body    String
+  /// Why it changed. A diff without a reason is archaeology.
+  changeNote String?
+
+  authoredById String?
+  createdAt    DateTime @default(now())
+
+  article KnowledgeArticle @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  @@unique([articleId, version])
+  @@index([articleId, createdAt])
+}
+
+/// A person's decision about an article.
+model KnowledgeReview {
+  id        String @id @default(uuid())
+  articleId String
+
+  /// APPROVED | REJECTED | CHANGES_REQUESTED | SCHEDULED_REVIEW
+  decision   String
+  reviewerId String
+  /// Required for anything but APPROVED — the same rule the document platform
+  /// applies to a rejection.
+  notes String?
+
+  createdAt DateTime @default(now())
+
+  article KnowledgeArticle @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  @@index([articleId, createdAt])
+  @@index([reviewerId])
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -1390,4 +1493,258 @@ model DeliveryRecord {
   @@index([channel, status])
   @@index([notificationId])
   @@index([status, attemptedAt])
+}
+
+// ── Institutional memory ─────────────────────────────────────────────────────
+//
+// What the business durably knows about someone, as opposed to what an agent
+// remembers mid-conversation.
+//
+// The distinction is deliberate and load-bearing. `ai-python/app/memory` and
+// `Aegis-AI/layer3` hold *working* memory: the state of a conversation in
+// flight, namespaced per agent, and rightly isolated so one domain cannot read
+// another's. This table holds *institutional* memory: facts the business has
+// decided to keep, with provenance, an owner, an expiry, and an audit trail.
+//
+// Conflating the two would break agent isolation — the crown jewel this
+// codebase protects — so nothing here reads or writes an agent's namespace.
+// Facts arrive by being asserted through the service, and an agent that wants
+// one asks for it.
+
+model MemoryRecord {
+  id String @id @default(uuid())
+
+  /// Whose memory this is.
+  /// CUSTOMER | EMPLOYEE | ORGANIZATION | PLATFORM
+  scope     String
+  /// The subject within that scope — a userId, an organisationId.
+  subjectId String
+
+  /// PREFERENCE | FACT | CONTEXT | HISTORY | CONSENT | CONSTRAINT
+  kind String
+  /// A stable key, e.g. "contact.preferred_channel" or "claim.prior_count".
+  /// Namespaced by dots so a family of facts can be read together.
+  key String
+  /// JSON. Typed values would need a column per type or a lossy cast.
+  value String
+
+  /// 0–1. How much the platform trusts this. A fact inferred from one
+  /// conversation is not a fact the customer confirmed, and advice built on the
+  /// two should not sound equally certain.
+  confidence Float @default(1)
+
+  /// Where it came from: CUSTOMER_STATED | ADVISOR_ENTERED | AI_INFERRED |
+  /// DOCUMENT | SYSTEM. Provenance is what lets somebody challenge a fact.
+  source String @default("SYSTEM")
+  /// The specific thing it came from — a conversationId, a documentId, a run.
+  sourceRef String?
+
+  /// When this stops being trustworthy. A stated preference does not expire; an
+  /// inference from a two-year-old conversation should.
+  expiresAt DateTime?
+
+  /// Superseding rather than overwriting. "They preferred email, now they
+  /// prefer phone" is a history worth keeping — and a fact that was acted on
+  /// must remain visible after it changes.
+  supersededById String?  @unique
+  supersededAt   DateTime?
+
+  createdById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  // One live value per key per subject is enforced in the service rather than
+  // by a unique constraint, because superseded rows share the key by design.
+  @@index([scope, subjectId, key])
+  @@index([scope, subjectId, kind])
+  @@index([expiresAt])
+  @@index([supersededAt])
+}
+
+// ── Knowledge organisation ───────────────────────────────────────────────────
+
+/// A domain category: motor, health, claims, compliance, and so on.
+///
+/// A table rather than an enum because categories are business vocabulary that
+/// changes without a deploy, and because the router and the analytics both need
+/// to attach behaviour to one — which a bare string cannot carry.
+///
+/// Distinct from `KnowledgeArticle.category`, which is the *document type*
+/// (SOP, circular, FAQ). An article is both: a claims SOP is category "claims",
+/// type "SOP". Collapsing the two would make "every FAQ about motor" unaskable.
+model KnowledgeCategory {
+  id   String @id @default(uuid())
+  slug String @unique
+  name String
+
+  /// Free text, shown to whoever is filing an article.
+  description String?
+
+  /// Nesting, so "claims → motor claims" is expressible. Null at the top.
+  parentId String?
+  parent   KnowledgeCategory?  @relation("CategoryTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children KnowledgeCategory[] @relation("CategoryTree")
+
+  /// Which insurance domain this maps to, when it maps to one. Lets the router
+  /// send a motor question to motor guidance without a keyword list.
+  domain String? // motor | health | life | travel | property | commercial
+
+  /// Display order in an admin list. Alphabetical is rarely the useful order.
+  position Int     @default(0)
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  articles KnowledgeArticle[]
+
+  @@index([parentId])
+  @@index([domain])
+  @@index([isActive, position])
+}
+
+/// A tag, normalised.
+///
+/// `KnowledgeArticle.tags` remains a comma-separated string and is still what
+/// the existing employee search reads — it is not removed, because removing it
+/// would break a working screen for no user-visible gain. This table is the
+/// queryable form: "every article tagged cashless" is a join here and a full
+/// scan there.
+model KnowledgeTag {
+  id   String @id @default(uuid())
+  slug String @unique
+  name String
+
+  /// Denormalised count, so a tag cloud does not aggregate on every render.
+  usageCount Int @default(0)
+
+  createdAt DateTime @default(now())
+
+  articles KnowledgeArticleTag[]
+
+  @@index([usageCount])
+}
+
+model KnowledgeArticleTag {
+  articleId String
+  tagId     String
+
+  article KnowledgeArticle @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  tag     KnowledgeTag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([articleId, tagId])
+  @@index([tagId])
+}
+
+/// An explicit grant on a RESTRICTED article.
+///
+/// Only consulted for RESTRICTED classification. PUBLIC and INTERNAL are
+/// decided by realm and permission, because requiring a grant row per person
+/// per article for ordinary guidance would mean nobody could read anything.
+///
+/// A grant is to a role or a person, never to "everyone" — a wildcard here
+/// would quietly turn a restricted compliance document into an internal one.
+model KnowledgePermission {
+  id        String @id @default(uuid())
+  articleId String
+
+  /// Exactly one of these is set; the service enforces that.
+  granteeUserId String?
+  granteeRole   String?
+
+  /// READ | WRITE | APPROVE
+  access String @default("READ")
+
+  grantedById String?
+  grantedAt   DateTime  @default(now())
+  expiresAt   DateTime?
+  revokedAt   DateTime?
+
+  article KnowledgeArticle @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  @@index([articleId, revokedAt])
+  @@index([granteeUserId])
+  @@index([granteeRole])
+}
+
+/// The inverted index lexical search reads.
+///
+/// Built on approval rather than at query time. Without it every search is a
+/// `LIKE %term%` across article bodies, which is a full scan that gets slower
+/// with exactly the thing the platform wants more of — content. With it, a
+/// search is an indexed lookup per term.
+///
+/// Rebuilt wholesale for an article when it is approved, because incremental
+/// index maintenance is where search engines grow their subtlest bugs.
+model SearchIndexEntry {
+  id String @id @default(uuid())
+
+  /// The normalised term. Lower-cased, punctuation stripped, stemmed crudely.
+  term String
+
+  /// What it points at. `entityKind` so memory or documents could be indexed
+  /// later without a second table.
+  entityKind String // knowledgeArticle
+  entityId   String
+
+  /// Occurrences, used for term-frequency scoring.
+  frequency Int @default(1)
+  /// Where it appeared — title matches count for more than body matches.
+  field String @default("body") // title | summary | body | tag
+
+  createdAt DateTime @default(now())
+
+  @@unique([term, entityKind, entityId, field])
+  @@index([term])
+  @@index([entityKind, entityId])
+}
+
+// ── Session memory ───────────────────────────────────────────────────────────
+
+/// A conversation's working memory, on the platform side.
+///
+/// **This is not the agents' memory.** `ai-python/app/memory` and
+/// `Aegis-AI/layer3` hold each agent's own namespaced state, and that isolation
+/// is the architecture's crown jewel — nothing here reads or writes it.
+///
+/// What this holds is the memory the *platform's* services need across a
+/// conversation: what has been established, what is pending, what the assistant
+/// should not ask twice. It is durable, auditable and expires; an agent's
+/// working memory is none of those things by design.
+model ConversationMemory {
+  id String @id @default(uuid())
+
+  /// The thread this belongs to. A Sprint 10 conversation, or an AI session id.
+  sessionRef String
+  /// Whose conversation. Null for internal or system sessions.
+  userId String?
+
+  /// SUMMARY | ESTABLISHED_FACT | OPEN_QUESTION | INTENT | HANDOFF_NOTE
+  kind String
+
+  /// Short label so a list is readable without opening each row.
+  label String
+  /// JSON payload.
+  value String
+
+  /// Pinned entries survive expiry and summarisation. Used for the two or three
+  /// things that must not be forgotten mid-conversation — a stated budget, a
+  /// disclosed condition.
+  pinned Boolean @default(false)
+
+  /// TEMPORARY memory is swept; SESSION lasts the conversation; PROMOTED has
+  /// been written through to institutional memory and is kept for provenance.
+  retention String @default("SESSION") // TEMPORARY | SESSION | PROMOTED
+
+  /// Set when this was promoted into MemoryRecord, so the two can be reconciled.
+  promotedRecordId String?
+
+  expiresAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now()) @updatedAt
+
+  @@index([sessionRef, createdAt])
+  @@index([userId, createdAt])
+  @@index([expiresAt])
+  @@index([sessionRef, pinned])
 }

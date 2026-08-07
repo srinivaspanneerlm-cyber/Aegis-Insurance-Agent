@@ -25,6 +25,7 @@ import platformRoutes from "./routes/platform.routes";
 import documentRoutes from "./routes/documents.routes";
 import intelligenceRoutes from "./routes/intelligence.routes";
 import communicationRoutes from "./routes/communication.routes";
+import knowledgeRoutes from "./routes/knowledge.routes";
 import { registerWorkflowCommunication } from "./communication/workflows";
 import adminRoutes from "./routes/admin.routes";
 import uiActionRoutes from "./routes/ui_action.routes";
@@ -144,6 +145,7 @@ apiRouter.use("/platform", platformRoutes);
 apiRouter.use("/documents", documentRoutes);
 apiRouter.use("/intelligence", intelligenceRoutes);
 apiRouter.use("/communication", communicationRoutes);
+apiRouter.use("/knowledge", knowledgeRoutes);
 
 // Wire the event subscribers that turn platform events into notifications.
 // Idempotent, and done here rather than in server.ts so the test suite — which
