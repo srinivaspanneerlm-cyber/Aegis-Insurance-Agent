@@ -1,6 +1,7 @@
 import express from "express";
 import type { Request } from "express";
 import catchAsync from "../utils/catchAsync";
+import AppError from "../utils/appError";
 import { sendSuccess } from "../utils/apiResponse";
 import { protect, requirePermission } from "../middleware/auth.middleware";
 import { knowledgeService, ensureCategories } from "../services/knowledge.service";
@@ -177,8 +178,15 @@ router.post(
     const body = (req.body ?? {}) as { decision?: string; notes?: string };
     const decision = body.decision;
     if (decision !== "APPROVED" && decision !== "REJECTED" && decision !== "CHANGES_REQUESTED") {
-      sendSuccess(res, 400, { error: "Unknown decision." });
-      return;
+      // Thrown, not sent as a 400 carrying a success envelope. Every other
+      // error on the platform arrives as { status: "fail", code, message }, and
+      // a client checking that field would have read this rejection as a
+      // success that happened to have a 400 attached.
+      throw new AppError(
+        "That is not a review decision we recognise.",
+        400,
+        "UNKNOWN_DECISION"
+      );
     }
     sendSuccess(
       res,

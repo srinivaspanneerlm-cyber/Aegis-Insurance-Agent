@@ -405,15 +405,25 @@ export const searchIndexRepository = {
     return new Map(rows.map((r) => [r.term, r._count.entityId]));
   },
 
-  totalIndexed() {
-    return prisma.searchIndexEntry
-      .findMany({
-        where: { entityKind: "knowledgeArticle" },
-        distinct: ["entityId"],
-        select: { entityId: true },
-        take: 10_000,
-      })
-      .then((rows) => rows.length);
+  /**
+   * How many distinct articles are indexed — the N in the IDF term.
+   *
+   * Grouped rather than `distinct` over a capped `findMany`. The earlier form
+   * took the first 10,000 *entry* rows and counted distinct articles among
+   * them, which undercounts as soon as the index passes 10,000 entries — about
+   * 200 articles. An undercounted N makes `N - df` negative, which makes IDF
+   * negative, which ranks an article matching more common terms *below* one
+   * matching fewer. It was silently inverting the result order.
+   *
+   * This scales with the number of articles rather than the number of index
+   * entries, which is roughly a hundredfold fewer rows.
+   */
+  async totalIndexed(): Promise<number> {
+    const groups = await prisma.searchIndexEntry.groupBy({
+      by: ["entityId"],
+      where: { entityKind: "knowledgeArticle" },
+    });
+    return groups.length;
   },
 };
 

@@ -39,7 +39,11 @@ const {
   conversationMemoryService,
   organizationMemoryService,
 } = require("../src/services/memory.service");
-const { searchService } = require("../src/knowledge/search");
+const {
+  searchService,
+  registerSearchService,
+  resetSearchService,
+} = require("../src/knowledge/search");
 const { tokenise, stem, buildIndexEntries } = require("../src/knowledge/search");
 const { knowledgeRouter, knowledgePermissionService } = require("../src/knowledge/router");
 const { documentParser } = require("../src/knowledge/parsers");
@@ -444,6 +448,27 @@ describe("lexical search", () => {
     assert.match(result.hits[0].title, /Wombat cover/);
   });
 
+  test("scores are never negative, and never all identical", async () => {
+    // A negative IDF inverts the ranking; a flat-zero IDF makes every hit tie,
+    // which leaves the order to whatever the map yields — ten arbitrary
+    // articles presented as the ten best.
+    const a = await author("score-a");
+    const r = await reviewer("score-r");
+
+    await publish(a, r, { title: "Wolverine cover", summary: "Wolverine.", body: "wolverine text." });
+    await publish(a, r, { title: "Unrelated", summary: "None.", body: "a passing wolverine mention." });
+
+    const result = await searchService().search(actorOf(a), { text: "wolverine" });
+    assert.ok(result.hits.length >= 2);
+    assert.ok(result.hits.every((h) => h.score > 0), "no hit may score zero or below");
+
+    const scores = result.hits.map((h) => h.score);
+    assert.ok(new Set(scores).size > 1, "a title match must outscore a passing mention");
+    for (let i = 1; i < scores.length; i++) {
+      assert.ok(scores[i - 1] >= scores[i], "hits must come back in descending order");
+    }
+  });
+
   test("an empty result explains that search matches words, not meaning", async () => {
     const a = await author("empty-search");
     const result = await searchService().search(actorOf(a), { text: "narwhal actuarial pinniped" });
@@ -488,6 +513,32 @@ describe("lexical search", () => {
 });
 
 // ── The router ───────────────────────────────────────────────────────────────
+
+describe("the injection seams", () => {
+  test("the search service can be replaced without touching a caller", async () => {
+    // The seam Phase A declared for a future semantic or hybrid implementation.
+    // An extension point nobody has ever exercised is an extension point that
+    // does not work, so this proves the swap rather than assuming it.
+    const stub = {
+      async search() {
+        return { hits: [], method: "SEMANTIC", note: "stubbed", took: 0 };
+      },
+    };
+
+    registerSearchService(stub);
+    try {
+      const result = await searchService().search({ id: "x", role: "OPERATIONS" }, { text: "anything" });
+      assert.equal(result.method, "SEMANTIC");
+      assert.equal(result.note, "stubbed");
+    } finally {
+      resetSearchService();
+    }
+
+    // And the real one is back.
+    const real = await searchService().search({ id: "x", role: "OPERATIONS" }, { text: "anything" });
+    assert.equal(real.method, "LEXICAL");
+  });
+});
 
 describe("the knowledge router", () => {
   const route = (q, ctx) => knowledgeRouter().route(q, ctx);
@@ -897,6 +948,21 @@ describe("the API and its permissions", () => {
 
     const stored = await prisma.knowledgeCategory.count();
     assert.equal(stored, 12, "seeding twice must not duplicate");
+  });
+
+  test("an unknown review decision fails with a fail envelope, not a success one", async () => {
+    // A 400 carrying { status: "success" } is read as success by any client
+    // that checks the envelope rather than the status code.
+    const a = await author("bad-decision-a");
+    const r = await reviewer("bad-decision-r");
+    const created = await api(a.cookie).post("/articles", draft());
+    const id = created.body.data.id;
+    await api(a.cookie).post(`/articles/${id}/submit`, {});
+
+    const res = await api(r.cookie).post(`/articles/${id}/review`, { decision: "MAYBE" });
+    assert.equal(res.status, 400);
+    assert.equal(res.body.status, "fail");
+    assert.equal(res.body.code, "UNKNOWN_DECISION");
   });
 
   test("a full authoring lifecycle works over HTTP", async () => {

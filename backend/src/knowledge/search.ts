@@ -151,7 +151,21 @@ export class LexicalSearchService implements SearchService {
       const df = documentFrequency.get(entry.term) ?? 1;
       // Inverse document frequency: a term in every article says nothing about
       // which article is relevant.
-      const idf = Math.log(1 + (totalDocs - df + 0.5) / (df + 0.5));
+      //
+      // Floored at a small positive number rather than at zero.
+      //
+      // Zero was the obvious floor and it is wrong twice over. A negative IDF —
+      // which arises when a term appears in more documents than the index
+      // believes exist — inverts the ranking, so matching more of the query
+      // pushes an article *down*. And a flat zero makes every hit score
+      // identically when the query is made of very common words, which leaves
+      // the order to whatever the map happens to yield: ten arbitrary articles
+      // presented as the ten best.
+      //
+      // A small positive floor keeps field weight and query coverage
+      // discriminating in that case, so a title match still beats a passing
+      // mention even when the word itself carries no information.
+      const idf = Math.max(0.05, Math.log(1 + (totalDocs - df + 0.5) / (df + 0.5)));
       const weight = FIELD_WEIGHT[entry.field] ?? 1;
       const contribution = saturate(entry.frequency) * idf * weight;
 
