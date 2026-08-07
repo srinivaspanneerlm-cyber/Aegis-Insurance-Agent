@@ -1,4 +1,5 @@
 "use client";
+import { logger } from "@/lib/logger";
 import { useState, useCallback, useRef } from "react";
 
 // The advisor stream is proxied by the Node backend, which authenticates the
@@ -202,7 +203,7 @@ export function useStreaming() {
         signal: abortRef.current.signal,
       });
 
-      if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`);
+      if (!res.ok || !res.body) throw new AdvisorError(res.status);
 
       sseSucceeded = true;
       const reader = res.body.getReader();
@@ -372,11 +373,19 @@ async function _simulatedStream(
 
   // Phase 2: Await API result
   let apiResult: { reply: string; agentName: string; agentDomain: string; transferred: boolean; sessionId: string } | null = null;
+  let failure: unknown = null;
   try {
     apiResult = await apiPromise;
-  } catch {}
+  } catch (error) {
+    // Recorded rather than discarded. An empty catch here turned every failure
+    // into one identical sentence: a signed-out customer was told the AI was
+    // having trouble, so they waited instead of signing in — and it told us the
+    // same, which cost an investigation into a service that was working.
+    failure = error;
+    logger.warn("advisor: request failed", error);
+  }
 
-  const reply = apiResult?.reply || "I'm having a little trouble right now. Could you try again in a moment?";
+  const reply = apiResult?.reply || _advisorFallback(failure);
   const newAgentName = apiResult?.agentName || agentRef.current.agentName;
   const newDomain = apiResult?.agentDomain || agentRef.current.agentDomain;
   const newSessionId = apiResult?.sessionId || sessionId;
@@ -418,6 +427,39 @@ async function _simulatedStream(
 
 // NOTE: the Node bridge keeps its own session memory, so this path deliberately
 // sends only the session id — no client-side history or user name.
+/** A failed advisor call, carrying the status so the cause can be named. */
+export class AdvisorError extends Error {
+  readonly status: number;
+  constructor(status: number) {
+    super(`HTTP ${status}`);
+    this.name = "AdvisorError";
+    this.status = status;
+  }
+}
+
+/**
+ * What to say when the advisor could not answer.
+ *
+ * Distinguishing the causes matters more here than anywhere else in the app.
+ * "I'm having a little trouble" told a signed-out customer that the AI was
+ * broken, so they waited instead of signing in — and it told us the same, which
+ * cost an investigation into a working AI service.
+ */
+export function _advisorFallback(failure: unknown): string {
+  const status = failure instanceof AdvisorError ? failure.status : 0;
+
+  if (status === 401 || status === 403) {
+    return "Please sign in to continue this conversation — your chat history is kept with your account.";
+  }
+  if (status === 429) {
+    return "That was a lot of questions at once. Give it a moment and ask again.";
+  }
+  if (status >= 500) {
+    return "Something went wrong on our side. Please try again in a moment.";
+  }
+  return "I could not reach Aegis just now. Check your connection and try again.";
+}
+
 async function _callNodeApi(
   message: string,
   productType: string,
@@ -438,7 +480,10 @@ async function _callNodeApi(
     }),
   });
 
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  // The status is carried, not just described: a 401 is "please sign in" and a
+  // 500 is "we are broken", and the caller cannot tell them apart from a
+  // message string alone.
+  if (!res.ok) throw new AdvisorError(res.status);
   const data = await res.json();
 
   return {
