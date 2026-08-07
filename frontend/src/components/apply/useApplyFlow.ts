@@ -1,8 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { leadService } from "@/services/api";
-import { computeRecommendation, type Recommendation } from "./recommendation";
+import { leadService, policyService } from "@/services/api";
+import {
+  computeRecommendation,
+  selectPlanKey,
+  PLAN_CATALOGUE_NAME,
+  PLAN_REASON,
+  type Recommendation,
+} from "./recommendation";
 import { logger } from "@/lib/logger";
 import { notify } from "@/lib/toast";
 
@@ -60,7 +66,29 @@ export function useApplyFlow() {
     setStep(4);
     setLoading(true);
 
-    const recommendation = computeRecommendation({ priorities, budgetTier, familyConfig });
+    // The rules pick a plan; the catalogue supplies its name, premium and
+    // coverage. Falling back to the local values keeps the flow working when the
+    // catalogue cannot be reached — somebody part-way through a form should not
+    // be stopped by a lookup.
+    const local = computeRecommendation({ priorities, budgetTier, familyConfig });
+    const planKey = selectPlanKey({ priorities, budgetTier, familyConfig });
+    let recommendation: Recommendation = local;
+
+    try {
+      const { policies } = await policyService.getPolicies({ limit: 50 });
+      const match = policies.find((policy) => policy.policyName === PLAN_CATALOGUE_NAME[planKey]);
+      if (match) {
+        recommendation = {
+          ...local,
+          name: match.policyName,
+          coverage: match.coverage,
+          premium: `₹${match.premium.toLocaleString("en-IN")} / mo`,
+          reason: PLAN_REASON[planKey],
+        };
+      }
+    } catch {
+      // Keep the local selection rather than blocking the flow.
+    }
     const membersString = familyConfig.map((m) => m.toUpperCase()).join(" + ");
     const prioritiesString = priorities.join(", ");
 

@@ -89,7 +89,7 @@ export function VerdictStep({ loading, underwritingVerdict, secureId }: VerdictS
 
             {/* Key Benefits List */}
             <div className="space-y-3 mb-6">
-              <span className="text-[9.5px] text-slate-400 font-bold uppercase tracking-widest block">What&apos;s covered:</span>
+              <span className="text-[9.5px] text-slate-400 font-bold uppercase tracking-widest block">What happens next:</span>
               <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
                 {underwritingVerdict?.benefits?.map((b: string, bIdx: number) => (
                   <li key={bIdx} className="flex items-start gap-2 text-xs text-slate-700">
