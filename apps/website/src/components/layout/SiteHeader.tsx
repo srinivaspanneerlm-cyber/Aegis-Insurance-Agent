@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 import { cn } from "@aegis/utils";
 import { buttonVariants } from "@aegis/ui";
-import { PRIMARY_NAV, SITE } from "@/lib/site";
+import { IDENTITY_URL, PRIMARY_NAV, SITE } from "@/lib/site";
 import { Icon } from "@/components/ui/Icon";
 import { Wordmark } from "@/components/layout/Wordmark";
 
@@ -105,15 +105,20 @@ export function SiteHeader() {
             >
               Request a demo
             </Link>
-            <Link
-              href="/get-started"
+            {/* Sign in is the header's primary action rather than a nav item.
+                It is something you do, not a page you read — and it points at
+                the identity platform, the single door to every workspace.
+                Which workspace somebody lands in is decided there, from who
+                they are. This header has no idea, and must not guess. */}
+            <a
+              href={`${IDENTITY_URL}/login`}
               className={cn(
                 buttonVariants({ variant: "primary", size: "md" }),
                 "hidden sm:inline-flex"
               )}
             >
-              Get started
-            </Link>
+              Sign in
+            </a>
 
             <button
               ref={toggleRef}
@@ -156,10 +161,10 @@ export function SiteHeader() {
 
           <div className="mt-4 flex flex-col gap-2">
             <Link
-              href="/get-started"
+              href={`${IDENTITY_URL}/login`}
               className={buttonVariants({ variant: "primary", size: "lg", fullWidth: true })}
             >
-              Get started
+              Sign in
             </Link>
             <Link
               href="/request-demo"

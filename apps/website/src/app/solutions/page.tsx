@@ -1,9 +1,10 @@
 import { pageMetadata } from "@/lib/seo";
 import { Section, SectionHeading } from "@/components/sections/Section";
-import { FeatureGrid, type Feature } from "@/components/sections/FeatureGrid";
+import { FeatureGrid } from "@/components/sections/FeatureGrid";
 import { CTABand } from "@/components/sections/CTABand";
 import { Reveal } from "@/components/ui/Reveal";
 import { Icon } from "@/components/ui/Icon";
+import { CAPABILITIES } from "@/lib/site";
 
 export const metadata = pageMetadata({
   title: "Solutions",
@@ -39,57 +40,6 @@ const AUDIENCES = [
       "Lower claim-stage disputes and complaints",
       "Reach into languages and segments you do not serve today",
       "Deploy alongside existing systems rather than replacing them",
-    ],
-  },
-];
-
-const CAPABILITIES: readonly Feature[] = [
-  {
-    icon: "bolt",
-    title: "Claims automation",
-    description:
-      "Intake, document handling and assessment support, so a straightforward claim moves without a person having to chase it — and a complex one reaches an assessor with the context already gathered.",
-    points: [
-      "Guided intake that asks for the right documents once",
-      "Automatic completeness checks before submission",
-      "Straightforward cases routed away from manual queues",
-      "Every decision traceable end to end",
-    ],
-  },
-  {
-    icon: "refresh",
-    title: "Renewal intelligence",
-    description:
-      "Most lapses are not decisions — they are a missed message. Renewals are surfaced early, with what has changed since last year, in time for the customer to act.",
-    points: [
-      "Expiry and grace periods tracked per policy",
-      "What changed since the last term, in plain terms",
-      "Reminders timed to be useful rather than annoying",
-      "Re-assessment when circumstances have moved",
-    ],
-  },
-  {
-    icon: "search",
-    title: "Fraud detection",
-    description:
-      "Pattern and consistency signals across an application and its documents, so investigators spend their time on the cases that warrant it.",
-    points: [
-      "Document and declaration consistency checks",
-      "Anomaly signals surfaced with their reasoning",
-      "Flags a human decides on — never an automatic refusal",
-      "Full audit trail behind every signal",
-    ],
-  },
-  {
-    icon: "layers",
-    title: "Enterprise AI platform",
-    description:
-      "The layer the rest of this runs on: typed contracts, provider-agnostic language models, per-account isolation and a complete audit trail.",
-    points: [
-      "Provider-agnostic — no single vendor lock-in",
-      "Strict isolation between accounts and domains",
-      "Capability-based access, granted rather than assumed",
-      "Audit trail across every automated decision",
     ],
   },
 ];

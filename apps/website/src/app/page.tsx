@@ -7,6 +7,7 @@ import { FeatureGrid } from "@/components/sections/FeatureGrid";
 import { CTABand } from "@/components/sections/CTABand";
 import { Reveal } from "@/components/ui/Reveal";
 import { Icon } from "@/components/ui/Icon";
+import { PRODUCTS, CAPABILITIES, CONTACT } from "@/lib/site";
 
 export const metadata = pageMetadata({
   title: "Aegis AI — Insurance that explains itself",
@@ -116,6 +117,43 @@ const SECURITY = [
   },
 ];
 
+/**
+ * How the platform is organised, told from the outside.
+ *
+ * Deliberately describes *people* rather than applications. A visitor does not
+ * need to know there are four deployments; they need to know that what they see
+ * is decided by who they are, and that nothing else is reachable.
+ */
+const ORGANISATION = [
+  {
+    icon: "users" as const,
+    title: "Customers",
+    body: "Cover, documents and claims in one place, with an advisor that explains rather than sells.",
+  },
+  {
+    icon: "briefcase" as const,
+    title: "Advisors",
+    body: "The people who help. They see the same explanation the customer sees, so a phone call is a conversation rather than a translation.",
+  },
+  {
+    icon: "building" as const,
+    title: "Insurers",
+    body: "Underwriting, approvals and the reporting that governance depends on — with every automated step traceable.",
+  },
+  {
+    icon: "shield" as const,
+    title: "Operators",
+    body: "Configuration, organisations and platform health. Access granted by capability, never by job title.",
+  },
+];
+
+/** Contact details, read from the one place they are defined. */
+const CONTACT_ROWS = [
+  { term: "Email", detail: CONTACT.email, href: `mailto:${CONTACT.email}` },
+  { term: "Phone", detail: CONTACT.phone, href: `tel:${CONTACT.phone.replace(/\s+/g, "")}` },
+  { term: "Hours", detail: CONTACT.hours, href: null as string | null },
+];
+
 export default function HomePage() {
   return (
     <>
@@ -214,6 +252,69 @@ export default function HomePage() {
             </article>
           </Reveal>
         </div>
+      </Section>
+
+      {/* ── Insurance products ───────────────────────────────────────────── */}
+      <Section aria-labelledby="products-title">
+        <SectionHeading
+          id="products-title"
+          overline="Insurance products"
+          title="Six kinds of cover, explained the same way"
+          description="Whatever you are buying, the platform explains what it pays for, what it does not, and what decides a claim — before price enters the conversation."
+        />
+        <FeatureGrid className="mt-12" features={PRODUCTS} columns={3} />
+      </Section>
+
+      {/* ── Enterprise capabilities ──────────────────────────────────────── */}
+      <Section tone="sunken" aria-labelledby="capabilities-title">
+        <SectionHeading
+          id="capabilities-title"
+          overline="Enterprise features"
+          title="What the platform does behind the conversation"
+          description="Eight capabilities that turn an advisor into an operation — each one auditable, and each one stopping short of the decisions that belong to a person."
+        />
+        <FeatureGrid className="mt-12" features={CAPABILITIES} columns={4} />
+      </Section>
+
+      {/* ── How the platform is organised ────────────────────────────────── */}
+      <Section aria-labelledby="architecture-title">
+        <SectionHeading
+          id="architecture-title"
+          overline="How it fits together"
+          title="One platform, four kinds of person"
+          description="Everybody signs in at the same door. What you see afterwards depends on who you are to the business — and nothing else is reachable."
+        />
+
+        {/* An ordered list, so the progression is announced rather than only
+            drawn. Numbering is real text, not a decorative rail, because a
+            connector drawn in CSS conveys nothing to a screen reader. */}
+        <ol className="mt-12 grid gap-4 md:grid-cols-4">
+          {ORGANISATION.map((tier, index) => (
+            <li
+              key={tier.title}
+              className="flex flex-col rounded-card border border-line/50 bg-surface-raised/30 p-6"
+            >
+              <span
+                aria-hidden="true"
+                className="inline-flex h-11 w-11 items-center justify-center rounded-control border border-line/60 bg-surface-raised/60 text-brand"
+              >
+                <Icon name={tier.icon} />
+              </span>
+              <p className="mt-4 text-caption uppercase tracking-wide text-content-muted">
+                Step {index + 1}
+              </p>
+              <h3 className="mt-1 text-body font-semibold text-content">{tier.title}</h3>
+              <p className="mt-2 flex-1 text-pretty text-body-sm text-content-secondary">
+                {tier.body}
+              </p>
+            </li>
+          ))}
+        </ol>
+
+        <p className="mx-auto mt-8 max-w-2xl text-pretty text-center text-body-sm text-content-secondary">
+          You never choose which of these you belong to. Signing in decides it, and a workspace that
+          is not yours is not merely hidden — it is unreachable.
+        </p>
       </Section>
 
       {/* ── Why Aegis / Benefits ─────────────────────────────────────────── */}
@@ -329,6 +430,37 @@ export default function HomePage() {
           </Link>
           .
         </p>
+      </Section>
+
+      {/* ── Contact ──────────────────────────────────────────────────────── */}
+      <Section tone="sunken" aria-labelledby="contact-title">
+        <SectionHeading
+          id="contact-title"
+          overline="Contact"
+          title="Talk to a person"
+          description="No form maze, and no chatbot standing in for somebody who can actually answer."
+        />
+        <dl className="mt-10 grid gap-4 sm:grid-cols-3">
+          {CONTACT_ROWS.map((row) => (
+            <div
+              key={row.term}
+              className="rounded-card border border-line/50 bg-surface-raised/30 p-5"
+            >
+              <dt className="text-caption uppercase tracking-wide text-content-muted">
+                {row.term}
+              </dt>
+              <dd className="mt-1 text-body-sm font-medium text-content">
+                {row.href ? (
+                  <a href={row.href} className="focus-ring rounded text-brand">
+                    {row.detail}
+                  </a>
+                ) : (
+                  row.detail
+                )}
+              </dd>
+            </div>
+          ))}
+        </dl>
       </Section>
 
       <CTABand

@@ -1,8 +1,9 @@
 import { pageMetadata } from "@/lib/seo";
 import { Section, SectionHeading } from "@/components/sections/Section";
-import { FeatureGrid, type Feature } from "@/components/sections/FeatureGrid";
+import { FeatureGrid } from "@/components/sections/FeatureGrid";
 import { CTABand } from "@/components/sections/CTABand";
 import { Icon } from "@/components/ui/Icon";
+import { PRODUCTS } from "@/lib/site";
 
 export const metadata = pageMetadata({
   title: "Products",
@@ -16,65 +17,6 @@ export const metadata = pageMetadata({
  * well. The waiting period and the room-rent cap are what people find out too
  * late, so they are named here rather than left to the wording.
  */
-const PRODUCTS: readonly Feature[] = [
-  {
-    icon: "car",
-    title: "Motor insurance",
-    description:
-      "Two-wheeler and car cover, from the legal minimum to comprehensive protection — with the difference explained rather than assumed.",
-    points: [
-      "Third-party vs comprehensive, in plain terms",
-      "What own-damage actually pays for",
-      "Add-ons worth having, and the ones that are not",
-      "No-claim bonus explained before you lose it",
-    ],
-  },
-  {
-    icon: "heart",
-    title: "Health insurance",
-    description:
-      "Individual and family floater cover, weighed against the things that decide a hospital claim rather than the headline sum insured.",
-    points: [
-      "Waiting periods and pre-existing conditions",
-      "Room-rent limits and sub-limits",
-      "Cashless network reality, not just its size",
-      "What a family floater shares, and when that hurts",
-    ],
-  },
-  {
-    icon: "home",
-    title: "Property insurance",
-    description:
-      "Home and contents cover for owners and tenants, including the parts people usually discover are missing.",
-    points: [
-      "Structure and contents, told apart",
-      "Tenant cover vs owner cover",
-      "Natural-disaster inclusions by region",
-      "How the sum insured is arrived at",
-    ],
-  },
-  {
-    icon: "plane",
-    title: "Travel insurance",
-    description:
-      "Domestic and international trips, including student and senior-citizen travel — where the exclusions do the most work.",
-    points: [
-      "Medical cover abroad, and its ceiling",
-      "Trip cancellation: what counts as a reason",
-      "Baggage and document loss",
-      "Pre-existing conditions while travelling",
-    ],
-  },
-  {
-    icon: "briefcase",
-    title: "Business insurance",
-    description:
-      "Cover for small and medium businesses — liability, property, and the people who work there.",
-    points: ["Commercial property", "Public and product liability", "Group employee cover"],
-    comingSoon: true,
-  },
-];
-
 const HOW = [
   {
     icon: "search" as const,

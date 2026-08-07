@@ -58,16 +58,24 @@ export interface NavLink {
 /**
  * The primary navigation.
  *
- * Seven items is at the outer edge of what a person scans comfortably, so the
- * two future sections (Careers, Blog) live in the footer instead of competing
- * with the ones that can actually answer a question today.
+ * Eight items, which is past the six a person scans comfortably — the cost of
+ * a single front door. Industries and Resources moved to the footer rather than
+ * being dropped: they still answer questions, they just answer narrower ones
+ * than the sections a first-time visitor is looking for.
+ *
+ * Sign in is deliberately *not* in this array. It is an action, not a
+ * destination, and it renders as the header's primary control — the same shape
+ * every enterprise console uses, and the reason a person never has to hunt for
+ * it among the reading material.
  */
 export const PRIMARY_NAV: readonly NavLink[] = [
+  { label: "Home", href: "/", description: "The platform, in one page" },
   { label: "Products", href: "/products", description: "Cover we help people understand" },
   { label: "Solutions", href: "/solutions", description: "For individuals and for insurers" },
-  { label: "Industries", href: "/industries", description: "Where the platform applies" },
-  { label: "Resources", href: "/resources", description: "Guides, FAQs and explanations" },
+  { label: "AI", href: "/ai", description: "How the advisors actually work" },
   { label: "About", href: "/about", description: "Why we built Aegis" },
+  { label: "Careers", href: "/careers", description: "Working here" },
+  { label: "Support", href: "/support", description: "Get help" },
   { label: "Contact", href: "/contact", description: "Talk to a person" },
 ];
 
@@ -198,6 +206,8 @@ export const FOOTER_SECTIONS: readonly { title: string; links: readonly NavLink[
 export const SITEMAP_ROUTES: readonly { path: string; priority: number }[] = [
   { path: "/", priority: 1 },
   { path: "/products", priority: 0.9 },
+  { path: "/ai", priority: 0.9 },
+  { path: "/support", priority: 0.7 },
   { path: "/solutions", priority: 0.9 },
   { path: "/get-started", priority: 0.9 },
   { path: "/request-demo", priority: 0.8 },
@@ -207,4 +217,186 @@ export const SITEMAP_ROUTES: readonly { path: string; priority: number }[] = [
   { path: "/contact", priority: 0.6 },
   { path: "/careers", priority: 0.3 },
   { path: "/blog", priority: 0.3 },
+];
+
+// ── Site content ─────────────────────────────────────────────────────────────
+//
+// Products and capabilities live here rather than inside the page that first
+// needed them, because the home page and the detail pages must not drift apart.
+// A visitor who reads "six products" on the front page and finds five on the
+// products page has caught the site contradicting itself.
+
+import type { Feature } from "@/components/sections/FeatureGrid";
+
+/** The insurance products, as the catalogue and the home page both render them. */
+export const PRODUCTS: readonly Feature[] = [
+  {
+    icon: "car",
+    title: "Motor insurance",
+    description:
+      "Two-wheeler and car cover, from the legal minimum to comprehensive protection — with the difference explained rather than assumed.",
+    points: [
+      "Third-party vs comprehensive, in plain terms",
+      "What own-damage actually pays for",
+      "Add-ons worth having, and the ones that are not",
+      "No-claim bonus explained before you lose it",
+    ],
+  },
+  {
+    icon: "heart",
+    title: "Health insurance",
+    description:
+      "Individual and family floater cover, weighed against the things that decide a hospital claim rather than the headline sum insured.",
+    points: [
+      "Waiting periods and pre-existing conditions",
+      "Room-rent limits and sub-limits",
+      "Cashless network reality, not just its size",
+      "What a family floater shares, and when that hurts",
+    ],
+  },
+  {
+    icon: "home",
+    title: "Property insurance",
+    description:
+      "Home and contents cover for owners and tenants, including the parts people usually discover are missing.",
+    points: [
+      "Structure and contents, told apart",
+      "Tenant cover vs owner cover",
+      "Natural-disaster inclusions by region",
+      "How the sum insured is arrived at",
+    ],
+  },
+  {
+    icon: "plane",
+    title: "Travel insurance",
+    description:
+      "Domestic and international trips, including student and senior-citizen travel — where the exclusions do the most work.",
+    points: [
+      "Medical cover abroad, and its ceiling",
+      "Trip cancellation: what counts as a reason",
+      "Baggage and document loss",
+      "Pre-existing conditions while travelling",
+    ],
+  },
+  {
+    icon: "briefcase",
+    title: "Business insurance",
+    description:
+      "Cover for small and medium businesses — liability, property, and the people who work there.",
+    points: ["Commercial property", "Public and product liability", "Group employee cover"],
+    comingSoon: true,
+  },
+  {
+    icon: "building",
+    title: "Corporate insurance",
+    description:
+      "Group cover for organisations — employee health, group term life, and the liability an employer carries whether or not it is insured.",
+    points: [
+      "Group health and group term life",
+      "Employer liability and workmen's compensation",
+      "Directors' and officers' cover",
+      "Onboarding and exits handled without a spreadsheet",
+    ],
+    comingSoon: true,
+  },
+];
+
+/** What the platform does, for the home page and the solutions page alike. */
+export const CAPABILITIES: readonly Feature[] = [
+  {
+    icon: "bolt",
+    title: "Claims automation",
+    description:
+      "Intake, document handling and assessment support, so a straightforward claim moves without a person having to chase it — and a complex one reaches an assessor with the context already gathered.",
+    points: [
+      "Guided intake that asks for the right documents once",
+      "Automatic completeness checks before submission",
+      "Straightforward cases routed away from manual queues",
+      "Every decision traceable end to end",
+    ],
+  },
+  {
+    icon: "refresh",
+    title: "Renewal intelligence",
+    description:
+      "Most lapses are not decisions — they are a missed message. Renewals are surfaced early, with what has changed since last year, in time for the customer to act.",
+    points: [
+      "Expiry and grace periods tracked per policy",
+      "What changed since the last term, in plain terms",
+      "Reminders timed to be useful rather than annoying",
+      "Re-assessment when circumstances have moved",
+    ],
+  },
+  {
+    icon: "search",
+    title: "Fraud detection",
+    description:
+      "Pattern and consistency signals across an application and its documents, so investigators spend their time on the cases that warrant it.",
+    points: [
+      "Document and declaration consistency checks",
+      "Anomaly signals surfaced with their reasoning",
+      "Flags a human decides on — never an automatic refusal",
+      "Full audit trail behind every signal",
+    ],
+  },
+  {
+    icon: "layers",
+    title: "Enterprise AI platform",
+    description:
+      "The layer the rest of this runs on: typed contracts, provider-agnostic language models, per-account isolation and a complete audit trail.",
+    points: [
+      "Provider-agnostic — no single vendor lock-in",
+      "Strict isolation between accounts and domains",
+      "Capability-based access, granted rather than assumed",
+      "Audit trail across every automated decision",
+    ],
+  },
+  {
+    icon: "spark",
+    title: "AI advisor",
+    description:
+      "Specialist advisors for motor, health, travel and property that ask what somebody needs before recommending anything — and say why, in the language the person is writing in.",
+    points: [
+      "Plain-language explanation before any recommendation",
+      "Handover between specialists without repeating yourself",
+      "English, Tamil and Thanglish in the same conversation",
+      "Every recommendation carries its reasoning",
+    ],
+  },
+  {
+    icon: "eye",
+    title: "Document intelligence",
+    description:
+      "Reading what a customer uploads — registration certificates, policy schedules, identity proofs — and saying plainly what is missing rather than failing silently.",
+    points: [
+      "Documents requested for a stated reason, not from a list",
+      "Completeness checked before a case moves",
+      "A person decides; the pipeline only prepares",
+      "A rejection always says what to do next",
+    ],
+  },
+  {
+    icon: "users",
+    title: "Customer intelligence",
+    description:
+      "One view of a customer that an advisor can act on — what they hold, what is missing, what changed, and where every fact came from.",
+    points: [
+      "Cover, gaps and renewals in one place",
+      "Every fact traceable to who said it",
+      "Advice history, so a past decision can be explained",
+      "Shared by the assistant and the human",
+    ],
+  },
+  {
+    icon: "chart",
+    title: "Analytics",
+    description:
+      "Operational and portfolio reporting drawn from what the platform actually recorded — including, deliberately, what it cannot yet measure.",
+    points: [
+      "Queue, workload and turnaround",
+      "Coverage-gap and renewal trends",
+      "Risk distribution across the book",
+      "Metrics with no data source say so rather than showing zero",
+    ],
+  },
 ];
