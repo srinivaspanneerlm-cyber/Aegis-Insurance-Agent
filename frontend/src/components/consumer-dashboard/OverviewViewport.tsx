@@ -9,11 +9,15 @@ import { AdvisorChatPanel } from "./overview/AdvisorChatPanel";
 import { ResumeConsultationCard } from "./overview/ResumeConsultationCard";
 import { RecommendationGoals } from "./overview/RecommendationGoals";
 import { ProtectionScoreCard } from "./overview/ProtectionScoreCard";
+import type { IntelligenceReport } from "@aegis/intelligence";
 import { ArchetypeCard } from "./overview/ArchetypeCard";
 import { QuickActionDesks } from "./overview/QuickActionDesks";
 
 interface OverviewViewportProps {
   clientName: string;
+  report: IntelligenceReport | null;
+  isReportLoading: boolean;
+  reportError: string | null;
   clientArchetype: string;
   archetypeExplanation: string;
   chatMessages: DashboardMessage[];
@@ -28,6 +32,7 @@ interface OverviewViewportProps {
 /** Primary overview console (nav: "dashboard"). */
 export function OverviewViewport({
   clientName, clientArchetype, archetypeExplanation,
+  report, isReportLoading, reportError,
   chatMessages, isTyping, chatInput, setChatInput, handleSendMessage, chatEndRef,
   setActiveNav,
 }: OverviewViewportProps) {
@@ -60,7 +65,7 @@ export function OverviewViewport({
 
         {/* Right Column (lg:col-span-1): Score, Profile archetype, and Quick Actions */}
         <div className="space-y-8 text-left">
-          <ProtectionScoreCard />
+          <ProtectionScoreCard report={report} loading={isReportLoading} error={reportError} />
           <ArchetypeCard clientArchetype={clientArchetype} archetypeExplanation={archetypeExplanation} />
           <QuickActionDesks setActiveNav={setActiveNav} />
         </div>

@@ -66,6 +66,9 @@ export default function ConsumerDashboard() {
             {dash.activeNav === "dashboard" && (
               <OverviewViewport
                 clientName={dash.clientName}
+                report={dash.report}
+                isReportLoading={dash.isReportLoading}
+                reportError={dash.reportError}
                 clientArchetype={dash.clientArchetype}
                 archetypeExplanation={dash.archetypeExplanation}
                 chatMessages={dash.chatMessages}

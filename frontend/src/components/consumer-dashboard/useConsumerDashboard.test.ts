@@ -31,6 +31,10 @@ vi.mock("next/navigation", () => ({ useRouter: () => router }));
 vi.mock("@/services/api", () => ({
   chatService: { sendMessage: vi.fn() },
   policyService: { getPolicies: vi.fn() },
+  // Resolves to null: these tests are about policies and identity, and a
+  // rejected report would make them fail for a reason they are not testing.
+  // The report's own behaviour is covered separately.
+  intelligenceService: { getReport: vi.fn().mockResolvedValue(null) },
 }));
 
 import { policyService } from "@/services/api";

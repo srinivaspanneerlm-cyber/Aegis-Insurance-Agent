@@ -1,6 +1,7 @@
 import axios, { AxiosProgressEvent } from "axios";
 import { API_URL } from "@/lib/config";
 import type { Lead, DocumentRecord, PolicyRecord, PageInfo } from "@/types/domain";
+import type { IntelligenceReport } from "@aegis/intelligence";
 
 declare module "axios" {
   export interface AxiosRequestConfig {
@@ -184,6 +185,28 @@ export const policyService = {
   getPolicyById: async (id: string) => {
     const res = await apiClient.get(`/policies/${id}`);
     return res.data.data.policy;
+  },
+};
+
+// ---------------------------------------------------------------------------
+// Insurance intelligence
+// ---------------------------------------------------------------------------
+
+/**
+ * The customer's own protection analysis.
+ *
+ * One call rather than several: every part of the report is derived from the
+ * same profile snapshot, so fetching the pieces separately would let the screen
+ * show a recommendation built from one version of the facts beside a risk
+ * summary built from another.
+ *
+ * The endpoint scopes itself to the caller — there is no user id to pass, and
+ * no way for this client to ask for somebody else's.
+ */
+export const intelligenceService = {
+  getReport: async (): Promise<IntelligenceReport> => {
+    const res = await apiClient.get("/intelligence/report");
+    return res.data.data;
   },
 };
 

@@ -4,7 +4,8 @@ import { useState, useEffect, useRef } from "react";
 import { logger } from "@/lib/logger";
 import { useAuth } from "@/context/AuthContext";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
-import { chatService, policyService } from "@/services/api";
+import { chatService, intelligenceService, policyService } from "@/services/api";
+import type { IntelligenceReport } from "@aegis/intelligence";
 import type { PageInfo } from "@/types/domain";
 import type {
   NavId, DashboardMessage, DashboardPolicy, DashboardDoc, DashboardNotification,
@@ -69,12 +70,48 @@ export function useConsumerDashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const [dbPolicies, setDbPolicies] = useState<DashboardPolicy[]>([]);
+
+  // The protection analysis. Kept beside the policies rather than inside the
+  // card that shows it, so a second consumer of the report does not fetch it
+  // twice.
+  const [report, setReport] = useState<IntelligenceReport | null>(null);
+  const [isReportLoading, setIsReportLoading] = useState(true);
+  const [reportError, setReportError] = useState<string | null>(null);
   const [policiesPagination, setPoliciesPagination] = useState<PageInfo | null>(null);
   // `isPoliciesLoading` gates the boot screen (initial load only); a separate
   // `isPoliciesPaging` flag covers subsequent page fetches so paging never
   // re-triggers the full-screen boot state.
   const [isPoliciesLoading, setIsPoliciesLoading] = useState(true);
   const [isPoliciesPaging, setIsPoliciesPaging] = useState(false);
+
+  // Deliberately not blocking `isBooting`: a customer's policies and advisor are
+  // useful while the analysis is still being worked out, and holding the whole
+  // dashboard for it would make a slow report look like a slow login.
+  useEffect(() => {
+    if (!isReady) return;
+    let cancelled = false;
+
+    intelligenceService
+      .getReport()
+      .then((data) => {
+        if (!cancelled) {
+          setReport(data);
+          setReportError(null);
+        }
+      })
+      .catch((error: unknown) => {
+        if (cancelled) return;
+        logger.warn("dashboard: protection report unavailable", error);
+        setReportError("We could not load your protection profile.");
+      })
+      .finally(() => {
+        if (!cancelled) setIsReportLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isReady]);
 
   const [chatMessages, setChatMessages] = useState<DashboardMessage[]>(INITIAL_MESSAGES);
   const [chatInput, setChatInput] = useState("");
@@ -231,6 +268,7 @@ export function useConsumerDashboard() {
     logout,
     // identity
     clientName, clientEmail, clientArchetype,
+    report, isReportLoading, reportError,
     archetypeExplanation: archetypeExplanation(clientArchetype),
     // chat
     chatMessages, chatInput, setChatInput, isTyping, chatEndRef, handleSendMessage,
