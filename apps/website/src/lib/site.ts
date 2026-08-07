@@ -90,83 +90,15 @@ export const PRIMARY_NAV: readonly NavLink[] = [
 export const IDENTITY_URL = process.env.NEXT_PUBLIC_IDENTITY_URL ?? "http://localhost:3105";
 
 /**
- * A union rather than `string`, so the icon and tone lookups keyed on it are
- * exhaustive. Adding a portal without giving it an icon then fails to compile
- * rather than rendering a blank square.
- */
-export type PortalId = "customer" | "employee" | "enterprise" | "platform-admin";
-
-export interface Portal {
-  id: PortalId;
-  name: string;
-  audience: string;
-  description: string;
-  /** What signing in here actually gets you. Kept concrete and honest. */
-  points: readonly string[];
-  href: string;
-  /** Portals that are not yet accepting sign-ins say so instead of 404ing. */
-  available: boolean;
-  tone: "brand" | "accent" | "info" | "muted";
-}
-
-/**
- * Where "Get Started" leads.
+ * The portal catalogue used to live here.
  *
- * Each entry names a separate application, not a role inside one. That
- * separation is the platform's identity model showing through: a customer and a
- * member of staff are different kinds of principal with different session
- * policies, and they do not share a front door.
- *
- * `href` points at the identity platform's sign-in for that realm rather than
- * at the portal itself. Linking a visitor straight to a portal would only
- * bounce them back here unauthenticated, one redirect later.
+ * It was removed rather than left unused: it named all four workspaces, their
+ * audiences and their sign-in URLs, and any page importing it would have
+ * published the platform's internal structure to anyone who visited. Which
+ * workspace a person may enter is decided by the server from their account —
+ * `/auth/portals` — and the public site has no business holding a copy of the
+ * answer.
  */
-export const PORTALS: readonly Portal[] = [
-  {
-    id: "customer",
-    name: "Customer Portal",
-    audience: "For individuals and families",
-    description:
-      "Review the cover you hold, continue an application, and get a plain-language explanation of anything you do not recognise.",
-    points: ["Your policies and documents", "Renewals and reminders", "Guidance in your language"],
-    href: `${IDENTITY_URL}/login?portal=CUSTOMER`,
-    available: true,
-    tone: "brand",
-  },
-  {
-    id: "employee",
-    name: "Employee Portal",
-    audience: "For branch and support staff",
-    description:
-      "The daily working surface for the people who serve customers directly — enquiries, applications and the records behind them.",
-    points: ["Customer enquiries", "Application progress", "Day-to-day servicing"],
-    href: `${IDENTITY_URL}/login?portal=EMPLOYEE`,
-    available: false,
-    tone: "info",
-  },
-  {
-    id: "enterprise",
-    name: "Enterprise Portal",
-    audience: "For underwriting and oversight",
-    description:
-      "Portfolio-level work: underwriting decisions, approvals, and the reporting that governance and compliance depend on.",
-    points: ["Underwriting and approvals", "Portfolio reporting", "Audit and oversight"],
-    href: `${IDENTITY_URL}/login?portal=ENTERPRISE`,
-    available: false,
-    tone: "accent",
-  },
-  {
-    id: "platform-admin",
-    name: "Platform Administration",
-    audience: "For Aegis operators",
-    description:
-      "Configuration, organisations and platform health. Access is granted by capability, never by job title.",
-    points: ["Organisations and staff", "Platform configuration", "Audit trail"],
-    href: `${IDENTITY_URL}/login?portal=PLATFORM`,
-    available: false,
-    tone: "muted",
-  },
-];
 
 export const FOOTER_SECTIONS: readonly { title: string; links: readonly NavLink[] }[] = [
   {

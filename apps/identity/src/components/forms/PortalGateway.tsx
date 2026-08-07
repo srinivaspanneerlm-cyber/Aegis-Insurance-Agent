@@ -81,7 +81,46 @@ export function PortalGateway() {
     }
   }, []);
 
-  if (state.phase === "loading") return <GatewayLoading />;
+  /**
+   * Enter the one workspace this account has, without asking.
+   *
+   * Most people belong to exactly one workspace, and presenting them a page
+   * with a single card and a Continue button is asking a question that has only
+   * one answer. The server already decided — this honours the decision instead
+   * of restating it.
+   *
+   * Deliberately narrow. It fires only when precisely one portal is entitled:
+   * somebody with two genuinely has a choice, and somebody with none must reach
+   * the access-denied screen rather than being bounced into a redirect loop.
+   *
+   * `redirecting` guards against a re-render firing a second navigation while
+   * the first is still in flight. `onContinue` is reused rather than
+   * reimplemented, so the automatic path and the manual one make the same
+   * server call and cannot drift apart.
+   */
+  const [autoEntering, setAutoEntering] = useState(false);
+
+  useEffect(() => {
+    if (state.phase !== "ready" || autoEntering) return;
+
+    const entitled = state.payload.portals.filter((portal) => portal.entitled);
+    if (entitled.length !== 1) return;
+
+    const only = entitled[0];
+    if (!only) return;
+
+    setAutoEntering(true);
+    void onContinue(only);
+    // `onContinue` is stable (useCallback with no deps) and is intentionally
+    // omitted: including it would not change when this runs, and listing it
+    // implies a dependency that does not exist.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state, autoEntering]);
+
+  // The skeleton also covers the automatic entry, so somebody with one
+  // workspace never sees a chooser flash up and vanish. From their side the
+  // page simply loads and they arrive — which is the whole point.
+  if (state.phase === "loading" || autoEntering) return <GatewayLoading />;
 
   if (state.phase === "expired") {
     return (
