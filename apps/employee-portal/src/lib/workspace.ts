@@ -101,6 +101,19 @@ export const NAVIGATION: readonly NavGroup[] = [
         comingSoon: true,
       },
       { label: "Knowledge Center", href: "/knowledge", icon: "book", permission: "knowledge.read" },
+      {
+        label: "Knowledge Workspace",
+        href: "/knowledge/workspace",
+        icon: "book",
+        permission: "knowledge.read",
+      },
+      {
+        label: "Knowledge Console",
+        href: "/knowledge/console",
+        icon: "shield",
+        permission: "knowledge.write",
+      },
+      { label: "Memory", href: "/memory", icon: "spark", permission: "customer.read" },
     ],
   },
   {

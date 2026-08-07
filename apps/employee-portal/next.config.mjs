@@ -11,6 +11,7 @@ const nextConfig = {
     "@aegis/documents",
     "@aegis/intelligence",
     "@aegis/communication",
+    "@aegis/knowledge",
     "@aegis/design-system",
     "@aegis/utils",
     "@aegis/auth",
