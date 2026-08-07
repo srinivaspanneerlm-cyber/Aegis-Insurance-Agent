@@ -1,13 +1,41 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { User, Mail, Database, ArrowLeft, Key } from "lucide-react";
+import { User, Mail, Database, ArrowLeft } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
+import { intelligenceService } from "@/services/api";
 
 export default function ConsumerProfilePage() {
   const { user, isReady } = useRequireAuth();
+  const [completeness, setCompleteness] = useState(0);
+  const [isProfileLoading, setIsProfileLoading] = useState(true);
+  const [profileError, setProfileError] = useState<string | null>(null);
+
+  // Loaded after auth resolves, and never blocking the page: name and email are
+  // already known, so a slow profile call must not hold back what is on hand.
+  useEffect(() => {
+    if (!isReady || !user) return;
+    let cancelled = false;
+
+    intelligenceService
+      .getProfile()
+      .then((data) => {
+        if (!cancelled) setCompleteness(data.completeness);
+      })
+      .catch(() => {
+        if (!cancelled) setProfileError("We could not load your insurance profile.");
+      })
+      .finally(() => {
+        if (!cancelled) setIsProfileLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isReady, user]);
 
   const router = useRouter();
 
@@ -51,34 +79,84 @@ export default function ConsumerProfilePage() {
               </div>
               <div>
                 <h2 className="text-xl font-black text-white">{user.name}</h2>
-                <p className="text-[9.5px] text-cyan-400 font-extrabold uppercase tracking-widest mt-1">Verified Account</p>
+                {/* Not "Verified Account": nothing on the client says whether
+                    this account is verified, and asserting it is a security
+                    claim the page cannot support. */}
+                <p className="text-[9.5px] text-cyan-400 font-extrabold uppercase tracking-widest mt-1">
+                  Signed in
+                </p>
               </div>
             </div>
 
             <div className="space-y-6 text-slate-300">
               <div className="space-y-2">
-                <label className="text-[9px] text-slate-500 font-black uppercase tracking-widest block">Email</label>
+                <label className="text-[9px] text-slate-500 font-black uppercase tracking-widest block">
+                  Email
+                </label>
                 <div className="p-4 bg-white/[0.01] border border-white/5 rounded-xl flex items-center gap-3">
                   <Mail className="w-4 h-4 text-purple-400" />
                   <span className="text-xs font-bold text-white">{user.email}</span>
                 </div>
               </div>
 
+              {/* How complete the insurance profile is, from the engine that
+                  uses it. The three rows that used to sit here — an ECDSA key
+                  hash, "DPDP verified", "Direct Client Layer Seeded" — were
+                  invented, and the first two made security claims the platform
+                  cannot support. */}
               <div className="space-y-2">
-                <label className="text-[9px] text-slate-550 font-black uppercase tracking-widest block">ECDSA Vault Key Hash</label>
-                <div className="p-4 bg-white/[0.01] border border-white/5 rounded-xl flex items-center gap-3 font-mono text-[10px] text-cyan-300">
-                  <Key className="w-4 h-4 text-cyan-400" />
-                  <span>0x7f9a...bc42 (DPDP verified)</span>
+                <label
+                  className="text-[9px] text-slate-500 font-black uppercase tracking-widest block"
+                  id="profile-completeness-label"
+                >
+                  Insurance profile
+                </label>
+                <div
+                  className="p-4 bg-white/[0.01] border border-white/5 rounded-xl"
+                  aria-labelledby="profile-completeness-label"
+                >
+                  {profileError ? (
+                    <p className="text-xs font-bold text-amber-400">{profileError}</p>
+                  ) : isProfileLoading ? (
+                    <p className="text-xs font-bold text-slate-400">Loading…</p>
+                  ) : (
+                    <>
+                      <div className="flex items-center gap-3">
+                        <Database className="w-4 h-4 text-purple-400" />
+                        <span className="text-xs font-bold text-white">
+                          {completeness}% complete
+                        </span>
+                      </div>
+                      <div
+                        className="mt-3 h-1.5 w-full rounded-full bg-white/5 overflow-hidden"
+                        role="progressbar"
+                        aria-valuenow={completeness}
+                        aria-valuemin={0}
+                        aria-valuemax={100}
+                        aria-label="Insurance profile completeness"
+                      >
+                        <div
+                          className="h-full rounded-full bg-gradient-to-r from-purple-500 to-cyan-500 transition-[width] duration-700 motion-reduce:transition-none"
+                          style={{ width: `${completeness}%` }}
+                        />
+                      </div>
+                      <p className="mt-3 text-[11px] font-bold text-slate-400">
+                        {completeness >= 80
+                          ? "Enough for us to advise you properly."
+                          : "The more we know, the more specific our advice can be."}
+                      </p>
+                    </>
+                  )}
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <label className="text-[9px] text-slate-555 font-black uppercase tracking-widest block">Ecosystem Status</label>
-                <div className="p-4 bg-white/[0.01] border border-white/5 rounded-xl flex items-center gap-3">
-                  <Database className="w-4 h-4 text-purple-400" />
-                  <span className="text-xs font-bold text-white">Direct Client Layer Seeded</span>
-                </div>
-              </div>
+              <button
+                type="button"
+                onClick={() => router.push("/consumer/recommendations")}
+                className="w-full rounded-xl border border-purple-800/40 bg-purple-950/30 px-4 py-3 text-xs font-black uppercase tracking-widest text-purple-300 transition-colors hover:bg-purple-950/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-400"
+              >
+                See what this means for your cover
+              </button>
             </div>
           </div>
         </div>

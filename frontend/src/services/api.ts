@@ -208,7 +208,33 @@ export const intelligenceService = {
     const res = await apiClient.get("/intelligence/report");
     return res.data.data;
   },
+
+  /** The insurance profile the analysis is built from. */
+  getProfile: async (): Promise<InsuranceProfileResponse> => {
+    const res = await apiClient.get("/intelligence/profile");
+    return res.data.data;
+  },
+
+  /**
+   * Saves the profile.
+   *
+   * A partial update: the server merges rather than replaces, so a form that
+   * submits three fields does not erase the other ten. That behaviour lives in
+   * the backend and is not re-implemented here.
+   */
+  saveProfile: async (input: Record<string, unknown>): Promise<InsuranceProfileResponse> => {
+    const res = await apiClient.put("/intelligence/profile", input);
+    return res.data.data;
+  },
 };
+
+export interface InsuranceProfileResponse {
+  exists: boolean;
+  userId: string;
+  completeness: number;
+  profile: Record<string, unknown> | null;
+  heldPolicies: unknown[];
+}
 
 // ---------------------------------------------------------------------------
 // Leads
