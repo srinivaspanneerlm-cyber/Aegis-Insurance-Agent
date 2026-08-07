@@ -34,7 +34,10 @@ vi.mock("@/services/api", () => ({
   // Resolves to null: these tests are about policies and identity, and a
   // rejected report would make them fail for a reason they are not testing.
   // The report's own behaviour is covered separately.
-  intelligenceService: { getReport: vi.fn().mockResolvedValue(null) },
+  intelligenceService: {
+    getReport: vi.fn().mockResolvedValue(null),
+    getProfile: vi.fn().mockResolvedValue({ heldPolicies: [], completeness: 0 }),
+  },
 }));
 
 import { policyService } from "@/services/api";

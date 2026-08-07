@@ -5,6 +5,7 @@ import { logger } from "@/lib/logger";
 import { useAuth } from "@/context/AuthContext";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { chatService, intelligenceService, policyService } from "@/services/api";
+import type { HeldPolicy } from "@/services/api";
 import type { IntelligenceReport } from "@aegis/intelligence";
 import type { PageInfo } from "@/types/domain";
 import type {
@@ -77,6 +78,10 @@ export function useConsumerDashboard() {
   const [report, setReport] = useState<IntelligenceReport | null>(null);
   const [isReportLoading, setIsReportLoading] = useState(true);
   const [reportError, setReportError] = useState<string | null>(null);
+
+  // Cover held elsewhere, from the same profile the analysis is built on.
+  const [heldPolicies, setHeldPolicies] = useState<HeldPolicy[]>([]);
+  const [isProfileLoading, setIsProfileLoading] = useState(true);
   const [policiesPagination, setPoliciesPagination] = useState<PageInfo | null>(null);
   // `isPoliciesLoading` gates the boot screen (initial load only); a separate
   // `isPoliciesPaging` flag covers subsequent page fetches so paging never
@@ -90,6 +95,19 @@ export function useConsumerDashboard() {
   useEffect(() => {
     if (!isReady) return;
     let cancelled = false;
+
+    intelligenceService
+      .getProfile()
+      .then((data) => {
+        if (!cancelled) setHeldPolicies(data.heldPolicies);
+      })
+      .catch(() => {
+        // The held list is additive context; failing to load it must not take
+        // the report with it.
+      })
+      .finally(() => {
+        if (!cancelled) setIsProfileLoading(false);
+      });
 
     intelligenceService
       .getReport()
@@ -269,6 +287,7 @@ export function useConsumerDashboard() {
     // identity
     clientName, clientEmail, clientArchetype,
     report, isReportLoading, reportError,
+    heldPolicies, isProfileLoading,
     archetypeExplanation: archetypeExplanation(clientArchetype),
     // chat
     chatMessages, chatInput, setChatInput, isTyping, chatEndRef, handleSendMessage,

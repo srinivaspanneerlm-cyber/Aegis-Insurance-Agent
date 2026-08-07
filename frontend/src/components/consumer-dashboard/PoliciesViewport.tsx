@@ -4,6 +4,8 @@ import { Heart, ArrowUpRight } from "lucide-react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useTheme } from "@/context/ThemeContext";
+import { formatRupees } from "@aegis/intelligence";
+import type { HeldPolicy } from "@/services/api";
 import { Pagination } from "@/components/shared/Pagination";
 import type { PageInfo } from "@/types/domain";
 import type { DashboardPolicy } from "./types";
@@ -11,6 +13,9 @@ import { NOT_DISCLOSED } from "@/lib/platformFacts";
 
 interface PoliciesViewportProps {
   activePoliciesList: DashboardPolicy[];
+  /** Cover the customer already holds, including with other insurers. */
+  heldPolicies: HeldPolicy[];
+  isProfileLoading: boolean;
   pagination: PageInfo | null;
   isPaging: boolean;
   onPageChange: (page: number) => void;
@@ -19,6 +24,8 @@ interface PoliciesViewportProps {
 /** Active insurance portfolio list (nav: "policies"). */
 export function PoliciesViewport({
   activePoliciesList,
+  heldPolicies,
+  isProfileLoading,
   pagination,
   isPaging,
   onPageChange,
@@ -54,7 +61,7 @@ export function PoliciesViewport({
                   Active Scope
                 </span>
                 <h4 className={`text-base font-black group-hover:text-purple-400 transition-colors leading-none text-content`}>{plan.policyName}</h4>
-                <p className="text-xs text-slate-500 font-bold leading-normal">Authorized underwriter network partners locked securely.</p>
+                {/* This line read "Authorized underwriter network partners locked securely" — words shaped like information. Coverage and premium below are what a customer opened this to check. */}
               </div>
             </div>
 
@@ -92,6 +99,61 @@ export function PoliciesViewport({
           variant={theme === "dark" ? "dark" : "light"}
         />
       )}
+
+        {/* Cover held elsewhere.
+            This is what makes the platform's gap analysis honest: a customer
+            who already holds health insurance must not be told to buy it, and
+            the engine can only know that if the cover is recorded. */}
+        <section aria-labelledby="held-heading" className="border-t border-white/5 pt-6">
+          <h3 id="held-heading" className="font-black text-base text-content">
+            Cover you already hold
+          </h3>
+          <p className="text-xs text-slate-400 mt-1 font-medium">
+            Including policies bought elsewhere. We use these so we never suggest cover you
+            already have.
+          </p>
+
+          {isProfileLoading ? (
+            <p className="mt-4 text-xs font-bold text-slate-400">Loading…</p>
+          ) : heldPolicies.length === 0 ? (
+            <p className="mt-4 text-xs font-bold text-slate-400">
+              Nothing recorded yet. Telling us about a policy you hold elsewhere makes our advice
+              more accurate.
+            </p>
+          ) : (
+            <ul className="mt-4 space-y-3">
+              {heldPolicies.map((held) => (
+                <li
+                  key={held.id}
+                  className="rounded-2xl border border-white/5 bg-white/[0.01] p-4 flex flex-wrap items-baseline justify-between gap-2"
+                >
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                      {held.domain}
+                      {held.external ? " · elsewhere" : " · with us"}
+                    </p>
+                    <p className="text-sm font-bold text-content mt-0.5">
+                      {held.productName ?? held.insurer ?? "Policy"}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    {held.sumInsured !== null ? (
+                      <p className="text-sm font-black text-content">
+                        {formatRupees(held.sumInsured)}
+                      </p>
+                    ) : null}
+                    {held.renewalDate ? (
+                      <p className="text-[11px] font-bold text-slate-500">
+                        renews {new Date(held.renewalDate).toLocaleDateString()}
+                      </p>
+                    ) : null}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
     </motion.div>
   );
 }

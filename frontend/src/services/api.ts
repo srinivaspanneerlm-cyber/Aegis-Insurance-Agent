@@ -228,12 +228,34 @@ export const intelligenceService = {
   },
 };
 
+/**
+ * A policy the customer already holds — here or with another insurer.
+ *
+ * Distinct from the `Policy` catalogue, which is a product somebody could buy.
+ * Cover held elsewhere still counts as cover, and it is what stops the platform
+ * recommending health insurance to a customer who already has it.
+ */
+export interface HeldPolicy {
+  id: string;
+  domain: string;
+  insurer: string | null;
+  productName: string | null;
+  policyNumber: string | null;
+  sumInsured: number | null;
+  premium: number | null;
+  startDate: string | null;
+  renewalDate: string | null;
+  external: boolean;
+  status: string;
+  notes: string | null;
+}
+
 export interface InsuranceProfileResponse {
   exists: boolean;
   userId: string;
   completeness: number;
   profile: Record<string, unknown> | null;
-  heldPolicies: unknown[];
+  heldPolicies: HeldPolicy[];
 }
 
 // ---------------------------------------------------------------------------

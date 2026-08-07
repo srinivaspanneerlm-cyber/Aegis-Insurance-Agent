@@ -83,6 +83,8 @@ export default function ConsumerDashboard() {
             {dash.activeNav === "policies" && (
               <PoliciesViewport
                 activePoliciesList={dash.activePoliciesList}
+                heldPolicies={dash.heldPolicies}
+                isProfileLoading={dash.isProfileLoading}
                 pagination={dash.policiesPagination}
                 isPaging={dash.isPoliciesPaging}
                 onPageChange={dash.goToPoliciesPage}
