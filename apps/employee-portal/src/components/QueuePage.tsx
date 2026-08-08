@@ -29,12 +29,19 @@ export function QueuePage({
   const [items, setItems] = useState<WorkItem[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // How many the server returned before this page filtered by kind. The
+  // endpoint caps at 100 across every kind, so a busy advisor's claims can sit
+  // past the cut and never appear here. Tracking the raw count lets the page
+  // say so rather than quietly showing a short list.
+  const [fetched, setFetched] = useState(0);
+
   useEffect(() => {
     let cancelled = false;
     workspaceApi
       .queue()
       .then((data) => {
         if (cancelled) return;
+        setFetched(data.items.length);
         setItems(kinds ? data.items.filter((item) => kinds.includes(item.kind)) : data.items);
       })
       .catch((err) => {
@@ -66,6 +73,17 @@ export function QueuePage({
         ) : (
           <QueueTable items={items} />
         )}
+
+        {/* The endpoint returns at most 100 items across every kind, then this
+            page filters by kind. At the cap, work of this kind can sit past the
+            cut and never appear — so the page says so rather than presenting a
+            truncated list as the whole queue. */}
+        {fetched >= 100 ? (
+          <p role="status" className="mt-4 text-pretty text-caption text-content-muted">
+            Showing the 100 most urgent items across all your work. If you have more than that, some
+            of this kind may not be listed.
+          </p>
+        ) : null}
       </Panel>
     </div>
   );
