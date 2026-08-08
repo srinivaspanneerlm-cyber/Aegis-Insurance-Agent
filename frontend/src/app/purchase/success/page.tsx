@@ -127,12 +127,24 @@ Reference: Demo Mode — not a real policy
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
           <div className="flex items-center justify-center gap-2 mb-2">
             <Sparkles className="w-4 h-4 text-yellow-400" />
-            <span className="text-yellow-400 text-xs font-semibold uppercase tracking-widest">Policy Issued</span>
+            <span className="text-yellow-400 text-xs font-semibold uppercase tracking-widest">Demonstration complete</span>
             <Sparkles className="w-4 h-4 text-yellow-400" />
           </div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-white">Welcome to Aegis!</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-white">That is how it works</h1>
           <p className="text-emerald-300/70 text-sm mt-1">
-            Your insurance policy is active and documents have been sent to your email.
+            You have walked through the whole purchase journey. No policy was issued, no
+            payment was taken, and nothing was emailed.
+          </p>
+
+          {/* Not "your policy is active": nothing was underwritten, no payment was
+              taken, no document was emailed. A customer who believed it and stopped
+              looking for cover would be uninsured and think otherwise — the one
+              outcome an insurance platform must never cause. */}
+          <p
+            role="alert"
+            className="mt-4 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm font-semibold text-amber-200"
+          >
+            This was a demonstration. You are not insured. To buy real cover, talk to an advisor.
           </p>
         </motion.div>
 

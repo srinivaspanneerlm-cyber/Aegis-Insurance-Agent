@@ -48,9 +48,12 @@ function PurchaseLayoutInner({ children }: { children: React.ReactNode }) {
           </div>
 
           {/* Security badge */}
-          <div className="hidden sm:flex items-center gap-2 text-xs text-emerald-400">
-            <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            Encrypted connection · Demo Mode
+          {/* Visible at every width. This was `hidden sm:flex`, so the one notice
+              telling somebody the flow is a demonstration vanished on a phone —
+              where most of these journeys happen. */}
+          <div className="flex items-center gap-2 text-xs font-semibold text-amber-300">
+            <div className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+            Demonstration — no policy is issued
           </div>
         </div>
 
