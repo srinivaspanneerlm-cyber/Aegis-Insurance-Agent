@@ -142,12 +142,33 @@ export const workspaceApi = {
   policies: (page = 1, limit = 20) =>
     callPaged<{ policies: CataloguePolicy[] }>(`/policies?page=${page}&limit=${limit}`),
 
+  /**
+   * Renewals across the book, from the Sprint 9 engine.
+   *
+   * Distinct from the assigned queue below it: a customer whose cover expires
+   * next week with no work item raised is invisible in a queue, and those are
+   * precisely the ones that lapse.
+   */
+  renewalAnalytics: () => call<RenewalAnalytics>("/intelligence/analytics/renewals"),
+
   /** Unread counts by category, from the Sprint 10 platform. */
   unreadNotifications: () =>
     call<{ total: number; byCategory: Record<string, number> }>(
       "/communication/notifications/unread-count"
     ),
 };
+
+export interface RenewalAnalytics {
+  activePolicies: number;
+  overdue: number;
+  upcoming90Days: number;
+  buckets: { within7: number; within30: number; within60: number; within90: number };
+  byDomain: { domain: string; count: number }[];
+  premiumAtRisk: number;
+  premiumAtRiskNote: string;
+  /** Declared unavailable rather than invented — nothing records outcomes. */
+  renewalRate: { available: boolean; reason?: string; needs?: string };
+}
 
 export interface CataloguePolicy {
   id: string;
