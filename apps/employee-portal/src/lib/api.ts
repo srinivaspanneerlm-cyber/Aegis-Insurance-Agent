@@ -80,12 +80,45 @@ export const workspaceApi = {
   customerReport: (userId: string) =>
     call<unknown>(`/intelligence/report?userId=${encodeURIComponent(userId)}`),
 
+  /**
+   * Everything an advisor needs before speaking to a customer, in one call.
+   *
+   * Behind `customer.read` and audited, because it is one person's file rather
+   * than a business metric. It carries the same reasoning the customer will see,
+   * so a phone call is a conversation rather than a translation.
+   */
+  customerBrief: (userId: string) =>
+    call<CustomerBrief>(`/intelligence/customer/${encodeURIComponent(userId)}/brief`),
+
   /** Unread counts by category, from the Sprint 10 platform. */
   unreadNotifications: () =>
     call<{ total: number; byCategory: Record<string, number> }>(
       "/communication/notifications/unread-count"
     ),
 };
+
+export interface CustomerBrief {
+  customer: { id: string; name: string; email: string; realm: string; createdAt: string };
+  profileCompleteness: number;
+  openWith: { summary: string; domain: string | null; rationale: string };
+  lifeStage: { stage: string; narrative: string };
+  suggestedPolicies: {
+    domain: string;
+    label: string;
+    headline: string;
+    urgency: string;
+    why: string;
+    talkingPoints: string[];
+    limitations: string[];
+    confidence: number;
+  }[];
+  risk: { overall: string; narrative: string; raised: { dimension: string }[]; unknown: string[] };
+  missingDocuments: { documentKey: string; label: string }[];
+  documentsBlocked: boolean;
+  /** Declared unavailable rather than fabricated — no claims system is connected. */
+  claimObservations: { available: boolean; reason?: string; needs?: string };
+  askAbout: string[];
+}
 
 export interface CustomerRow {
   id: string;

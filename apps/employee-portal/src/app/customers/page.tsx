@@ -13,6 +13,7 @@ import {
 } from "@aegis/intelligence";
 import { Empty, Panel, Skeleton, Stat } from "@/components/Cards";
 import { workspaceApi } from "@/lib/api";
+import type { CustomerBrief } from "@/lib/api";
 
 interface CustomerRow {
   id: string;
@@ -40,6 +41,11 @@ export default function CustomerIntelligencePage() {
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<CustomerRow | null>(null);
   const [report, setReport] = useState<IntelligenceReport | null>(null);
+
+  // Who this person is, not only what to sell them. The screen showed advice
+  // with no contact details, no life stage and no idea what to ask about —
+  // everything the brief already carries and nothing rendered it.
+  const [brief, setBrief] = useState<CustomerBrief | null>(null);
   const [loadingReport, setLoadingReport] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -78,12 +84,19 @@ export default function CustomerIntelligencePage() {
     const ticket = ++reportTicket.current;
     setSelected(customer);
     setReport(null);
+    setBrief(null);
     setLoadingReport(true);
     setError(null);
     try {
-      const data = (await workspaceApi.customerReport(customer.id)) as IntelligenceReport;
+      // Both in parallel, both guarded by the same ticket. The brief is the
+      // person; the report is the analysis.
+      const [data, briefData] = await Promise.all([
+        workspaceApi.customerReport(customer.id) as Promise<IntelligenceReport>,
+        workspaceApi.customerBrief(customer.id),
+      ]);
       if (ticket !== reportTicket.current) return;
       setReport(data);
+      setBrief(briefData);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not load that analysis.");
     } finally {
@@ -186,6 +199,63 @@ export default function CustomerIntelligencePage() {
             </div>
           ) : report ? (
             <>
+              {/* Who this person is, before what to sell them. An advisor about to
+                  ring somebody needs their name and their situation in front of
+                  them — the brief has carried this since Sprint 9 and nothing
+                  displayed it. */}
+              {brief ? (
+                <Panel title={brief.customer.name}>
+                  <dl className="grid gap-3 sm:grid-cols-2">
+                    <div>
+                      <dt className="text-caption text-content-muted">Email</dt>
+                      <dd className="text-body-sm text-content">{brief.customer.email}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-caption text-content-muted">Customer since</dt>
+                      <dd className="text-body-sm text-content">
+                        {new Date(brief.customer.createdAt).toLocaleDateString(undefined, {
+                          month: "long",
+                          year: "numeric",
+                        })}
+                      </dd>
+                    </div>
+                    <div className="sm:col-span-2">
+                      <dt className="text-caption text-content-muted">Where they are in life</dt>
+                      <dd className="text-pretty text-body-sm text-content">
+                        {brief.lifeStage.narrative}
+                      </dd>
+                    </div>
+                  </dl>
+
+                  {brief.askAbout.length > 0 ? (
+                    <section className="mt-5 border-t border-line/40 pt-4">
+                      <h3 className="text-caption font-semibold uppercase tracking-wide text-content-muted">
+                        Worth asking about
+                      </h3>
+                      <ul className="mt-2 flex flex-col gap-1">
+                        {brief.askAbout.map((item) => (
+                          <li
+                            key={item}
+                            className="text-pretty text-body-sm text-content-secondary"
+                          >
+                            {item}
+                          </li>
+                        ))}
+                      </ul>
+                    </section>
+                  ) : null}
+
+                  {/* Declared missing rather than left blank. No claims system is
+                      connected, and an advisor should know that is why the section
+                      is empty — not assume the customer has never claimed. */}
+                  {!brief.claimObservations.available ? (
+                    <p className="mt-4 text-pretty text-caption text-content-muted">
+                      Claim history is not shown: {brief.claimObservations.reason}
+                    </p>
+                  ) : null}
+                </Panel>
+              ) : null}
+
               <NextBestAction
                 action={report.nextBestAction}
                 completeness={report.profileCompleteness}
