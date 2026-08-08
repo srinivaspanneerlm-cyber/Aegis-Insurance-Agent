@@ -23,14 +23,30 @@ export default function DashboardPage() {
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
   const [failed, setFailed] = useState(false);
 
+  // Two things an employee's day depends on that the dashboard did not show:
+  // documents waiting on a person, and notices nobody has read. Both have
+  // pages in this portal; without them here, the only way to learn there is
+  // work waiting is to go looking for it.
+  const [docsWaiting, setDocsWaiting] = useState<number | null>(null);
+  const [unread, setUnread] = useState<number | null>(null);
+
   useEffect(() => {
     let cancelled = false;
-    Promise.allSettled([workspaceApi.queue(), workspaceApi.analytics()]).then((results) => {
+    // allSettled, not all: a failing document queue must not blank the work
+    // list. Each panel reports its own state.
+    Promise.allSettled([
+      workspaceApi.queue(),
+      workspaceApi.analytics(),
+      workspaceApi.documentQueue(),
+      workspaceApi.unreadNotifications(),
+    ]).then((results) => {
       if (cancelled) return;
-      const [queueResult, analyticsResult] = results;
+      const [queueResult, analyticsResult, docsResult, unreadResult] = results;
       if (queueResult.status === "fulfilled") setQueue(queueResult.value.items);
       else setFailed(true);
       if (analyticsResult.status === "fulfilled") setAnalytics(analyticsResult.value);
+      if (docsResult.status === "fulfilled") setDocsWaiting(docsResult.value.waiting);
+      if (unreadResult.status === "fulfilled") setUnread(unreadResult.value.total);
     });
     return () => {
       cancelled = true;
@@ -93,6 +109,27 @@ export default function DashboardPage() {
           </p>
         </div>
       ) : null}
+
+      {/* Work waiting elsewhere in this portal. Both have their own pages;
+          without them here, the only way to learn something is waiting is to
+          go and look. Each shows "—" rather than 0 when its call failed, so
+          an unreachable queue is not read as an empty one. */}
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Stat
+          label="Documents to verify"
+          value={docsWaiting ?? "—"}
+          tone={docsWaiting && docsWaiting > 0 ? "warning" : "neutral"}
+          hint={docsWaiting === null ? "Could not be loaded" : "Waiting for a person"}
+          icon="shield"
+        />
+        <Stat
+          label="Unread notices"
+          value={unread ?? "—"}
+          tone={unread && unread > 0 ? "warning" : "neutral"}
+          hint={unread === null ? "Could not be loaded" : "In your inbox"}
+          icon="mail"
+        />
+      </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {analytics ? (

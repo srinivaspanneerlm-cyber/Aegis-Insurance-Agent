@@ -55,6 +55,21 @@ export const workspaceApi = {
     ),
   workflows: () => call<{ definitions: WorkflowDefinitionView[] }>("/employee/workflows"),
   escalations: () => call<{ escalations: Escalation[] }>("/employee/escalations"),
+
+  /**
+   * The verification queue, from the Sprint 8 document platform.
+   *
+   * The documents page reached this with a raw `fetch`. Routing it through the
+   * client means one place handles the session cookie and the error envelope,
+   * and a caller cannot forget either.
+   */
+  documentQueue: () => call<{ waiting: number; documents: unknown[] }>("/documents/queue/pending"),
+
+  /** Unread counts by category, from the Sprint 10 platform. */
+  unreadNotifications: () =>
+    call<{ total: number; byCategory: Record<string, number> }>(
+      "/communication/notifications/unread-count"
+    ),
 };
 
 export interface WorkflowDefinitionView {

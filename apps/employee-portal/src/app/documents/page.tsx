@@ -11,6 +11,7 @@ import {
 } from "@aegis/documents";
 import { Empty, Panel, Skeleton, Stat } from "@/components/Cards";
 import { API_URL } from "@/lib/workspace";
+import { workspaceApi } from "@/lib/api";
 
 interface QueueResponse {
   waiting: number;
@@ -41,12 +42,10 @@ export default function DocumentQueuePage() {
   const load = useCallback(async () => {
     setError(null);
     try {
-      const response = await fetch(`${API_URL}/documents/queue/pending`, {
-        credentials: "include",
-      });
-      const body = await response.json();
-      if (!response.ok) throw new Error(body.message ?? "Could not load the queue.");
-      setData(body.data as QueueResponse);
+      // Through the client rather than a raw fetch: one place handles the
+      // session cookie and the error envelope, and a caller cannot forget
+      // either. The dashboard reads the same method.
+      setData((await workspaceApi.documentQueue()) as unknown as QueueResponse);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not load the queue.");
     }
