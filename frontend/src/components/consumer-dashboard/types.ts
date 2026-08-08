@@ -46,10 +46,14 @@ export interface DashboardDoc {
 
 /** A security-bulletin notification. */
 export interface DashboardNotification {
-  id: number;
+  /** A server id — the local list used a numeric counter. */
+  id: string;
   title: string;
   message: string;
   time: string;
   type: string;
   read: boolean;
+  /** Where this points, so a notification can be acted on rather than read. */
+  deepLink?: string | null;
+  priority?: string;
 }

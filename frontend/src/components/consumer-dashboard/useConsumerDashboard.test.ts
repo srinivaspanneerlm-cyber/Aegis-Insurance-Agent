@@ -39,6 +39,8 @@ vi.mock("@/services/api", () => ({
     getProfile: vi.fn().mockResolvedValue({ heldPolicies: [], completeness: 0 }),
     getDocuments: vi.fn().mockResolvedValue({ documents: [] }),
     getTimeline: vi.fn().mockResolvedValue({ entries: [] }),
+    getNotifications: vi.fn().mockResolvedValue({ notifications: [] }),
+    markNotificationsRead: vi.fn().mockResolvedValue({ updated: 0 }),
   },
 }));
 

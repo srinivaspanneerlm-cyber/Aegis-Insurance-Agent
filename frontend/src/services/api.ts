@@ -234,6 +234,23 @@ export const intelligenceService = {
     return { entries: res.data.data.entries };
   },
 
+  /**
+   * The customer's notifications, from the Sprint 10 platform.
+   *
+   * Scoped to the caller by the server. Carries category, priority and the deep
+   * link, so a notification can be acted on rather than only read.
+   */
+  getNotifications: async (): Promise<{ notifications: CustomerNotification[] }> => {
+    const res = await apiClient.get("/communication/notifications");
+    return { notifications: res.data.data.notifications };
+  },
+
+  /** Marks notifications read. Scoped by the server to the caller's own. */
+  markNotificationsRead: async (ids: string[]): Promise<{ updated: number }> => {
+    const res = await apiClient.post("/communication/notifications/read", { ids });
+    return res.data.data;
+  },
+
   /** The insurance profile the analysis is built from. */
   getProfile: async (): Promise<InsuranceProfileResponse> => {
     const res = await apiClient.get("/intelligence/profile");
@@ -260,6 +277,20 @@ export const intelligenceService = {
  * Cover held elsewhere still counts as cover, and it is what stops the platform
  * recommending health insurance to a customer who already has it.
  */
+export interface CustomerNotification {
+  id: string;
+  category: string;
+  title: string;
+  body: string | null;
+  priority: string;
+  status: "UNREAD" | "READ" | "ARCHIVED";
+  deepLink: string | null;
+  subjectKind: string | null;
+  subjectId: string | null;
+  createdAt: string;
+  readAt: string | null;
+}
+
 export interface TimelineEntry {
   at: string;
   /** work | document | intelligence | message | notification */

@@ -6,6 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { chatService, intelligenceService, policyService } from "@/services/api";
 import type { HeldPolicy, TimelineEntry } from "@/services/api";
+import { timeAgo } from "@aegis/communication";
 import type { IntelligenceReport } from "@aegis/intelligence";
 import type { PageInfo } from "@/types/domain";
 import type {
@@ -32,11 +33,6 @@ const INITIAL_MESSAGES: DashboardMessage[] = [
   },
 ];
 
-const INITIAL_NOTIFICATIONS: DashboardNotification[] = [
-  { id: 1, title: "AI Audit Cleared", message: "Family health protection coverage has passed the quarterly regulatory evaluation.", time: "2 hours ago", type: "audit", read: false },
-  { id: 2, title: "Premium Lock Safe", message: "Your Aegis Supreme Health Shield premium rate is locked in until 2027.", time: "1 day ago", type: "premium", read: true },
-  { id: 3, title: "KYC Verified", message: "Your ID documents have been updated and securely stored.", time: "3 days ago", type: "kyc", read: true },
-];
 
 
 const DEFAULT_POLICIES: DashboardPolicy[] = [
@@ -94,6 +90,30 @@ export function useConsumerDashboard() {
     // The customer's real documents. The list was previously seeded with three
     // invented files — a policy certificate, an Aadhaar KYC and a premium
     // receipt — presented as though the customer had uploaded them.
+    // Real notifications. The list was seeded with three invented ones — an
+    // "AI Audit Cleared", a premium "locked in until 2027" and a "KYC Verified"
+    // — shown to every customer regardless of what had actually happened.
+    intelligenceService
+      .getNotifications()
+      .then(({ notifications: rows }) => {
+        if (cancelled) return;
+        setNotifications(
+          rows.map((row) => ({
+            id: row.id,
+            title: row.title,
+            message: row.body ?? "",
+            time: timeAgo(row.createdAt),
+            type: row.category.toLowerCase(),
+            read: row.status !== "UNREAD",
+            deepLink: row.deepLink,
+            priority: row.priority,
+          }))
+        );
+      })
+      .catch(() => {
+        // An empty list is honest; invented notices are not.
+      });
+
     intelligenceService
       .getTimeline()
       .then(({ entries }) => {
@@ -173,7 +193,7 @@ export function useConsumerDashboard() {
   const [isTyping, setIsTyping] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
-  const [notifications, setNotifications] = useState<DashboardNotification[]>(INITIAL_NOTIFICATIONS);
+  const [notifications, setNotifications] = useState<DashboardNotification[]>([]);
 
   const [uploadedFiles, setUploadedFiles] = useState<DashboardDoc[]>([]);
   const [isDocsLoading, setIsDocsLoading] = useState(true);
@@ -300,7 +320,21 @@ export function useConsumerDashboard() {
   };
 
   const markAllNotificationsRead = () => {
+    const unread = notifications.filter((n) => !n.read).map((n) => n.id);
+    if (unread.length === 0) return;
+
+    // Optimistic, then persisted. Marking read only in local state meant the
+    // badge came back on the next page load, and the customer had to dismiss
+    // the same notices repeatedly.
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+
+    intelligenceService.markNotificationsRead(unread).catch((error: unknown) => {
+      logger.warn("dashboard: could not mark notifications read", error);
+      // Put the badge back rather than leaving somebody believing it saved.
+      setNotifications((prev) =>
+        prev.map((n) => (unread.includes(n.id) ? { ...n, read: false } : n))
+      );
+    });
   };
 
   // Identity is read from the session and nowhere else. This used to fall back
