@@ -61,6 +61,15 @@ describe("DocumentsViewport", () => {
     expect(screen.getByText(/accepted/i)).toBeInTheDocument();
   });
 
+  it("gives the upload control an accessible name", () => {
+    // The label is an icon. Without a name, the only way to upload a document
+    // is announced as an unlabelled control.
+    // Exact match on the screen-reader label; the visible instruction below it
+    // begins with the same words.
+    render(<DocumentsViewport uploadedFiles={[]} {...props} />);
+    expect(screen.getByText("Upload a document")).toHaveClass("sr-only");
+  });
+
   it("shows nothing rather than invented files when there are none", () => {
     render(<DocumentsViewport uploadedFiles={[]} {...props} />);
     expect(screen.queryByText(/Aadhaar_KYC/i)).not.toBeInTheDocument();

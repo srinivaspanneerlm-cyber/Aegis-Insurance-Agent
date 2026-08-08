@@ -38,6 +38,37 @@ describe("NotificationsViewport", () => {
     expect(screen.queryByText(/KYC Verified/i)).not.toBeInTheDocument();
   });
 
+  it("announces unread in text, not by opacity alone", () => {
+    // Unread was signalled by a lower opacity and a border tint. Neither
+    // reaches somebody using a screen reader, and the tint alone does not reach
+    // somebody who cannot distinguish it.
+    const { rerender } = render(
+      <NotificationsViewport notifications={[note({ read: false })]} markAllNotificationsRead={vi.fn()} />
+    );
+    expect(screen.getByText(/^Unread\.$/i)).toBeInTheDocument();
+
+    rerender(
+      <NotificationsViewport notifications={[note({ read: true })]} markAllNotificationsRead={vi.fn()} />
+    );
+    expect(screen.queryByText(/^Unread\.$/i)).not.toBeInTheDocument();
+  });
+
+  it("renders the notices as a list", () => {
+    render(
+      <NotificationsViewport
+        notifications={[note({ id: "a" }), note({ id: "b" })]}
+        markAllNotificationsRead={vi.fn()}
+      />
+    );
+    expect(screen.getAllByRole("listitem")).toHaveLength(2);
+  });
+
+  it("names the action for what it does", () => {
+    render(<NotificationsViewport notifications={[note()]} markAllNotificationsRead={vi.fn()} />);
+    // "Clear All Read" describes neither clearing nor reading.
+    expect(screen.getByRole("button", { name: /mark all as read/i })).toBeInTheDocument();
+  });
+
   it("distinguishes read from unread", () => {
     const { container } = render(
       <NotificationsViewport

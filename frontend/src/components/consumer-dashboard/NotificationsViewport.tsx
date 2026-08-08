@@ -30,13 +30,13 @@ export function NotificationsViewport({
           onClick={markAllNotificationsRead}
           className="text-[9.5px] text-purple-450 hover:text-purple-400 underline font-black uppercase tracking-widest cursor-pointer"
         >
-          Clear All Read
+          Mark all as read
         </button>
       </div>
 
-      <div className="space-y-4">
+      <ul className="space-y-4">
         {notifications.map((n) => (
-          <div
+          <li
             key={n.id}
             className={`p-5 rounded-2xl border flex items-start gap-4 transition-all ${
               n.read
@@ -44,6 +44,10 @@ export function NotificationsViewport({
                 : "bg-purple-950/15 border-purple-500/20 shadow-lg"
             }`}
           >
+            {/* Unread was signalled by opacity and a border tint only. Somebody
+                who cannot distinguish the tint, or who is using a screen reader,
+                had no way to tell which notices were new. */}
+            {!n.read ? <span className="sr-only">Unread. </span> : null}
             <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
               n.read ? "bg-white/5 text-slate-450" : "bg-purple-950/40 text-purple-400 border border-purple-800/30"
             }`}>
@@ -56,9 +60,9 @@ export function NotificationsViewport({
               </div>
               <p className={`text-[11px] leading-normal font-semibold text-slate-600 dark:text-slate-350`}>{n.message}</p>
             </div>
-          </div>
+          </li>
         ))}
-      </div>
+      </ul>
     </motion.div>
   );
 }

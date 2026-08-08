@@ -59,17 +59,21 @@ export function DocumentsViewport({
           disabled={uploadingDoc}
         />
         <label htmlFor="consumer-vault-picker" className="w-12 h-12 rounded-xl bg-purple-950/50 text-purple-400 border border-purple-800/30 flex items-center justify-center cursor-pointer hover:bg-purple-900/30 transition-all">
+          {/* The label is an icon, so it carries no accessible name of its
+              own. Without this, a screen reader announces the only way to
+              upload a document as an unlabelled control. */}
+          <span className="sr-only">Upload a document</span>
           <Upload className="w-6 h-6" />
         </label>
 
         <div className="space-y-1">
-          <p className={`text-xs font-bold text-content`}>Click upload to deposit secure PDF KYC assets</p>
-          <p className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Stored securely and privately</p>
+          <p className={`text-xs font-bold text-content`}>Upload a document — a clear photo is enough</p>
+          <p className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">We will tell you when it has been checked</p>
         </div>
 
         {uploadingDoc && (
           <div className="text-[10px] text-purple-400 animate-pulse font-extrabold mt-2 uppercase tracking-widest">
-            Syncing digital vault blocks...
+            Uploading…
           </div>
         )}
 
