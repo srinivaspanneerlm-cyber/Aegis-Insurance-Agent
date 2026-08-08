@@ -82,8 +82,8 @@ export function DocumentsViewport({
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {uploadedFiles.map((doc) => (
-          <div key={doc.id} className={`p-4 border rounded-2xl flex items-center justify-between bg-slate-50 border-slate-200 dark:bg-white/[0.01] dark:border-white/5`}>
-            <div className="flex items-center gap-3 overflow-hidden">
+          <div key={doc.id} className={`p-4 border rounded-2xl flex flex-wrap items-start justify-between gap-2 bg-slate-50 border-slate-200 dark:bg-white/[0.01] dark:border-white/5`}>
+            <div className="flex items-start gap-3 min-w-0 flex-1">
               <div className="w-9 h-9 rounded-xl bg-purple-950/40 text-purple-400 border border-purple-800/30 flex items-center justify-center flex-shrink-0">
                 <FileText className="w-5 h-5" />
               </div>
@@ -99,7 +99,7 @@ export function DocumentsViewport({
                   </p>
                 ) : null}
                 {doc.rejectionReason ? (
-                  <p className="text-[10px] mt-1 font-semibold text-amber-400 leading-snug">
+                  <p className="text-[10px] mt-1 font-semibold text-amber-400 leading-snug break-words">
                     {doc.rejectionReason}
                   </p>
                 ) : null}

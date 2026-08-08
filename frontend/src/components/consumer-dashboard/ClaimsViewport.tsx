@@ -97,7 +97,7 @@ export function ClaimsViewport({ claims, loading }: ClaimsViewportProps) {
                 </time>
               </div>
 
-              <p className="text-sm font-bold text-content mt-1.5">{claim.summary}</p>
+              <p className="text-sm font-bold text-content mt-1.5 break-words">{claim.summary}</p>
 
               {claim.deepLink ? (
                 <a
