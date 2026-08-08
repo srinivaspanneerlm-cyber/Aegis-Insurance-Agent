@@ -209,6 +209,18 @@ export const intelligenceService = {
     return res.data.data;
   },
 
+  /**
+   * The customer's own documents, from the Sprint 8 platform.
+   *
+   * Scoped to the caller by the server — there is no owner id to pass. Carries
+   * the verification status and, on a rejection, the reason, which is the part
+   * a customer most needs and the part a file list alone cannot show.
+   */
+  getDocuments: async (): Promise<{ documents: CustomerDocument[] }> => {
+    const res = await apiClient.get("/documents");
+    return { documents: res.data.data.documents };
+  },
+
   /** The insurance profile the analysis is built from. */
   getProfile: async (): Promise<InsuranceProfileResponse> => {
     const res = await apiClient.get("/intelligence/profile");
@@ -235,6 +247,20 @@ export const intelligenceService = {
  * Cover held elsewhere still counts as cover, and it is what stops the platform
  * recommending health insurance to a customer who already has it.
  */
+export interface CustomerDocument {
+  id: string;
+  filename: string;
+  mimeType: string | null;
+  sizeBytes: number | null;
+  category: string | null;
+  documentKey: string | null;
+  domain: string | null;
+  status: string;
+  uploadedAt: string;
+  verifiedAt: string | null;
+  rejectionReason: string | null;
+}
+
 export interface HeldPolicy {
   id: string;
   domain: string;

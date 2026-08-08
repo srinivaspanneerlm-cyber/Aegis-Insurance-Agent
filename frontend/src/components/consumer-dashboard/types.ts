@@ -33,6 +33,15 @@ export interface DashboardDoc {
   size: string;
   type: string;
   date: string;
+  /**
+   * Where the document has reached, from the Sprint 8 pipeline.
+   *
+   * A list of filenames tells a customer nothing about whether their claim is
+   * blocked. The status, and the reason on a rejection, are the two things
+   * they actually came to find out.
+   */
+  status?: string;
+  rejectionReason?: string | null;
 }
 
 /** A security-bulletin notification. */

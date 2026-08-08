@@ -12,6 +12,28 @@ interface DocumentsViewportProps {
 }
 
 /** Secure document vault with simulated KYC upload (nav: "documents"). */
+/**
+ * Sprint 8 status, in words a customer can act on.
+ *
+ * "PENDING_REVIEW" is a database value; "Being checked" is what somebody reads
+ * while wondering whether their claim has stalled.
+ */
+const DOC_STATUS_LABEL: Record<string, string> = {
+  UPLOADED: "Received",
+  PROCESSING: "Being checked",
+  PENDING_REVIEW: "Waiting for a person",
+  VERIFIED: "Accepted",
+  REJECTED: "Not accepted",
+};
+
+const DOC_STATUS_TONE: Record<string, string> = {
+  UPLOADED: "text-slate-500",
+  PROCESSING: "text-cyan-400",
+  PENDING_REVIEW: "text-cyan-400",
+  VERIFIED: "text-emerald-400",
+  REJECTED: "text-amber-400",
+};
+
 export function DocumentsViewport({
   uploadedFiles, uploadingDoc, uploadSuccess, handleFileUpload,
 }: DocumentsViewportProps) {
@@ -68,6 +90,19 @@ export function DocumentsViewport({
               <div className="overflow-hidden">
                 <p className={`text-xs font-bold truncate text-content`}>{doc.name}</p>
                 <p className="text-[9px] text-slate-550 mt-0.5 leading-none font-semibold">{doc.size}</p>
+                {/* The status, and on a rejection the reason. A filename and a date tell
+                    somebody nothing about whether their case is blocked — which is the
+                    only reason most people open this screen. */}
+                {doc.status ? (
+                  <p className={`text-[9px] mt-1 font-black uppercase tracking-wider ${DOC_STATUS_TONE[doc.status] ?? "text-slate-500"}`}>
+                    {DOC_STATUS_LABEL[doc.status] ?? doc.status.toLowerCase()}
+                  </p>
+                ) : null}
+                {doc.rejectionReason ? (
+                  <p className="text-[10px] mt-1 font-semibold text-amber-400 leading-snug">
+                    {doc.rejectionReason}
+                  </p>
+                ) : null}
               </div>
             </div>
             <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider flex-shrink-0">{doc.date}</span>

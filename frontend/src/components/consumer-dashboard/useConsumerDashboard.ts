@@ -38,11 +38,6 @@ const INITIAL_NOTIFICATIONS: DashboardNotification[] = [
   { id: 3, title: "KYC Verified", message: "Your ID documents have been updated and securely stored.", time: "3 days ago", type: "kyc", read: true },
 ];
 
-const INITIAL_DOCS: DashboardDoc[] = [
-  { id: "doc-1", name: "Supreme_Health_Shield_Certificate.pdf", size: "2.4 MB", type: "policy", date: "May 10, 2026" },
-  { id: "doc-2", name: "Aadhaar_KYC.pdf", size: "1.1 MB", type: "kyc", date: "May 14, 2026" },
-  { id: "doc-3", name: "Premium_Receipt_Q1_2026.pdf", size: "850 KB", type: "receipt", date: "April 02, 2026" },
-];
 
 const DEFAULT_POLICIES: DashboardPolicy[] = [
   { policyName: "Aegis Supreme Health Shield", premium: 850, coverage: "₹1 Crore Cover", status: "active", claimRatio: "99.2%" },
@@ -96,6 +91,36 @@ export function useConsumerDashboard() {
     if (!isReady) return;
     let cancelled = false;
 
+    // The customer's real documents. The list was previously seeded with three
+    // invented files — a policy certificate, an Aadhaar KYC and a premium
+    // receipt — presented as though the customer had uploaded them.
+    intelligenceService
+      .getDocuments()
+      .then(({ documents }) => {
+        if (cancelled) return;
+        setUploadedFiles(
+          documents.map((doc) => ({
+            id: doc.id,
+            name: doc.filename,
+            size: doc.sizeBytes ? `${(doc.sizeBytes / 1024 / 1024).toFixed(1)} MB` : "—",
+            type: doc.documentKey ?? doc.category ?? "document",
+            date: new Date(doc.uploadedAt).toLocaleDateString(undefined, {
+              day: "numeric",
+              month: "short",
+              year: "numeric",
+            }),
+            status: doc.status,
+            rejectionReason: doc.rejectionReason,
+          }))
+        );
+      })
+      .catch(() => {
+        // An empty list is the honest fallback; invented files are not.
+      })
+      .finally(() => {
+        if (!cancelled) setIsDocsLoading(false);
+      });
+
     intelligenceService
       .getProfile()
       .then((data) => {
@@ -138,7 +163,8 @@ export function useConsumerDashboard() {
 
   const [notifications, setNotifications] = useState<DashboardNotification[]>(INITIAL_NOTIFICATIONS);
 
-  const [uploadedFiles, setUploadedFiles] = useState<DashboardDoc[]>(INITIAL_DOCS);
+  const [uploadedFiles, setUploadedFiles] = useState<DashboardDoc[]>([]);
+  const [isDocsLoading, setIsDocsLoading] = useState(true);
   const [uploadingDoc, setUploadingDoc] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState("");
 
@@ -288,6 +314,7 @@ export function useConsumerDashboard() {
     clientName, clientEmail, clientArchetype,
     report, isReportLoading, reportError,
     heldPolicies, isProfileLoading,
+    isDocsLoading,
     archetypeExplanation: archetypeExplanation(clientArchetype),
     // chat
     chatMessages, chatInput, setChatInput, isTyping, chatEndRef, handleSendMessage,
