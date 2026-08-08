@@ -82,7 +82,7 @@ export default function PaymentPage() {
     <div className="space-y-6">
       <div className="text-center space-y-1.5">
         <h1 className="text-2xl sm:text-3xl font-bold text-white">Payment Center</h1>
-        <p className="text-white/40 text-sm">Secure · Encrypted · Demo Mode</p>
+        <p className="text-white/40 text-sm">Demonstration — no payment is taken</p>
       </div>
 
       {/* Amount Summary */}
@@ -94,7 +94,7 @@ export default function PaymentPage() {
         </div>
         <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
           <Lock className="w-3.5 h-3.5 text-emerald-400" />
-          <span className="text-xs text-emerald-300 font-medium">SSL Secured</span>
+          <span className="text-xs text-amber-300 font-medium">Not a real payment</span>
         </div>
       </div>
 
@@ -147,6 +147,19 @@ export default function PaymentPage() {
             {/* Card */}
             {selected === "card" && (
               <div className="space-y-3">
+                {/* Above the fields, not below them. This form has no payment
+                    processor behind it — the details go into React state and no
+                    further — and the page previously said "SSL Secured" beside a
+                    padlock, which is the strongest possible signal that a card is
+                    being handled safely. Somebody must not type a real card number
+                    into it believing that. */}
+                <p
+                  role="alert"
+                  className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-xs font-semibold text-amber-200"
+                >
+                  Do not enter a real card. This is a demonstration — nothing is charged, and no
+                  payment processor is connected. Any digits will do.
+                </p>
                 <div>
                   <label className="text-xs text-white/40 mb-1.5 block">Card Number</label>
                   <input value={cardNo} onChange={e => setCardNo(formatCard(e.target.value))}
@@ -244,7 +257,7 @@ export default function PaymentPage() {
 
       {/* Security badges */}
       <div className="flex items-center justify-center gap-4 text-xs text-white/20">
-        <span>🔒 Encrypted checkout</span>
+        <span>Demonstration checkout</span>
         <span>·</span>
         <span>Card details are never stored by Aegis</span>
       </div>
@@ -267,7 +280,7 @@ export default function PaymentPage() {
         ) : (
           <>
             <Lock className="w-4 h-4" />
-            Pay ₹{total.toLocaleString()} Securely <ArrowRight className="w-4 h-4" />
+            Continue (no payment taken) <ArrowRight className="w-4 h-4" />
           </>
         )}
       </motion.button>

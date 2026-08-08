@@ -175,7 +175,7 @@ export default function DetailsPage() {
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="text-center space-y-1.5">
         <h1 className="text-2xl sm:text-3xl font-bold text-white">Customer Details</h1>
-        <p className="text-white/40 text-sm">Complete your application — all information is encrypted and secure.</p>
+        <p className="text-white/40 text-sm">Complete your application. This is a demonstration — nothing is submitted.</p>
       </div>
 
       {sections.map((section) => {

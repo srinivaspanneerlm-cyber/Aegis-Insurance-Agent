@@ -84,7 +84,7 @@ export default function KYCPage() {
     <div className="space-y-6">
       <div className="text-center space-y-1.5">
         <h1 className="text-2xl sm:text-3xl font-bold text-white">KYC Verification</h1>
-        <p className="text-white/40 text-sm">Secure identity verification · All data encrypted end-to-end</p>
+        <p className="text-white/40 text-sm">Demonstration — do not upload real identity documents</p>
       </div>
 
       {/* KYC Dashboard */}
@@ -162,7 +162,7 @@ export default function KYCPage() {
       {/* Security info */}
       <div className="grid grid-cols-3 gap-3">
         {[
-          { label: "256-bit SSL", icon: ShieldCheck },
+          { label: "Demonstration only", icon: ShieldCheck },
           { label: "UIDAI Verified", icon: FileCheck },
           { label: "NSDL Database", icon: CreditCard },
         ].map(({ label, icon: Icon }) => (
