@@ -65,12 +65,36 @@ export const workspaceApi = {
    */
   documentQueue: () => call<{ waiting: number; documents: unknown[] }>("/documents/queue/pending"),
 
+  /**
+   * Customers this advisor may look up.
+   *
+   * Deliberately thin — name, email and whether a profile exists. The server
+   * decides who is visible; the term is a filter, not an authorisation.
+   */
+  customers: (search?: string) =>
+    call<{ customers: CustomerRow[] }>(
+      `/intelligence/customers${search ? `?search=${encodeURIComponent(search)}` : ""}`
+    ),
+
+  /** One customer's protection analysis, for the conversation about to happen. */
+  customerReport: (userId: string) =>
+    call<unknown>(`/intelligence/report?userId=${encodeURIComponent(userId)}`),
+
   /** Unread counts by category, from the Sprint 10 platform. */
   unreadNotifications: () =>
     call<{ total: number; byCategory: Record<string, number> }>(
       "/communication/notifications/unread-count"
     ),
 };
+
+export interface CustomerRow {
+  id: string;
+  name: string;
+  email: string;
+  joinedAt: string;
+  profileCompleteness: number;
+  hasProfile: boolean;
+}
 
 export interface WorkflowDefinitionView {
   definition: string;

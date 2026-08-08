@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   CoverageGapList,
   RecommendationCard,
@@ -12,7 +12,7 @@ import {
   type IntelligenceReport,
 } from "@aegis/intelligence";
 import { Empty, Panel, Skeleton, Stat } from "@/components/Cards";
-import { API_URL } from "@/lib/workspace";
+import { workspaceApi } from "@/lib/api";
 
 interface CustomerRow {
   id: string;
@@ -43,16 +43,23 @@ export default function CustomerIntelligencePage() {
   const [loadingReport, setLoadingReport] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Monotonic ticket, so a slow first search cannot overwrite a fast second
+  // one. Typing "raj" then "meena" must not leave Raj's results under Meena's
+  // query — and on a customer list that is somebody looking at the wrong file.
+  const searchTicket = useRef(0);
+
   const loadCustomers = useCallback(async (term: string) => {
+    const ticket = ++searchTicket.current;
     setError(null);
     try {
-      const url = new URL(`${API_URL}/intelligence/customers`);
-      if (term) url.searchParams.set("search", term);
-      const response = await fetch(url.toString(), { credentials: "include" });
-      const body = await response.json();
-      if (!response.ok) throw new Error(body.message ?? "Could not load customers.");
-      setCustomers(body.data.customers);
+      // Through the client: one place handles the session cookie and the error
+      // envelope, and the search term is encoded once rather than at each call
+      // site.
+      const { customers: rows } = await workspaceApi.customers(term);
+      if (ticket !== searchTicket.current) return;
+      setCustomers(rows);
     } catch (err) {
+      if (ticket !== searchTicket.current) return;
       setError(err instanceof Error ? err.message : "Could not load customers.");
       setCustomers([]);
     }
@@ -62,19 +69,21 @@ export default function CustomerIntelligencePage() {
     void loadCustomers("");
   }, [loadCustomers]);
 
+  // The same guard on the report. Clicking Raj then Meena while Raj's analysis
+  // is still in flight must not render Raj's gaps under Meena's name — an
+  // advisor would then discuss the wrong person's cover with them.
+  const reportTicket = useRef(0);
+
   const openCustomer = useCallback(async (customer: CustomerRow) => {
+    const ticket = ++reportTicket.current;
     setSelected(customer);
     setReport(null);
     setLoadingReport(true);
     setError(null);
     try {
-      const response = await fetch(
-        `${API_URL}/intelligence/report?userId=${encodeURIComponent(customer.id)}`,
-        { credentials: "include" }
-      );
-      const body = await response.json();
-      if (!response.ok) throw new Error(body.message ?? "Could not load that analysis.");
-      setReport(body.data as IntelligenceReport);
+      const data = (await workspaceApi.customerReport(customer.id)) as IntelligenceReport;
+      if (ticket !== reportTicket.current) return;
+      setReport(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not load that analysis.");
     } finally {
