@@ -150,6 +150,16 @@ export default function ConsumerProfilePage() {
                 </div>
               </div>
 
+              {/* Settings had no route and no link. Reaching it by typing a URL
+                  is not reaching it. */}
+              <button
+                type="button"
+                onClick={() => router.push("/consumer/settings")}
+                className="w-full rounded-xl border border-white/10 bg-white/[0.02] px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-300 transition-colors hover:bg-white/[0.05] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-400"
+              >
+                Notification settings
+              </button>
+
               <button
                 type="button"
                 onClick={() => router.push("/consumer/recommendations")}

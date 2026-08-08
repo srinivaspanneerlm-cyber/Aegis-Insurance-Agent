@@ -251,6 +251,23 @@ export const intelligenceService = {
     return res.data.data;
   },
 
+  /**
+   * How the customer wants to be contacted.
+   *
+   * The payload reports which channels are actually available and why not,
+   * which the UI must pass on rather than smooth over: somebody who switches on
+   * SMS and hears nothing has been told a lie by the interface.
+   */
+  getPreferences: async (): Promise<NotificationPreferences> => {
+    const res = await apiClient.get("/communication/preferences");
+    return res.data.data;
+  },
+
+  savePreferences: async (input: Partial<NotificationPreferences>): Promise<NotificationPreferences> => {
+    const res = await apiClient.put("/communication/preferences", input);
+    return res.data.data;
+  },
+
   /** The insurance profile the analysis is built from. */
   getProfile: async (): Promise<InsuranceProfileResponse> => {
     const res = await apiClient.get("/intelligence/profile");
@@ -277,6 +294,21 @@ export const intelligenceService = {
  * Cover held elsewhere still counts as cover, and it is what stops the platform
  * recommending health insurance to a customer who already has it.
  */
+export interface NotificationPreferences {
+  exists?: boolean;
+  inApp: boolean;
+  email: boolean;
+  sms: boolean;
+  push: boolean;
+  reminderFrequency: string;
+  language: string;
+  mutedCategories: string[];
+  quietHoursStart: string | null;
+  quietHoursEnd: string | null;
+  /** Per channel: whether it works, and what is missing when it does not. */
+  channels: { channel: string; available: boolean; reason?: string }[];
+}
+
 export interface CustomerNotification {
   id: string;
   category: string;
