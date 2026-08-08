@@ -79,6 +79,26 @@ describe("ProtectionScoreCard", () => {
     expect(screen.queryByText(/life: gap/i)).not.toBeInTheDocument();
   });
 
+  it("leads with an overdue renewal, because a lapse costs more than a new gap", () => {
+    // The engine ranks an overdue renewal above every recommendation, and this
+    // card is where that reaches the customer. A policy that lapses pays
+    // nothing, and for health cover it restarts every waiting period.
+    render(
+      <ProtectionScoreCard
+        report={report({
+          nextBestAction: {
+            summary: "Your health insurance renewal date has passed. Let us check whether it has lapsed.",
+            domain: "health",
+            rationale: "A lapsed policy pays nothing.",
+          },
+        })}
+        loading={false}
+        error={null}
+      />
+    );
+    expect(screen.getByText(/renewal date has passed/i)).toBeInTheDocument();
+  });
+
   it("announces the figure politely rather than only drawing it", () => {
     render(<ProtectionScoreCard report={report()} loading={false} error={null} />);
     expect(screen.getByRole("status")).toHaveTextContent("64%");

@@ -85,6 +85,8 @@ export default function ConsumerDashboard() {
                 activePoliciesList={dash.activePoliciesList}
                 heldPolicies={dash.heldPolicies}
                 isProfileLoading={dash.isProfileLoading}
+                renewals={dash.report?.renewals ?? []}
+                isReportLoading={dash.isReportLoading}
                 pagination={dash.policiesPagination}
                 isPaging={dash.isPoliciesPaging}
                 onPageChange={dash.goToPoliciesPage}

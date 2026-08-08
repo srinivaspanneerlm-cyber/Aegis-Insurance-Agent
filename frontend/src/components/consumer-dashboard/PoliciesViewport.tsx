@@ -4,7 +4,8 @@ import { Heart, ArrowUpRight } from "lucide-react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useTheme } from "@/context/ThemeContext";
-import { formatRupees } from "@aegis/intelligence";
+import { formatRupees, RenewalTimeline } from "@aegis/intelligence";
+import type { RenewalForecast } from "@aegis/intelligence";
 import type { HeldPolicy } from "@/services/api";
 import { Pagination } from "@/components/shared/Pagination";
 import type { PageInfo } from "@/types/domain";
@@ -16,6 +17,9 @@ interface PoliciesViewportProps {
   /** Cover the customer already holds, including with other insurers. */
   heldPolicies: HeldPolicy[];
   isProfileLoading: boolean;
+  /** Renewals ahead, from the Sprint 9 engine. */
+  renewals: RenewalForecast[];
+  isReportLoading: boolean;
   pagination: PageInfo | null;
   isPaging: boolean;
   onPageChange: (page: number) => void;
@@ -26,6 +30,8 @@ export function PoliciesViewport({
   activePoliciesList,
   heldPolicies,
   isProfileLoading,
+  renewals,
+  isReportLoading,
   pagination,
   isPaging,
   onPageChange,
@@ -151,6 +157,28 @@ export function PoliciesViewport({
                 </li>
               ))}
             </ul>
+          )}
+        </section>
+
+
+        {/* Renewals ahead.
+            Reuses RenewalTimeline from @aegis/intelligence rather than drawing
+            a second one here — it already explains why each reminder lands when
+            it does, and a lapse is the most expensive thing on this page to
+            miss. A policy that lapses pays nothing, and for health cover it
+            restarts every waiting period. */}
+        <section aria-labelledby="renewals-heading" className="border-t border-white/5 pt-6">
+          <h3 id="renewals-heading" className="font-black text-base text-content">
+            Renewals ahead
+          </h3>
+          <p className="text-xs text-slate-400 mt-1 mb-4 font-medium">
+            When each policy is due, and what is worth changing at renewal.
+          </p>
+
+          {isReportLoading ? (
+            <p className="text-xs font-bold text-slate-400">Loading…</p>
+          ) : (
+            <RenewalTimeline renewals={renewals} />
           )}
         </section>
 
