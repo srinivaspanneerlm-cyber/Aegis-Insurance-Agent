@@ -99,7 +99,7 @@ export default function ConsumerDashboard() {
                 handleSendMessage={dash.handleSendMessage}
               />
             )}
-            {dash.activeNav === "claims" && <ClaimsViewport />}
+            {dash.activeNav === "claims" && <ClaimsViewport claims={dash.claims} loading={dash.isClaimsLoading} />}
             {dash.activeNav === "documents" && (
               <DocumentsViewport
                 uploadedFiles={dash.uploadedFiles}

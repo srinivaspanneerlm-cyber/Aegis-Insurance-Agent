@@ -26,7 +26,7 @@ const doc = (over: Partial<DashboardDoc> = {}): DashboardDoc => ({
 
 const props = {
   uploadingDoc: false,
-  uploadSuccess: false,
+  uploadSuccess: "",
   handleFileUpload: vi.fn(),
 };
 

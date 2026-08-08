@@ -5,7 +5,7 @@ import { logger } from "@/lib/logger";
 import { useAuth } from "@/context/AuthContext";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { chatService, intelligenceService, policyService } from "@/services/api";
-import type { HeldPolicy } from "@/services/api";
+import type { HeldPolicy, TimelineEntry } from "@/services/api";
 import type { IntelligenceReport } from "@aegis/intelligence";
 import type { PageInfo } from "@/types/domain";
 import type {
@@ -95,6 +95,18 @@ export function useConsumerDashboard() {
     // invented files — a policy certificate, an Aadhaar KYC and a premium
     // receipt — presented as though the customer had uploaded them.
     intelligenceService
+      .getTimeline()
+      .then(({ entries }) => {
+        if (!cancelled) setClaims(entries.filter((entry) => entry.source === "work"));
+      })
+      .catch(() => {
+        // An empty list is honest; an invented claim is not.
+      })
+      .finally(() => {
+        if (!cancelled) setIsClaimsLoading(false);
+      });
+
+    intelligenceService
       .getDocuments()
       .then(({ documents }) => {
         if (cancelled) return;
@@ -165,6 +177,12 @@ export function useConsumerDashboard() {
 
   const [uploadedFiles, setUploadedFiles] = useState<DashboardDoc[]>([]);
   const [isDocsLoading, setIsDocsLoading] = useState(true);
+
+  // The customer's own cases, from the Sprint 11 timeline. There is no
+  // customer-facing claims endpoint; cases are work items, and that timeline is
+  // the surface that serves them to the person they concern.
+  const [claims, setClaims] = useState<TimelineEntry[]>([]);
+  const [isClaimsLoading, setIsClaimsLoading] = useState(true);
   const [uploadingDoc, setUploadingDoc] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState("");
 
@@ -315,6 +333,7 @@ export function useConsumerDashboard() {
     report, isReportLoading, reportError,
     heldPolicies, isProfileLoading,
     isDocsLoading,
+    claims, isClaimsLoading,
     archetypeExplanation: archetypeExplanation(clientArchetype),
     // chat
     chatMessages, chatInput, setChatInput, isTyping, chatEndRef, handleSendMessage,

@@ -221,6 +221,19 @@ export const intelligenceService = {
     return { documents: res.data.data.documents };
   },
 
+  /**
+   * The customer's own activity, including their claims.
+   *
+   * There is no customer-facing claims endpoint: cases live as work items, and
+   * the Sprint 11 timeline is the surface that serves them to the person they
+   * concern. Self-readable by design — `authorise` lets somebody read their own
+   * without any permission at all.
+   */
+  getTimeline: async (): Promise<{ entries: TimelineEntry[] }> => {
+    const res = await apiClient.get("/communication/timeline");
+    return { entries: res.data.data.entries };
+  },
+
   /** The insurance profile the analysis is built from. */
   getProfile: async (): Promise<InsuranceProfileResponse> => {
     const res = await apiClient.get("/intelligence/profile");
@@ -247,6 +260,19 @@ export const intelligenceService = {
  * Cover held elsewhere still counts as cover, and it is what stops the platform
  * recommending health insurance to a customer who already has it.
  */
+export interface TimelineEntry {
+  at: string;
+  /** work | document | intelligence | message | notification */
+  source: string;
+  kind: string;
+  summary: string;
+  actorId: string | null;
+  actorKind: string;
+  subjectKind: string;
+  subjectId: string;
+  deepLink: string | null;
+}
+
 export interface CustomerDocument {
   id: string;
   filename: string;

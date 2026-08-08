@@ -1,72 +1,116 @@
 "use client";
 
-import { Check } from "lucide-react";
 import { motion } from "framer-motion";
+import type { TimelineEntry } from "@/services/api";
 
-/** Claim tracking steps (nav: "claims"). */
-const CLAIM_STEPS = [
-  { step: 1, label: "Document Dispatch", desc: "Aegis Cloud verified", status: "done" },
-  { step: 2, label: "Hospital Desk Match", desc: "Cashless match cleared", status: "done" },
-  { step: 3, label: "Final Validation", desc: "Auditing items now", status: "active" },
-  { step: 4, label: "Settlement Settled", desc: "Direct payout desk", status: "pending" },
-];
+interface ClaimsViewportProps {
+  /** The customer's own activity, filtered to their cases. */
+  claims: TimelineEntry[];
+  loading: boolean;
+}
 
-/** Secure claim safe-track portal. */
-export function ClaimsViewport() {
+/**
+ * Status words a customer can act on.
+ *
+ * The raw values are work-item event kinds. "AWAITING_CUSTOMER" is a database
+ * value; "Waiting for something from you" is what tells somebody their claim
+ * has stalled on them rather than on the insurer.
+ */
+const CLAIM_KIND_LABEL: Record<string, string> = {
+  OPENED: "Opened",
+  RESOLVED: "Resolved",
+  ASSIGNED: "Assigned to an advisor",
+  STATUS_CHANGED: "Status changed",
+  NOTE: "Note added",
+  STEP_COMPLETED: "Step completed",
+  ESCALATED: "Escalated",
+  CONTACTED: "We contacted you",
+};
+
+const CLAIM_KIND_TONE: Record<string, string> = {
+  OPENED: "text-cyan-400",
+  RESOLVED: "text-emerald-400",
+  ESCALATED: "text-amber-400",
+};
+
+/**
+ * Claim tracking.
+ *
+ * Every figure here comes from the customer's own case history. This screen
+ * previously showed a single invented claim — number "#AEG-CLM-901", a
+ * settlement of "₹1,45,000 (Fully Approved)", and a four-step progress bar with
+ * three steps marked complete — to every customer, including those who had
+ * never made a claim. Somebody with a real claim pending saw a different
+ * claim's progress presented as their own.
+ */
+export function ClaimsViewport({ claims, loading }: ClaimsViewportProps) {
   return (
     <motion.div
       key="claims"
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -15 }}
-      className={`border shadow-2xl rounded-[32px] p-6 sm:p-8 text-left space-y-6 bg-white border-slate-200 dark:bg-slate-900/40 dark:border-white/5`}
+      className="border shadow-2xl rounded-[32px] p-6 sm:p-8 text-left space-y-6 bg-white border-slate-200 dark:bg-slate-900/40 dark:border-white/5"
     >
       <div className="border-b border-white/5 pb-4">
-        <h3 className={`font-black text-base text-content`}>Secure Claim Safe-Track Portal</h3>
-        <p className="text-xs text-slate-400 mt-1 font-medium">Track the status of your claims, all in one place.</p>
+        <h3 className="font-black text-base text-content">Your claims</h3>
+        <p className="text-xs text-slate-400 mt-1 font-medium">
+          Every case we have open for you, and where each one has reached.
+        </p>
       </div>
 
-      <div className={`p-6 border rounded-3xl space-y-6 bg-slate-50 border-slate-150 dark:bg-white/[0.01] dark:border-white/5`}>
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/5 pb-4">
-          <div>
-            <span className="text-[9px] text-cyan-400 font-extrabold uppercase tracking-widest bg-cyan-950/40 border border-cyan-800/40 py-1 px-3.5 rounded-full inline-block leading-none">
-              Admitted under Hospital Shield
-            </span>
-            <h4 className={`text-base font-black mt-2 text-content`}>Cashless Inpatient Claim #AEG-CLM-901</h4>
-          </div>
-          <div className="text-left sm:text-right">
-            <p className="text-xs text-slate-500 font-bold uppercase tracking-wider">Target Settlement</p>
-            <p className="text-sm font-extrabold text-purple-400 mt-1">₹1,45,000 (Fully Approved)</p>
-          </div>
+      {loading ? (
+        <p className="text-xs font-bold text-slate-400" aria-busy="true">
+          Loading your cases…
+        </p>
+      ) : claims.length === 0 ? (
+        <div className="rounded-3xl border border-dashed border-white/10 p-8 text-center">
+          <p className="text-sm font-bold text-content">You have no claims open.</p>
+          <p className="text-xs text-slate-400 mt-1.5 font-medium">
+            If you need to make one, ask the advisor and it will start the process with you.
+          </p>
         </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 relative">
-          {CLAIM_STEPS.map((st) => (
-            <div key={st.step} className={`p-4 border rounded-2xl flex flex-col justify-between text-left space-y-3 relative group bg-white border-slate-200 dark:bg-slate-900/60 dark:border-white/5`}>
-              <div className="flex items-center justify-between">
-                <div className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs ${
-                  st.status === "done"
-                    ? "bg-emerald-950/40 text-emerald-400 border border-emerald-800/40"
-                    : st.status === "active"
-                    ? "bg-cyan-950/40 text-cyan-400 border border-cyan-800/40 animate-pulse"
-                    : "bg-white/5 text-slate-550 border border-slate-200"
-                }`}>
-                  {st.status === "done" ? <Check className="w-4 h-4 stroke-[3]" /> : st.step}
-                </div>
-                <span className={`text-[8.5px] font-black uppercase tracking-widest ${
-                  st.status === "done" ? "text-emerald-400" : st.status === "active" ? "text-cyan-400 animate-pulse" : "text-slate-550"
-                }`}>
-                  {st.status === "done" ? "Cleared" : st.status === "active" ? "Auditing" : "Pending"}
+      ) : (
+        <ol className="space-y-4">
+          {claims.map((claim) => (
+            <li
+              key={`${claim.subjectId}-${claim.at}`}
+              className="p-5 border rounded-3xl bg-slate-50 border-slate-150 dark:bg-white/[0.01] dark:border-white/5"
+            >
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <span
+                  className={`text-[9px] font-extrabold uppercase tracking-widest ${
+                    CLAIM_KIND_TONE[claim.kind] ?? "text-slate-500"
+                  }`}
+                >
+                  {CLAIM_KIND_LABEL[claim.kind] ?? claim.kind.toLowerCase().replace(/_/g, " ")}
                 </span>
+                <time
+                  dateTime={claim.at}
+                  className="text-[9px] font-bold uppercase tracking-wider text-slate-500"
+                >
+                  {new Date(claim.at).toLocaleDateString(undefined, {
+                    day: "numeric",
+                    month: "short",
+                    year: "numeric",
+                  })}
+                </time>
               </div>
-              <div>
-                <p className={`text-[11px] font-extrabold leading-tight text-content`}>{st.label}</p>
-                <p className="text-[9px] text-slate-500 mt-1 font-semibold leading-none">{st.desc}</p>
-              </div>
-            </div>
+
+              <p className="text-sm font-bold text-content mt-1.5">{claim.summary}</p>
+
+              {claim.deepLink ? (
+                <a
+                  href={claim.deepLink}
+                  className="inline-block mt-2 text-[11px] font-black uppercase tracking-wider text-purple-400 hover:text-purple-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-400 rounded"
+                >
+                  Open this case
+                </a>
+              ) : null}
+            </li>
           ))}
-        </div>
-      </div>
+        </ol>
+      )}
     </motion.div>
   );
 }
