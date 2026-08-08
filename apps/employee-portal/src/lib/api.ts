@@ -45,6 +45,48 @@ async function call<T>(path: string, init: RequestInit = {}): Promise<T> {
   return body.data as T;
 }
 
+/**
+ * Like `call`, but keeps the pagination envelope.
+ *
+ * `call` returns `body.data` and discards everything beside it, which is right
+ * for most endpoints. A paginated list needs the total and the page count, and
+ * they sit outside `data` — so this returns both rather than changing what
+ * every existing caller receives.
+ */
+async function callPaged<T>(path: string): Promise<{ data: T; pagination: Pagination | null }> {
+  let response: Response;
+  try {
+    response = await fetch(`${API_URL}${path}`, {
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+    });
+  } catch {
+    throw new WorkspaceError("We could not reach Aegis.", 0, "NETWORK");
+  }
+
+  const body = (await response.json().catch(() => ({}))) as {
+    data?: T;
+    pagination?: Pagination;
+    code?: string;
+    message?: string;
+  };
+  if (!response.ok) {
+    throw new WorkspaceError(
+      body.message ?? "Something went wrong.",
+      response.status,
+      body.code ?? "UNKNOWN"
+    );
+  }
+  return { data: body.data as T, pagination: body.pagination ?? null };
+}
+
+export interface Pagination {
+  total: number;
+  page: number;
+  limit: number;
+  pages: number;
+}
+
 export const workspaceApi = {
   queue: () => call<{ items: WorkItem[] }>("/employee/work"),
   workItem: (id: string) => call<unknown>(`/employee/work/${encodeURIComponent(id)}`),
@@ -90,12 +132,32 @@ export const workspaceApi = {
   customerBrief: (userId: string) =>
     call<CustomerBrief>(`/intelligence/customer/${encodeURIComponent(userId)}/brief`),
 
+  /**
+   * The product catalogue, paginated by the server.
+   *
+   * `page` and `limit` are passed through rather than fetching everything and
+   * slicing here — the endpoint bounds the result, and a client-side slice
+   * would silently miss anything past the first page.
+   */
+  policies: (page = 1, limit = 20) =>
+    callPaged<{ policies: CataloguePolicy[] }>(`/policies?page=${page}&limit=${limit}`),
+
   /** Unread counts by category, from the Sprint 10 platform. */
   unreadNotifications: () =>
     call<{ total: number; byCategory: Record<string, number> }>(
       "/communication/notifications/unread-count"
     ),
 };
+
+export interface CataloguePolicy {
+  id: string;
+  policyName: string;
+  premium: number;
+  coverage: string;
+  isActive: boolean;
+  updatedAt: string;
+  company: { id: string; name: string } | null;
+}
 
 export interface CustomerBrief {
   customer: { id: string; name: string; email: string; realm: string; createdAt: string };

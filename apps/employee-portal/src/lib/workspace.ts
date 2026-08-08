@@ -85,7 +85,6 @@ export const NAVIGATION: readonly NavGroup[] = [
         href: "/policies",
         icon: "briefcase",
         permission: "policy.read",
-        comingSoon: true,
       },
     ],
   },
