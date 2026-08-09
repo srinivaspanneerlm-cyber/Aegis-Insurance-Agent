@@ -11,6 +11,7 @@ import AppError from "../utils/appError";
 import prisma from "../config/db";
 import { auditService } from "./audit.service";
 import { branchComparison, enterpriseOverview, resolutionTrend } from "../admin/overview";
+import { assessWorkload } from "../employee/operationsManager";
 import { aiSystemStatuses, workflowActivity, workflowCatalogue } from "../admin/aiSystems";
 import { PERMISSIONS, permissionsForRole } from "../auth/permissions";
 import { complianceFindings, complianceSummary } from "../admin/compliance";
@@ -258,16 +259,48 @@ export const enterpriseAdminService = {
       _count: { _all: true },
     });
 
-    return {
-      employees: profiles.map((profile) => ({
+    const employees = profiles.map((profile) => {
+      const openWork = openBy.get(profile.id) ?? 0;
+      const overdue = overdueBy.get(profile.id) ?? 0;
+      // The same judgement the employee portal shows each person about
+      // themselves, not a second opinion invented for administrators.
+      const workload = assessWorkload({
+        employeeId: profile.id,
+        openCount: openWork,
+        workloadLimit: profile.workloadLimit,
+        overdueCount: overdue,
+      });
+      return {
         ...profile,
-        openWork: openBy.get(profile.id) ?? 0,
-        overdue: overdueBy.get(profile.id) ?? 0,
+        openWork,
+        overdue,
+        workload,
         // Stated as a fact rather than a productivity score. Ranking people on
         // volume alone teaches an operation to close cases badly.
         trainingStatus: null,
-      })),
+      };
+    });
+
+    // Whether the operation as a whole has room — the figure that decides
+    // whether to hire, which no per-person row answers.
+    const active = employees.filter((e) => e.status === "ACTIVE");
+    const capacity = active.reduce((sum, e) => sum + e.workloadLimit, 0);
+    const carried = active.reduce((sum, e) => sum + e.openWork, 0);
+
+    return {
+      employees,
       departments: departments.map((d) => ({ department: d.department, count: d._count._all })),
+      capacity: {
+        activeStaff: active.length,
+        totalCapacity: capacity,
+        openWork: carried,
+        // Null rather than 0% when nobody is active: an operation with no staff
+        // has no utilisation, and 0% reads as plenty of room.
+        utilisation: capacity === 0 ? null : Math.round((carried / capacity) * 100),
+        stretched: active.filter(
+          (e) => e.workload.verdict === "AT_CAPACITY" || e.workload.verdict === "OVERLOADED"
+        ).length,
+      },
     };
   },
 

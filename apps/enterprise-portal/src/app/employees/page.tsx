@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Badge, Empty, Panel, Skeleton } from "@/components/Cards";
-import { consoleApi, type EmployeeRow } from "@/lib/api";
+import { Badge, Empty, Panel, Skeleton, Stat } from "@/components/Cards";
+import { consoleApi, type EmployeeRow, type WorkforceCapacity } from "@/lib/api";
 
 /**
  * Employee management.
@@ -12,6 +12,29 @@ import { consoleApi, type EmployeeRow } from "@/lib/api";
  * alone teaches an operation to close cases badly — which is the opposite of
  * what this console is for.
  */
+const WORKLOAD_LABELS: Record<string, string> = {
+  HEALTHY: "Room to spare",
+  BUSY: "Busy",
+  AT_CAPACITY: "At capacity",
+  OVERLOADED: "Overloaded",
+};
+
+const WORKLOAD_TONE: Record<string, "success" | "warning" | "danger" | "neutral"> = {
+  HEALTHY: "success",
+  BUSY: "neutral",
+  AT_CAPACITY: "warning",
+  OVERLOADED: "danger",
+};
+
+/** How long they have been here, in the roughest unit that is still true. */
+function tenure(joinedAt: string): string {
+  const months = Math.floor((Date.now() - new Date(joinedAt).getTime()) / (30 * 86_400_000));
+  if (months < 1) return "joined this month";
+  if (months < 12) return `${months} month${months === 1 ? "" : "s"} here`;
+  const years = Math.floor(months / 12);
+  return `${years} year${years === 1 ? "" : "s"} here`;
+}
+
 const STATUS_LABELS: Record<string, string> = {
   ACTIVE: "Active",
   ON_LEAVE: "On leave",
@@ -30,6 +53,7 @@ export default function EmployeesPage() {
   const [data, setData] = useState<{
     employees: EmployeeRow[];
     departments: { department: string; count: number }[];
+    capacity: WorkforceCapacity;
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [department, setDepartment] = useState<string | null>(null);
@@ -63,6 +87,38 @@ export default function EmployeesPage() {
       </header>
 
       {error ? <Empty icon="close">{error}</Empty> : null}
+
+      {/* Whether the operation has room. Per-person rows cannot answer it, and
+          it is the figure that decides whether to hire. */}
+      {data ? (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <Stat label="Active staff" value={data.capacity.activeStaff} icon="briefcase" />
+          <Stat
+            label="Capacity used"
+            value={data.capacity.utilisation === null ? "—" : `${data.capacity.utilisation}%`}
+            hint={
+              data.capacity.utilisation === null
+                ? "Nobody active"
+                : `${data.capacity.openWork} of ${data.capacity.totalCapacity} slots`
+            }
+            tone={
+              data.capacity.utilisation !== null && data.capacity.utilisation >= 90
+                ? "danger"
+                : data.capacity.utilisation !== null && data.capacity.utilisation >= 75
+                  ? "warning"
+                  : "neutral"
+            }
+            icon="chart"
+          />
+          <Stat
+            label="At or over capacity"
+            value={data.capacity.stretched}
+            tone={data.capacity.stretched > 0 ? "warning" : "success"}
+            icon="bolt"
+          />
+          <Stat label="Open work carried" value={data.capacity.openWork} icon="layers" />
+        </div>
+      ) : null}
 
       {/* The endpoint has always taken ?department= and nothing sent it, so
           these counts were decoration. Filtering happens on the server, which
@@ -147,6 +203,11 @@ export default function EmployeesPage() {
                         {e.user.lastLoginAt
                           ? `Last signed in ${new Date(e.user.lastLoginAt).toLocaleDateString()}`
                           : "Has never signed in"}
+                        {" · "}
+                        {/* Tenure was in every payload and shown nowhere. A branch
+                            staffed entirely by last month's joiners is a different
+                            risk from the same headcount with years behind it. */}
+                        {tenure(e.joinedAt)}
                       </p>
                     </td>
                     <td className="py-3 pr-4">
@@ -161,8 +222,15 @@ export default function EmployeesPage() {
                       {e.department}
                     </td>
                     <td className="py-3 pr-4 text-body-sm text-content-secondary">{e.branch}</td>
-                    <td className="py-3 pr-4 text-body-sm tabular-nums text-content-secondary">
-                      {e.openWork} / {e.workloadLimit}
+                    <td className="py-3 pr-4">
+                      <p className="text-body-sm tabular-nums text-content-secondary">
+                        {e.openWork} / {e.workloadLimit}
+                      </p>
+                      {/* The arithmetic, done. "18 / 20" leaves the reader to
+                          work out who is drowning across a whole roster. */}
+                      <Badge tone={WORKLOAD_TONE[e.workload.verdict] ?? "neutral"}>
+                        {WORKLOAD_LABELS[e.workload.verdict] ?? e.workload.verdict}
+                      </Badge>
                     </td>
                     <td className="py-3 text-body-sm tabular-nums">
                       <span

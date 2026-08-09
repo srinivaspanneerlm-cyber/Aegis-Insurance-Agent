@@ -60,9 +60,11 @@ export const consoleApi = {
 
   /** The workforce. `department` is filtered by the server, not here. */
   employees: (department?: string) =>
-    call<{ employees: EmployeeRow[]; departments: { department: string; count: number }[] }>(
-      `/enterprise/employees${department ? `?department=${encodeURIComponent(department)}` : ""}`
-    ),
+    call<{
+      employees: EmployeeRow[];
+      departments: { department: string; count: number }[];
+      capacity: WorkforceCapacity;
+    }>(`/enterprise/employees${department ? `?department=${encodeURIComponent(department)}` : ""}`),
   products: () => call<ProductsPayload>("/enterprise/products"),
 
   renewals: () => call<RenewalsPayload>("/enterprise/renewals"),
@@ -117,7 +119,22 @@ export interface EmployeeRow {
   status: string;
   joinedAt: string;
   trainingStatus: null;
+  /** The same assessment the employee portal shows each person about themselves. */
+  workload: {
+    verdict: "HEALTHY" | "BUSY" | "AT_CAPACITY" | "OVERLOADED";
+    utilisation: number;
+    advice: string;
+  };
   user: { id: string; name: string; email: string; lastLoginAt: string | null };
+}
+
+export interface WorkforceCapacity {
+  activeStaff: number;
+  totalCapacity: number;
+  openWork: number;
+  /** Null when nobody is active — 0% would read as plenty of room. */
+  utilisation: number | null;
+  stretched: number;
 }
 
 export interface ProductsPayload {
