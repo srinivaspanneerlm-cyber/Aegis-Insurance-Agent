@@ -194,6 +194,15 @@ export interface WorkflowsPayload {
   activity: {
     byDefinition: { definition: string; status: string; count: number }[];
     totals: Record<string, number>;
+    /** What the assistant suggested at decision steps, and what people decided. */
+    assistant: {
+      considered: number;
+      agreed: number;
+      overridden: number;
+      /** Suggestions phrased as prose, which cannot be compared to a decision. */
+      notComparable: number;
+      note: string;
+    };
   };
 }
 

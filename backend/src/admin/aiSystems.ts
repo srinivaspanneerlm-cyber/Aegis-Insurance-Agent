@@ -268,10 +268,41 @@ export function workflowCatalogue() {
 
 /** How many runs of each workflow are in flight, and how they have ended. */
 export async function workflowActivity(organizationId: string) {
-  const [byDefinition, byStatus] = await Promise.all([
+  const [byDefinition, byStatus, decided] = await Promise.all([
     prisma.workflowRun.groupBy({ by: ["definition", "status"], where: { workItem: { organizationId } }, _count: { _all: true } }),
     prisma.workflowRun.groupBy({ by: ["status"], where: { workItem: { organizationId } }, _count: { _all: true } }),
+    // Decision steps the assistant offered an opinion on, and what the person
+    // actually decided. The schema calls `suggestion` the most useful record
+    // this table holds, and nothing read it.
+    prisma.workflowStep.findMany({
+      where: {
+        run: { workItem: { organizationId } },
+        status: "COMPLETED",
+        suggestion: { not: null },
+        decision: { not: null },
+      },
+      select: { key: true, decision: true, suggestion: true },
+      take: 1000,
+    }),
   ]);
+
+  // Agreement is a comparison of two recorded values, not a score. Where the
+  // suggestion is free text rather than a decision word it cannot be compared,
+  // and those are counted apart instead of guessed at — an "accuracy" figure
+  // built on fuzzy matching would be a claim, not a measurement.
+  const DECISIONS = ["APPROVE", "REJECT", "ESCALATE", "REQUEST_INFO"];
+  let agreed = 0;
+  let overridden = 0;
+  let notComparable = 0;
+  for (const step of decided) {
+    const suggested = (step.suggestion ?? "").trim().toUpperCase();
+    if (!DECISIONS.includes(suggested)) {
+      notComparable += 1;
+      continue;
+    }
+    if (suggested === step.decision) agreed += 1;
+    else overridden += 1;
+  }
 
   return {
     byDefinition: byDefinition.map((row) => ({
@@ -280,5 +311,17 @@ export async function workflowActivity(organizationId: string) {
       count: row._count._all,
     })),
     totals: Object.fromEntries(byStatus.map((row) => [row.status, row._count._all])),
+    assistant: {
+      /** Decision steps where the assistant offered something and a person decided. */
+      considered: decided.length,
+      agreed,
+      overridden,
+      /** Suggestions phrased as prose, which cannot be compared to a decision word. */
+      notComparable,
+      // Deliberately no rate. Agreement is not accuracy — a person may agree
+      // with a wrong suggestion, and this platform records no outcome that
+      // would settle which was right.
+      note: "Agreement is not accuracy. Nothing here records whether the decision was correct — only whether the person and the assistant reached the same one.",
+    },
   };
 }

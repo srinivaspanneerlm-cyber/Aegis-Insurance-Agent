@@ -54,6 +54,43 @@ export default function WorkflowsPage() {
             ))}
           </div>
 
+          {/* The one AI signal here that is a measurement rather than a claim:
+              two recorded values compared. WorkflowStep.suggestion is kept even
+              when a person overrode it — the schema calls it the most useful
+              record the table holds — and nothing read it until now. */}
+          <Panel title="Assistant suggestions at decision points">
+            {data.activity.assistant.considered === 0 ? (
+              <Empty icon="spark">
+                No decision step has carried an assistant suggestion yet. These appear once the
+                assistant offers an opinion on a case a person then decides.
+              </Empty>
+            ) : (
+              <>
+                <div className="flex flex-wrap gap-2">
+                  <Badge tone="success">{data.activity.assistant.agreed} agreed</Badge>
+                  <Badge tone="warning">{data.activity.assistant.overridden} overridden</Badge>
+                  {data.activity.assistant.notComparable > 0 ? (
+                    <Badge>{data.activity.assistant.notComparable} not comparable</Badge>
+                  ) : null}
+                </div>
+
+                <p className="mt-4 text-pretty text-caption text-content-muted">
+                  Across {data.activity.assistant.considered} decision
+                  {data.activity.assistant.considered === 1 ? "" : "s"} where the assistant offered
+                  an opinion and a person decided.
+                  {data.activity.assistant.notComparable > 0
+                    ? " Suggestions written as prose rather than a decision word cannot be compared, and are counted apart rather than guessed at."
+                    : ""}
+                </p>
+
+                {/* Said plainly, because the number invites the wrong reading. */}
+                <p className="mt-2 text-pretty text-caption text-content-muted">
+                  {data.activity.assistant.note}
+                </p>
+              </>
+            )}
+          </Panel>
+
           {data.catalogue.map((definition) => (
             <Panel
               key={definition.definition}
