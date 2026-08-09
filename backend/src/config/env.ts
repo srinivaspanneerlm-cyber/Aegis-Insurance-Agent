@@ -90,6 +90,17 @@ if (errors.length) {
   process.exit(1);
 }
 
+// A production deployment with no mailer cannot send a verification or reset
+// link, and — correctly — refuses to write the token to the log instead. That is
+// an account-recovery outage rather than a cosmetic gap, so it is surfaced at
+// startup rather than discovered by the first person locked out.
+if (isProd && !process.env.AUTH_MAIL_WEBHOOK_URL) {
+  warnings.push(
+    "AUTH_MAIL_WEBHOOK_URL is not set. No verification or password-reset mail can be delivered, " +
+      "and reset links are withheld from logs in production — nobody will be able to recover an account."
+  );
+}
+
 const env = {
   NODE_ENV,
   isProd,
@@ -118,6 +129,18 @@ const env = {
 
   allowedOrigins,
   workspaceDomains,
+
+  // Where verification and reset links point. This must be the *identity app*,
+  // not this API: the link is clicked by a person, and a backend URL would hand
+  // them a JSON 404 instead of a password form.
+  IDENTITY_APP_URL: process.env.IDENTITY_APP_URL || "http://localhost:3105",
+
+  // Outbound mail. The delivery seam in auth/mailer.ts POSTs the message to this
+  // URL — any transactional provider behind an HTTP endpoint works, and none is
+  // hardcoded. Unset in development the link goes to the log so the flow stays
+  // testable; unset in production the token is withheld and nothing is
+  // delivered, which is what the startup warning above is for.
+  AUTH_MAIL_WEBHOOK_URL: process.env.AUTH_MAIL_WEBHOOK_URL || "",
 
   AI_SERVICE_URL: process.env.AI_SERVICE_URL || "http://localhost:8000/api/ai",
   AI_INTERNAL_API_KEY: process.env.AI_INTERNAL_API_KEY || "",

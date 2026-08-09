@@ -73,7 +73,9 @@ export async function sendAuthMail(mail: AuthMail): Promise<void> {
  * needs a page that explains what is happening — not a JSON response.
  */
 export function identityUrl(path: string, params: Record<string, string> = {}): string {
-  const base = (process.env.IDENTITY_APP_URL ?? "http://localhost:3105").replace(/\/$/, "");
+  // From the validated config rather than raw process.env, so a deployment
+  // that forgets it gets the documented default instead of an undefined host.
+  const base = env.IDENTITY_APP_URL.replace(/\/$/, "");
   const url = new URL(`${base}${path}`);
   for (const [key, value] of Object.entries(params)) url.searchParams.set(key, value);
   return url.toString();
