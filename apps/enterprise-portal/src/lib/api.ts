@@ -55,9 +55,10 @@ export const consoleApi = {
     call<{ total: number; customers: CustomerRow[] }>(
       `/enterprise/customers${search ? `?search=${encodeURIComponent(search)}` : ""}`
     ),
-  employees: () =>
+  /** The workforce. `department` is filtered by the server, not here. */
+  employees: (department?: string) =>
     call<{ employees: EmployeeRow[]; departments: { department: string; count: number }[] }>(
-      "/enterprise/employees"
+      `/enterprise/employees${department ? `?department=${encodeURIComponent(department)}` : ""}`
     ),
   products: () => call<ProductsPayload>("/enterprise/products"),
   claims: () => call<ClaimsPayload>("/enterprise/claims"),
@@ -92,10 +93,12 @@ export interface EmployeeRow {
   department: string;
   designation: string;
   branch: string;
-  status: string;
   workloadLimit: number;
   openWork: number;
   overdue: number;
+  /** ACTIVE | ON_LEAVE | SUSPENDED | EXITED. */
+  status: string;
+  joinedAt: string;
   trainingStatus: null;
   user: { id: string; name: string; email: string; lastLoginAt: string | null };
 }
