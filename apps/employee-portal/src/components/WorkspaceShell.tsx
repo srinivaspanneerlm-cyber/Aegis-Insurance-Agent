@@ -147,16 +147,21 @@ export function WorkspaceShell({ children }: { children: React.ReactNode }) {
 
           <EnterpriseSearch />
 
-          <div className="ml-auto flex items-center gap-3">
+          {/* The identity block is where people look for their own account, so
+              it is the link, rather than a nav entry buried in a group. */}
+          <Link
+            href="/profile"
+            className="focus-ring ml-auto flex items-center gap-3 rounded-control px-1 py-1"
+          >
             {profile ? (
-              <div className="hidden text-right sm:block">
-                <p className="text-body-sm font-medium leading-tight text-content">
+              <span className="hidden text-right sm:block">
+                <span className="block text-body-sm font-medium leading-tight text-content">
                   {session?.user.name}
-                </p>
-                <p className="text-caption leading-tight text-content-muted">
+                </span>
+                <span className="block text-caption leading-tight text-content-muted">
                   {profile.designation} · {profile.branch}
-                </p>
-              </div>
+                </span>
+              </span>
             ) : null}
             <span
               aria-hidden="true"
@@ -164,7 +169,8 @@ export function WorkspaceShell({ children }: { children: React.ReactNode }) {
             >
               {(session?.user.name ?? "?").charAt(0).toUpperCase()}
             </span>
-          </div>
+            <span className="sr-only">Your profile</span>
+          </Link>
         </header>
 
         <main id="main" tabIndex={-1} className="flex-1 px-4 py-6 outline-none sm:px-6 lg:px-8">
