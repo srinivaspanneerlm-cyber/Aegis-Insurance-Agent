@@ -146,6 +146,14 @@ export const workspaceApi = {
    * at a time and counts the pipeline from what the server reports rather than
    * from the rows on screen.
    */
+  /**
+   * Platform communication reporting, over a fixed seven-day window.
+   *
+   * Distinct from /employee/analytics, which is this person's own caseload.
+   * This one describes what the platform sent and whether it arrived.
+   */
+  communicationReport: () => call<CommunicationReport>("/communication/analytics/overview"),
+
   leads: (page = 1, limit = 20) =>
     callPaged<{ leads: Lead[] }>(`/leads?page=${page}&limit=${limit}`),
 
@@ -344,4 +352,33 @@ export interface Lead {
   assignedToId: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+/** A metric the platform cannot honestly produce, and what it would take to. */
+export interface Unavailable {
+  available: false;
+  reason: string;
+  needs: string;
+}
+
+export interface CommunicationReport {
+  windowDays: number;
+  delivery: {
+    attempted: number;
+    succeeded: number;
+    suppressed: number;
+    /** Null when nothing was tried — a zero here would read as total failure. */
+    successRate: number | null;
+    successRateNote: string;
+    suppressionReasons: { reason: string; count: number }[];
+    byStatus: Record<string, number>;
+    byChannel: { channel: string; counts: Record<string, number> }[];
+  };
+  collaboration: {
+    conversationsStarted: number;
+    messagesPosted: number;
+    announcementsPublished: number;
+  };
+  unreadNotifications: number;
+  engagementRate: Unavailable;
 }

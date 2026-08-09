@@ -98,7 +98,6 @@ export const NAVIGATION: readonly NavGroup[] = [
         href: "/reports",
         icon: "layers",
         permission: "analytics.read",
-        comingSoon: true,
       },
       { label: "Knowledge Center", href: "/knowledge", icon: "book", permission: "knowledge.read" },
       {
