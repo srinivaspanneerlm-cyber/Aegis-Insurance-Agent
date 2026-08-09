@@ -120,7 +120,7 @@ export const NAVIGATION: readonly NavGroup[] = [
     items: [
       { label: "AI Assistant", href: "/assistant", icon: "spark" },
       { label: "Notifications", href: "/notifications", icon: "bolt" },
-      { label: "Settings", href: "/settings", icon: "compass", comingSoon: true },
+      { label: "Settings", href: "/settings", icon: "compass" },
     ],
   },
 ];

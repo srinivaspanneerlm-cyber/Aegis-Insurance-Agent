@@ -152,6 +152,21 @@ export const workspaceApi = {
    * Distinct from /employee/analytics, which is this person's own caseload.
    * This one describes what the platform sent and whether it arrived.
    */
+  /** This person's notification preferences. */
+  preferences: () => call<NotificationPreferences>("/communication/preferences"),
+
+  /**
+   * Save them.
+   *
+   * A partial is sent and the server fills the rest from what is stored, so a
+   * screen that renders one section cannot blank another by omitting it.
+   */
+  savePreferences: (input: Partial<SavablePreferences>) =>
+    call<NotificationPreferences>("/communication/preferences", {
+      method: "PUT",
+      body: JSON.stringify(input),
+    }),
+
   communicationReport: () => call<CommunicationReport>("/communication/analytics/overview"),
 
   leads: (page = 1, limit = 20) =>
@@ -381,4 +396,29 @@ export interface CommunicationReport {
   };
   unreadNotifications: number;
   engagementRate: Unavailable;
+}
+
+export interface ChannelAvailability {
+  channel: string;
+  available: boolean;
+  /** Present only when unavailable: what is missing. */
+  reason?: string;
+}
+
+export interface SavablePreferences {
+  inApp: boolean;
+  email: boolean;
+  sms: boolean;
+  push: boolean;
+  reminderFrequency: "IMMEDIATE" | "DAILY" | "WEEKLY";
+  language: string;
+  mutedCategories: string[];
+  quietHoursStart: string | null;
+  quietHoursEnd: string | null;
+}
+
+export interface NotificationPreferences extends SavablePreferences {
+  /** False when nothing has been saved yet and these are the defaults. */
+  exists: boolean;
+  channels: ChannelAvailability[];
 }
