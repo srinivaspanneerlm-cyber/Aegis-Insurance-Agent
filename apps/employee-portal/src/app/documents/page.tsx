@@ -60,11 +60,8 @@ export default function DocumentQueuePage() {
     async (id: string) => {
       if (timeline[id]) return;
       try {
-        const response = await fetch(`${API_URL}/documents/${id}`, { credentials: "include" });
-        const body = await response.json();
-        if (response.ok) {
-          setTimeline((current) => ({ ...current, [id]: body.data.events }));
-        }
+        const detail = (await workspaceApi.document(id)) as { events: DocumentTimelineEvent[] };
+        setTimeline((current) => ({ ...current, [id]: detail.events }));
       } catch {
         /* the card is still usable without its history */
       }
@@ -77,14 +74,7 @@ export default function DocumentQueuePage() {
       setBusy(id);
       setError(null);
       try {
-        const response = await fetch(`${API_URL}/documents/${id}/decision`, {
-          method: "POST",
-          credentials: "include",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ decision, reason: why }),
-        });
-        const body = await response.json();
-        if (!response.ok) throw new Error(body.message ?? "That did not go through.");
+        await workspaceApi.decideDocument(id, decision, why);
         setRejecting(null);
         setReason("");
         await load();

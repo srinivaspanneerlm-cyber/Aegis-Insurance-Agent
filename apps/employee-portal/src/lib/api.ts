@@ -151,6 +151,22 @@ export const workspaceApi = {
    */
   renewalAnalytics: () => call<RenewalAnalytics>("/intelligence/analytics/renewals"),
 
+  /** One document's history — every stage, and what it said. */
+  document: (id: string) => call<unknown>(`/documents/${encodeURIComponent(id)}`),
+
+  /**
+   * Verify or reject a document.
+   *
+   * The only path to VERIFIED or REJECTED, and a rejection must carry a reason
+   * — the server refuses one without. This client does not re-check that: the
+   * form asks for it, and the server is what enforces it.
+   */
+  decideDocument: (id: string, decision: "VERIFY" | "REJECT", reason?: string) =>
+    call<unknown>(`/documents/${encodeURIComponent(id)}/decision`, {
+      method: "POST",
+      body: JSON.stringify({ decision, reason }),
+    }),
+
   /** Unread counts by category, from the Sprint 10 platform. */
   unreadNotifications: () =>
     call<{ total: number; byCategory: Record<string, number> }>(
