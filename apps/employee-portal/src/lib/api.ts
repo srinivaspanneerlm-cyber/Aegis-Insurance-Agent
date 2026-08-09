@@ -153,6 +153,17 @@ export const workspaceApi = {
    * This one describes what the platform sent and whether it arrived.
    */
   /** This person's notification preferences. */
+  /**
+   * What has happened across the operation.
+   *
+   * Not scoped to the caller or their department — the endpoint reads every
+   * work-item event there is. The page says so; a feed that looks personal and
+   * is not would have people drawing conclusions about their own work from
+   * somebody else's.
+   */
+  activity: (take = 50) =>
+    call<{ events: ActivityEvent[] }>(`/communication/activity?take=${take}`),
+
   preferences: () => call<NotificationPreferences>("/communication/preferences"),
 
   /**
@@ -421,4 +432,17 @@ export interface NotificationPreferences extends SavablePreferences {
   /** False when nothing has been saved yet and these are the defaults. */
   exists: boolean;
   channels: ChannelAvailability[];
+}
+
+export interface ActivityEvent {
+  id: string;
+  kind: string;
+  summary: string;
+  at: string;
+  /** "Aegis" when the platform did it rather than a person. */
+  actorName: string;
+  workItemId: string;
+  reference: string;
+  department: string | null;
+  deepLink: string;
 }
