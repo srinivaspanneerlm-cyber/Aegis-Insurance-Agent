@@ -12,6 +12,7 @@ import prisma from "../config/db";
 import { auditService } from "./audit.service";
 import { branchComparison, enterpriseOverview, resolutionTrend } from "../admin/overview";
 import { aiSystemStatuses, workflowActivity, workflowCatalogue } from "../admin/aiSystems";
+import { PERMISSIONS, permissionsForRole } from "../auth/permissions";
 import { complianceFindings, complianceSummary } from "../admin/compliance";
 
 /** Bound every list. An unbounded admin query is a production incident. */
@@ -542,6 +543,209 @@ export const enterpriseAdminService = {
         available: false as const,
         reason: "Documents record who verified them and when, but not whether any check was automated.",
         needs: "A verification method written alongside the verdict.",
+      },
+    };
+  },
+
+  /**
+   * Customer intelligence, for one tenant.
+   *
+   * Counted here rather than through intelligenceAnalytics.service, which is
+   * deliberately global — it serves the employee portal, where scoping it would
+   * change a screen this phase must not touch. These are counts over rows that
+   * now carry an organisation, not a second implementation of the scoring: no
+   * recommendation is computed here, only how many exist and how complete the
+   * profiles behind them are.
+   */
+  async intelligence(organizationId: string) {
+    const [profiles, runs, withPolicies, completeness, byKind, recent] = await Promise.all([
+      prisma.insuranceProfile.count({ where: { organizationId } }),
+      prisma.intelligenceRun.count({ where: { organizationId } }),
+      prisma.heldPolicy.count({ where: { organizationId } }),
+      prisma.insuranceProfile.aggregate({
+        where: { organizationId },
+        _avg: { completeness: true },
+      }),
+      prisma.intelligenceRun.groupBy({
+        by: ["kind"],
+        where: { organizationId },
+        _count: { _all: true },
+      }),
+      prisma.intelligenceRun.findMany({
+        where: { organizationId },
+        select: {
+          id: true,
+          kind: true,
+          confidence: true,
+          engineVersion: true,
+          createdAt: true,
+          user: { select: { id: true, name: true } },
+        },
+        orderBy: { createdAt: "desc" },
+        take: 25,
+      }),
+    ]);
+
+    // A customer with no profile cannot be advised at all, which is the number
+    // worth acting on rather than the average.
+    const customers = await prisma.user.count({
+      where: { organizationId, realm: "CUSTOMER", deletedAt: null },
+    });
+
+    return {
+      customers,
+      profiles,
+      withoutProfile: Math.max(0, customers - profiles),
+      runs,
+      withPolicies,
+      averageCompleteness:
+        completeness._avg.completeness === null ? null : Math.round(completeness._avg.completeness),
+      byKind: Object.fromEntries(byKind.map((r) => [r.kind, r._count._all])),
+      recent,
+      // Whether advice was taken is not recorded: nothing links a
+      // recommendation to a policy that followed it.
+      adviceOutcome: {
+        available: false as const,
+        reason: "Nothing links a recommendation to a policy bought after it.",
+        needs: "A recommendation reference written onto the held policy when cover is taken.",
+      },
+    };
+  },
+
+  /**
+   * Support: complaints and appointments.
+   *
+   * Complaints are counted apart from appointments because they mean opposite
+   * things — one is somebody unhappy, the other is a booking — and a combined
+   * "support volume" would hide a rising complaint rate behind a busy diary.
+   */
+  async support(organizationId: string) {
+    const [complaintsByStatus, appointmentsByStatus, overdue, recent] = await Promise.all([
+      prisma.workItem.groupBy({
+        by: ["status"],
+        where: { organizationId, kind: "COMPLAINT" },
+        _count: { _all: true },
+      }),
+      prisma.workItem.groupBy({
+        by: ["status"],
+        where: { organizationId, kind: "APPOINTMENT" },
+        _count: { _all: true },
+      }),
+      prisma.workItem.count({
+        where: {
+          organizationId,
+          kind: { in: ["COMPLAINT", "APPOINTMENT"] },
+          closedAt: null,
+          dueAt: { lt: new Date() },
+        },
+      }),
+      prisma.workItem.findMany({
+        where: { organizationId, kind: { in: ["COMPLAINT", "APPOINTMENT"] } },
+        select: {
+          id: true,
+          kind: true,
+          reference: true,
+          title: true,
+          status: true,
+          priority: true,
+          openedAt: true,
+          dueAt: true,
+          resolvedAt: true,
+          customer: { select: { id: true, name: true } },
+        },
+        orderBy: { openedAt: "desc" },
+        take: 50,
+      }),
+    ]);
+
+    return {
+      complaints: Object.fromEntries(complaintsByStatus.map((r) => [r.status, r._count._all])),
+      appointments: Object.fromEntries(appointmentsByStatus.map((r) => [r.status, r._count._all])),
+      overdue,
+      recent,
+      // No satisfaction signal is captured anywhere in the platform.
+      satisfaction: {
+        available: false as const,
+        reason: "Nothing asks a customer how a complaint was handled.",
+        needs: "A response captured when a complaint is resolved.",
+      },
+    };
+  },
+
+  /**
+   * What the platform has been sending this tenant's people.
+   *
+   * Notification rows carry no organisation of their own, so the boundary is the
+   * recipient's membership.
+   */
+  async notifications(organizationId: string) {
+    const since = new Date(Date.now() - 30 * 86_400_000);
+    const scope = { user: { organizationId } };
+
+    const [byCategory, byStatus, unread, recentAnnouncements] = await Promise.all([
+      prisma.notification.groupBy({
+        by: ["category"],
+        where: { ...scope, createdAt: { gte: since } },
+        _count: { _all: true },
+      }),
+      prisma.notification.groupBy({ by: ["status"], where: scope, _count: { _all: true } }),
+      prisma.notification.count({ where: { ...scope, status: "UNREAD" } }),
+      prisma.announcement.findMany({
+        select: {
+          id: true,
+          title: true,
+          body: true,
+          publishedAt: true,
+          audienceRealm: true,
+          audienceDepartment: true,
+        },
+        orderBy: { publishedAt: "desc" },
+        take: 10,
+      }),
+    ]);
+
+    return {
+      windowDays: 30,
+      byCategory: Object.fromEntries(byCategory.map((r) => [r.category, r._count._all])),
+      byStatus: Object.fromEntries(byStatus.map((r) => [r.status, r._count._all])),
+      unread,
+      announcements: recentAnnouncements,
+      // Announcements are platform-wide and carry no organisation, so this list
+      // is not filtered by tenant — said rather than implied.
+      announcementScope: {
+        available: false as const,
+        reason: "Announcements are published platform-wide and carry no organisation.",
+        needs: "An organisation on the announcement, or an audience that names one.",
+      },
+    };
+  },
+
+  /**
+   * Who holds what, across this tenant's staff.
+   *
+   * The permission model itself is code, not data — this reports the roles in
+   * use and what each one may do, so an administrator can see the shape of
+   * access without a route that could change it. Granting a role is not done
+   * from here; it would need a write path this console deliberately lacks.
+   */
+  async roles(organizationId: string) {
+    const staff = await prisma.user.groupBy({
+      by: ["role"],
+      where: { organizationId, realm: { in: ["EMPLOYEE", "ENTERPRISE"] }, deletedAt: null },
+      _count: { _all: true },
+    });
+
+    return {
+      roles: staff.map((r) => ({
+        role: r.role,
+        holders: r._count._all,
+        permissions: permissionsForRole(r.role),
+      })),
+      allPermissions: [...PERMISSIONS],
+      assignable: {
+        available: false as const,
+        reason: "Roles are granted through account administration, not from this console.",
+        needs: "A staff-management route that may change a role, with its own audit trail.",
       },
     };
   },

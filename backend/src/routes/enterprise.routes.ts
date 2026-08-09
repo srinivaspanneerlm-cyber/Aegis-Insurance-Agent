@@ -166,6 +166,39 @@ router.get(
   })
 );
 
+router.get(
+  "/intelligence",
+  requirePermission("customer.read"),
+  catchAsync(async (req, res) => {
+    sendSuccess(res, 200, await enterpriseAdminService.intelligence(orgScope(req)));
+  })
+);
+
+router.get(
+  "/support",
+  requirePermission("work.read"),
+  catchAsync(async (req, res) => {
+    sendSuccess(res, 200, await enterpriseAdminService.support(orgScope(req)));
+  })
+);
+
+router.get(
+  "/notifications",
+  requirePermission("analytics.read"),
+  catchAsync(async (req, res) => {
+    sendSuccess(res, 200, await enterpriseAdminService.notifications(orgScope(req)));
+  })
+);
+
+// Read-only: it reports the shape of access, never changes it.
+router.get(
+  "/roles",
+  requirePermission("staff.manage"),
+  catchAsync(async (req, res) => {
+    sendSuccess(res, 200, await enterpriseAdminService.roles(orgScope(req)));
+  })
+);
+
 // ── AI and workflow ──────────────────────────────────────────────────────────
 
 // Monitoring only. There is deliberately no route that changes a model, a

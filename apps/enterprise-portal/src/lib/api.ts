@@ -66,6 +66,11 @@ export const consoleApi = {
   products: () => call<ProductsPayload>("/enterprise/products"),
 
   renewals: () => call<RenewalsPayload>("/enterprise/renewals"),
+  intelligence: () => call<IntelligencePayload>("/enterprise/intelligence"),
+  support: () => call<SupportPayload>("/enterprise/support"),
+  notifications: () => call<NotificationsPayload>("/enterprise/notifications"),
+  roles: () => call<RolesPayload>("/enterprise/roles"),
+  securityEvents: () => call<SecurityPayload>("/enterprise/security-events"),
   documents: () => call<DocumentsPayload>("/enterprise/documents"),
 
   /** The book of policies customers hold. Distinct from the catalogue above. */
@@ -305,4 +310,77 @@ export interface DocumentsPayload {
     owner: { id: string; name: string } | null;
   }[];
   automatedVerification: Unavailable;
+}
+
+export interface IntelligencePayload {
+  customers: number;
+  profiles: number;
+  /** Customers with no profile cannot be advised at all. */
+  withoutProfile: number;
+  runs: number;
+  withPolicies: number;
+  averageCompleteness: number | null;
+  byKind: Record<string, number>;
+  recent: {
+    id: string;
+    kind: string;
+    confidence: number | null;
+    engineVersion: string;
+    createdAt: string;
+    user: { id: string; name: string } | null;
+  }[];
+  adviceOutcome: Unavailable;
+}
+
+export interface SupportPayload {
+  complaints: Record<string, number>;
+  appointments: Record<string, number>;
+  overdue: number;
+  recent: {
+    id: string;
+    kind: string;
+    reference: string;
+    title: string;
+    status: string;
+    priority: string;
+    openedAt: string;
+    dueAt: string | null;
+    resolvedAt: string | null;
+    customer: { id: string; name: string } | null;
+  }[];
+  satisfaction: Unavailable;
+}
+
+export interface NotificationsPayload {
+  windowDays: number;
+  byCategory: Record<string, number>;
+  byStatus: Record<string, number>;
+  unread: number;
+  announcements: {
+    id: string;
+    title: string;
+    body: string | null;
+    publishedAt: string | null;
+    audienceRealm: string;
+    audienceDepartment: string | null;
+  }[];
+  announcementScope: Unavailable;
+}
+
+export interface RolesPayload {
+  roles: { role: string; holders: number; permissions: readonly string[] }[];
+  allPermissions: string[];
+  assignable: Unavailable;
+}
+
+export interface SecurityPayload {
+  recent: {
+    id: string;
+    outcome: string;
+    method: string | null;
+    ipAddress: string | null;
+    userAgent: string | null;
+    createdAt: string;
+  }[];
+  byOutcome: Record<string, number>;
 }

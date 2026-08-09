@@ -75,6 +75,7 @@ export const NAVIGATION: readonly NavGroup[] = [
       },
       { label: "Products", href: "/products", icon: "shield", permission: "policy.read" },
       { label: "Claims Management", href: "/claims", icon: "scales", permission: "claim.read" },
+      { label: "Support", href: "/support", icon: "mail", permission: "work.read" },
       {
         label: "Policy Management",
         href: "/policies",
@@ -106,6 +107,12 @@ export const NAVIGATION: readonly NavGroup[] = [
     items: [
       { label: "AI Agents", href: "/ai-systems", icon: "spark", permission: "platform.configure" },
       {
+        label: "Customer Intelligence",
+        href: "/intelligence",
+        icon: "spark",
+        permission: "customer.read",
+      },
+      {
         label: "Workflow Automation",
         href: "/workflows",
         icon: "bolt",
@@ -118,8 +125,15 @@ export const NAVIGATION: readonly NavGroup[] = [
     items: [
       { label: "Compliance", href: "/compliance", icon: "shield", permission: "audit.read" },
       { label: "Audit Logs", href: "/audit", icon: "search", permission: "audit.read" },
-      { label: "Notifications", href: "/notifications", icon: "bolt", comingSoon: true },
-      { label: "Settings", href: "/settings", icon: "compass", comingSoon: true },
+      {
+        label: "Notifications",
+        href: "/notifications",
+        icon: "bolt",
+        permission: "analytics.read",
+      },
+      { label: "Settings", href: "/settings", icon: "compass" },
+      { label: "Roles & Permissions", href: "/roles", icon: "lock", permission: "staff.manage" },
+      { label: "Security", href: "/security", icon: "shield", permission: "audit.read" },
     ],
   },
 ];
