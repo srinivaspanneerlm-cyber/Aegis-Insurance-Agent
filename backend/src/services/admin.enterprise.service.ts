@@ -24,13 +24,13 @@ const clampTake = (value: unknown, fallback = 25): number => {
 
 export const enterpriseAdminService = {
   /** Everything the dashboard needs, in one call. */
-  async dashboard() {
+  async dashboard(organizationId: string) {
     const [overview, trend, branches, compliance, ai] = await Promise.all([
-      enterpriseOverview(),
-      resolutionTrend(14),
-      branchComparison(),
-      complianceSummary(),
-      aiSystemStatuses(),
+      enterpriseOverview(organizationId),
+      resolutionTrend(organizationId, 14),
+      branchComparison(organizationId),
+      complianceSummary(organizationId),
+      aiSystemStatuses(organizationId),
     ]);
 
     return {
@@ -57,11 +57,12 @@ export const enterpriseAdminService = {
    * open for them — and no need at all to read what they told an advisor in
    * confidence. That boundary is easier to keep by never selecting the column.
    */
-  async customers(query: { search?: string; take?: unknown }) {
+  async customers(organizationId: string, query: { search?: string; take?: unknown }) {
     const take = clampTake(query.take);
     const search = query.search?.trim();
 
     const where = {
+      organizationId,
       realm: "CUSTOMER",
       deletedAt: null,
       ...(search
@@ -98,9 +99,12 @@ export const enterpriseAdminService = {
    * Open work, documents and sign-in history — the operational record. Still no
    * conversation content, for the same reason.
    */
-  async customer(id: string) {
+  async customer(organizationId: string, id: string) {
     const customer = await prisma.user.findFirst({
-      where: { id, realm: "CUSTOMER" },
+      // The tenant is part of the lookup, not a check after it: a customer
+      // belonging to another organisation is "not found" here, which is the
+      // right answer and leaks nothing about whether the id exists.
+      where: { id, organizationId, realm: "CUSTOMER" },
       select: {
         id: true,
         name: true,
@@ -117,7 +121,7 @@ export const enterpriseAdminService = {
 
     const [work, documents, logins] = await Promise.all([
       prisma.workItem.findMany({
-        where: { customerId: id },
+        where: { customerId: id, organizationId },
         select: {
           id: true,
           reference: true,
@@ -131,7 +135,10 @@ export const enterpriseAdminService = {
         orderBy: { openedAt: "desc" },
         take: 50,
       }),
-      prisma.uploadedDocument.count({ where: { ownerId: id, deletedAt: null } }),
+      prisma.uploadedDocument.count({ where: { ownerId: id, organizationId, deletedAt: null } }),
+      // LoginEvent has no organisation of its own; the customer above has
+      // already been proven to belong to this tenant, so scoping by their id
+      // is the scope.
       prisma.loginEvent.findMany({
         where: { userId: id },
         select: { outcome: true, method: true, ipAddress: true, createdAt: true },
@@ -144,9 +151,9 @@ export const enterpriseAdminService = {
   },
 
   /** The workforce: who, where, and how loaded. */
-  async employees(query: { department?: string; take?: unknown }) {
+  async employees(organizationId: string, query: { department?: string; take?: unknown }) {
     const take = clampTake(query.take, 50);
-    const where = query.department ? { department: query.department } : {};
+    const where = { organizationId, ...(query.department ? { department: query.department } : {}) };
 
     const profiles = await prisma.employeeProfile.findMany({
       where,
@@ -172,12 +179,12 @@ export const enterpriseAdminService = {
     const [open, overdue] = await Promise.all([
       prisma.workItem.groupBy({
         by: ["assigneeId"],
-        where: { assigneeId: { in: ids }, closedAt: null },
+        where: { assigneeId: { in: ids }, organizationId, closedAt: null },
         _count: { _all: true },
       }),
       prisma.workItem.groupBy({
         by: ["assigneeId"],
-        where: { assigneeId: { in: ids }, closedAt: null, dueAt: { lt: new Date() } },
+        where: { assigneeId: { in: ids }, organizationId, closedAt: null, dueAt: { lt: new Date() } },
         _count: { _all: true },
       }),
     ]);
@@ -186,6 +193,7 @@ export const enterpriseAdminService = {
 
     const departments = await prisma.employeeProfile.groupBy({
       by: ["department"],
+      where: { organizationId },
       _count: { _all: true },
     });
 
@@ -203,9 +211,11 @@ export const enterpriseAdminService = {
   },
 
   /** The product catalogue. */
-  async products(query: { take?: unknown }) {
+  async products(organizationId: string, query: { take?: unknown }) {
     const take = clampTake(query.take, 50);
     const [companies, policies] = await Promise.all([
+      // Insurers are shared reference data — "HDFC Ergo" is not owned by a
+      // tenant — so the company list is not scoped. The catalogue below is.
       prisma.company.findMany({
         where: { deletedAt: null },
         select: { id: true, companyName: true, isActive: true, _count: { select: { policies: true } } },
@@ -213,7 +223,7 @@ export const enterpriseAdminService = {
         take,
       }),
       prisma.policy.findMany({
-        where: { deletedAt: null },
+        where: { organizationId, deletedAt: null },
         select: {
           id: true,
           policyName: true,
@@ -244,12 +254,12 @@ export const enterpriseAdminService = {
   },
 
   /** Claims, as an operations view. */
-  async claims() {
+  async claims(organizationId: string) {
     const [byStatus, byPriority, recent, resolved] = await Promise.all([
-      prisma.workItem.groupBy({ by: ["status"], where: { kind: "CLAIM" }, _count: { _all: true } }),
-      prisma.workItem.groupBy({ by: ["priority"], where: { kind: "CLAIM", closedAt: null }, _count: { _all: true } }),
+      prisma.workItem.groupBy({ by: ["status"], where: { organizationId, kind: "CLAIM" }, _count: { _all: true } }),
+      prisma.workItem.groupBy({ by: ["priority"], where: { organizationId, kind: "CLAIM", closedAt: null }, _count: { _all: true } }),
       prisma.workItem.findMany({
-        where: { kind: "CLAIM" },
+        where: { organizationId, kind: "CLAIM" },
         select: {
           id: true,
           reference: true,
@@ -264,7 +274,7 @@ export const enterpriseAdminService = {
         take: 50,
       }),
       prisma.workItem.findMany({
-        where: { kind: "CLAIM", resolvedAt: { not: null } },
+        where: { organizationId, kind: "CLAIM", resolvedAt: { not: null } },
         select: { openedAt: true, resolvedAt: true },
         take: 500,
       }),
@@ -290,9 +300,14 @@ export const enterpriseAdminService = {
   },
 
   /** The audit trail, filterable. Read-only by construction — it is append-only. */
-  async auditLog(query: { action?: string; actorId?: string; take?: unknown }) {
+  async auditLog(organizationId: string, query: { action?: string; actorId?: string; take?: unknown }) {
     const take = clampTake(query.take, 50);
+    // AuditLog carries no organisation of its own, so the tenant boundary is
+    // the actor's membership. Entries written by the platform itself (actorId
+    // null) are deliberately excluded from a tenant's view — they are not that
+    // tenant's record to read.
     const where = {
+      actor: { organizationId },
       ...(query.action ? { action: { contains: query.action } } : {}),
       ...(query.actorId ? { actorId: query.actorId } : {}),
     };
@@ -300,7 +315,7 @@ export const enterpriseAdminService = {
     const [total, entries, actions] = await Promise.all([
       prisma.auditLog.count({ where }),
       prisma.auditLog.findMany({ where, orderBy: { createdAt: "desc" }, take }),
-      prisma.auditLog.groupBy({ by: ["action"], _count: { _all: true }, orderBy: { _count: { action: "desc" } }, take: 20 }),
+      prisma.auditLog.groupBy({ by: ["action"], where, _count: { _all: true }, orderBy: { _count: { action: "desc" } }, take: 20 }),
     ]);
 
     return {
@@ -311,11 +326,12 @@ export const enterpriseAdminService = {
   },
 
   /** Sign-in security events, which live in their own trail. */
-  async securityEvents(query: { take?: unknown }) {
+  async securityEvents(organizationId: string, query: { take?: unknown }) {
     const take = clampTake(query.take, 50);
     const [recent, byOutcome] = await Promise.all([
-      prisma.loginEvent.findMany({ orderBy: { createdAt: "desc" }, take }),
-      prisma.loginEvent.groupBy({ by: ["outcome"], _count: { _all: true } }),
+      // Same shape as the audit trail: the event belongs to whoever signed in.
+      prisma.loginEvent.findMany({ where: { user: { organizationId } }, orderBy: { createdAt: "desc" }, take }),
+      prisma.loginEvent.groupBy({ by: ["outcome"], where: { user: { organizationId } }, _count: { _all: true } }),
     ]);
     return {
       recent,
@@ -323,16 +339,19 @@ export const enterpriseAdminService = {
     };
   },
 
-  aiSystems: () => aiSystemStatuses(),
-  workflows: async () => ({ catalogue: workflowCatalogue(), activity: await workflowActivity() }),
-  compliance: async () => ({
-    summary: await complianceSummary(),
-    findings: await complianceFindings(),
+  aiSystems: (organizationId: string) => aiSystemStatuses(organizationId),
+  workflows: async (organizationId: string) => ({
+    catalogue: workflowCatalogue(),
+    activity: await workflowActivity(organizationId),
   }),
-  analytics: async () => ({
-    overview: await enterpriseOverview(),
-    trend: await resolutionTrend(30),
-    branches: await branchComparison(),
+  compliance: async (organizationId: string) => ({
+    summary: await complianceSummary(organizationId),
+    findings: await complianceFindings(organizationId),
+  }),
+  analytics: async (organizationId: string) => ({
+    overview: await enterpriseOverview(organizationId),
+    trend: await resolutionTrend(organizationId, 30),
+    branches: await branchComparison(organizationId),
   }),
 
   /**
@@ -342,10 +361,10 @@ export const enterpriseAdminService = {
    * screen, the CSV and any future format without three implementations that
    * can disagree about what "this month" means.
    */
-  async report(kind: string, actorId: string) {
+  async report(organizationId: string, kind: string, actorId: string) {
     const generators: Record<string, () => Promise<{ title: string; rows: Record<string, unknown>[] }>> = {
       operations: async () => {
-        const overview = await enterpriseOverview();
+        const overview = await enterpriseOverview(organizationId);
         return {
           title: "Operations summary",
           rows: [
@@ -361,7 +380,7 @@ export const enterpriseAdminService = {
         };
       },
       compliance: async () => {
-        const findings = await complianceFindings();
+        const findings = await complianceFindings(organizationId);
         return {
           title: "Compliance findings",
           rows: findings.map((f) => ({
@@ -375,7 +394,7 @@ export const enterpriseAdminService = {
       },
       branches: async () => ({
         title: "Branch comparison",
-        rows: (await branchComparison()) as unknown as Record<string, unknown>[],
+        rows: (await branchComparison(organizationId)) as unknown as Record<string, unknown>[],
       }),
     };
 

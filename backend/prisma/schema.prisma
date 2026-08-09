@@ -51,7 +51,7 @@ model User {
   realm String @default("CUSTOMER") // CUSTOMER | EMPLOYEE | ENTERPRISE | PLATFORM
   role  String @default("CUSTOMER") // CUSTOMER | EMPLOYEE | ENTERPRISE_ADMIN | PLATFORM_ADMIN | …
 
-  isActive Boolean @default(true)
+  isActive  Boolean   @default(true)
   createdAt DateTime  @default(now())
   updatedAt DateTime  @default(now()) @updatedAt
   deletedAt DateTime?
@@ -91,27 +91,27 @@ model User {
   // onboarding has not been completed, so the user is sent there instead of the
   // dashboard. A timestamp rather than a boolean — "when" is free to store and
   // answers questions a flag cannot.
-  onboardedAt       DateTime?
-  preferredLanguage String? // en | ta | taEn
+  onboardedAt        DateTime?
+  preferredLanguage  String? // en | ta | taEn
   // JSON array of interest ids. SQLite has no list type and this schema targets
   // both SQLite (dev) and Postgres (prod), so it is stored the same way
   // AuditLog.metadata is.
   insuranceInterests String?
 
   // Relations (all nullable on the owned side to preserve legacy rows)
-  chats             Chat[]
-  uploadedDocuments UploadedDocument[]
-  insuranceProfile  InsuranceProfile?
-  conversations     ConversationParticipant[]
-  mentions          Mention[]
-  notificationPrefs NotificationPreference?
-  announcementReads AnnouncementRead[]
-  intelligenceRuns  IntelligenceRun[]
-  leads             Lead[]                  @relation("AssignedLeads")
-  sessions          Session[]
-  recommendations   RecommendationHistory[]
-  notifications     Notification[]
-  auditLogs         AuditLog[]              @relation("ActorAuditLogs")
+  chats              Chat[]
+  uploadedDocuments  UploadedDocument[]
+  insuranceProfile   InsuranceProfile?
+  conversations      ConversationParticipant[]
+  mentions           Mention[]
+  notificationPrefs  NotificationPreference?
+  announcementReads  AnnouncementRead[]
+  intelligenceRuns   IntelligenceRun[]
+  leads              Lead[]                    @relation("AssignedLeads")
+  sessions           Session[]
+  recommendations    RecommendationHistory[]
+  notifications      Notification[]
+  auditLogs          AuditLog[]                @relation("ActorAuditLogs")
   refreshTokens      RefreshToken[]
   linkedIdentities   LinkedIdentity[]
   authSessions       AuthSession[]
@@ -217,10 +217,10 @@ model AuthSession {
   deviceLabel String?
   trustedAt   DateTime?
 
-  createdAt  DateTime  @default(now())
-  lastSeenAt DateTime  @default(now())
-  expiresAt  DateTime
-  revokedAt  DateTime?
+  createdAt     DateTime  @default(now())
+  lastSeenAt    DateTime  @default(now())
+  expiresAt     DateTime
+  revokedAt     DateTime?
   // Why it ended: LOGOUT | LOGOUT_ALL | REPLAY | IDLE | ADMIN | EXPIRED
   revokedReason String?
 
@@ -271,13 +271,13 @@ model LoginEvent {
   userId String?
   user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
 
-  email String
+  email   String
   // SUCCESS | BAD_CREDENTIALS | NO_ACCOUNT | LOCKED | INACTIVE | UNVERIFIED
   // | WRONG_REALM | PROVIDER_REJECTED
   outcome String
   // PASSWORD | google | microsoft | apple | …
-  method String
-  realm  String?
+  method  String
+  realm   String?
 
   ipAddress String?
   userAgent String?
@@ -323,6 +323,15 @@ model Policy {
 
   company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
+  /// Which tenant owns this record.
+  ///
+  /// Nullable because rows created before multi-tenancy have no organisation to
+  /// belong to and none may be invented for them. A null is invisible to every
+  /// tenant-scoped query — fail closed — until an operator assigns it.
+  organizationId String?
+  organization   Organization? @relation("OrgPolicy", fields: [organizationId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId])
   @@index([companyId])
   @@index([policyName])
   @@index([deletedAt])
@@ -346,6 +355,15 @@ model Lead {
 
   assignedTo User? @relation("AssignedLeads", fields: [assignedToId], references: [id], onDelete: SetNull)
 
+  /// Which tenant owns this record.
+  ///
+  /// Nullable because rows created before multi-tenancy have no organisation to
+  /// belong to and none may be invented for them. A null is invisible to every
+  /// tenant-scoped query — fail closed — until an operator assigns it.
+  organizationId String?
+  organization   Organization? @relation("OrgLead", fields: [organizationId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId])
   @@index([status, createdAt])
   @@index([email])
   @@index([assignedToId])
@@ -381,9 +399,9 @@ model Chat {
 // ── Documents ────────────────────────────────────────────────────────────────
 
 model UploadedDocument {
-  id         String    @id @default(uuid())
-  filename   String
-  filepath   String
+  id          String    @id @default(uuid())
+  filename    String
+  filepath    String
   ownerId     String? // scopes documents to their uploader (closes the upload IDOR)
   mimeType    String?
   sizeBytes   Int?
@@ -398,11 +416,11 @@ model UploadedDocument {
   // which the platform's own compliance check surfaced as a finding.
 
   /// What kind of document this is. Null until classification has run.
-  category String?
+  category    String?
   /// The requirement it was uploaded against, if it answered one.
   documentKey String?
   /// The domain that asked for it: health | motor | travel | home-property.
-  domain String?
+  domain      String?
 
   /// UPLOADED | PROCESSING | PENDING_REVIEW | VERIFIED | REJECTED | REPLACED
   ///
@@ -412,8 +430,8 @@ model UploadedDocument {
   status String @default("UPLOADED")
 
   /// Set when a person decides. Never set by the pipeline.
-  verifiedAt   DateTime?
-  verifiedById String?
+  verifiedAt      DateTime?
+  verifiedById    String?
   /// Why it was rejected. Shown to the customer, so it must be actionable.
   rejectionReason String?
 
@@ -424,12 +442,21 @@ model UploadedDocument {
   /// out of a passport differs entirely from a hospital bill.
   extractedData String?
   /// 0–1 from the fraud stage. Null when the stage has not run.
-  riskScore   Float?
-  riskReason  String?
+  riskScore     Float?
+  riskReason    String?
 
   owner  User?           @relation(fields: [ownerId], references: [id], onDelete: SetNull)
   events DocumentEvent[]
 
+  /// Which tenant owns this record.
+  ///
+  /// Nullable because rows created before multi-tenancy have no organisation to
+  /// belong to and none may be invented for them. A null is invisible to every
+  /// tenant-scoped query — fail closed — until an operator assigns it.
+  organizationId String?
+  organization   Organization? @relation("OrgUploadedDocument", fields: [organizationId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId])
   @@index([ownerId])
   @@index([deletedAt])
   // Admin document listing (getUploadedDocuments) sorts all rows by uploadedAt.
@@ -619,6 +646,15 @@ model EmployeeProfile {
   assignedWork WorkItem[]     @relation("AssignedTo")
   workflowActs WorkflowStep[] @relation("StepActor")
 
+  /// Which tenant owns this record.
+  ///
+  /// Nullable because rows created before multi-tenancy have no organisation to
+  /// belong to and none may be invented for them. A null is invisible to every
+  /// tenant-scoped query — fail closed — until an operator assigns it.
+  organizationId String?
+  organization   Organization? @relation("OrgEmployeeProfile", fields: [organizationId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId])
   @@index([department, status])
   @@index([branch])
   @@index([managerId])
@@ -634,9 +670,9 @@ model EmployeeProfile {
 ///
 /// The process-specific detail lives in the workflow attached to it.
 model WorkItem {
-  id   String @id @default(uuid())
+  id        String @id @default(uuid())
   /// CLAIM | KYC | RENEWAL | COMPLAINT | APPOINTMENT | TASK
-  kind String
+  kind      String
   /// Human reference, e.g. CLM-2026-000123. What people say on the phone.
   reference String @unique
 
@@ -644,7 +680,7 @@ model WorkItem {
   summary String?
 
   /// OPEN | IN_PROGRESS | AWAITING_CUSTOMER | AWAITING_APPROVAL | RESOLVED | CLOSED | CANCELLED
-  status String @default("OPEN")
+  status   String @default("OPEN")
   /// LOW | NORMAL | HIGH | URGENT
   priority String @default("NORMAL")
 
@@ -656,12 +692,12 @@ model WorkItem {
   customer   User?   @relation("CustomerWork", fields: [customerId], references: [id], onDelete: SetNull)
 
   /// When it should be done by, and the promise it was measured against.
-  dueAt       DateTime?
-  slaMinutes  Int?
-  openedAt    DateTime  @default(now())
+  dueAt        DateTime?
+  slaMinutes   Int?
+  openedAt     DateTime  @default(now())
   firstTouchAt DateTime?
-  resolvedAt  DateTime?
-  closedAt    DateTime?
+  resolvedAt   DateTime?
+  closedAt     DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
@@ -688,6 +724,16 @@ model WorkItem {
   events   WorkItemEvent[]
 
   // "My open queue, most urgent first" is the hottest read in the product.
+
+  /// Which tenant owns this record.
+  ///
+  /// Nullable because rows created before multi-tenancy have no organisation to
+  /// belong to and none may be invented for them. A null is invisible to every
+  /// tenant-scoped query — fail closed — until an operator assigns it.
+  organizationId String?
+  organization   Organization? @relation("OrgWorkItem", fields: [organizationId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId])
   @@index([assigneeId, status, dueAt])
   @@index([status, priority])
   @@index([kind, status])
@@ -707,7 +753,7 @@ model WorkItemEvent {
   workItem   WorkItem @relation(fields: [workItemId], references: [id], onDelete: Cascade)
 
   /// ASSIGNED | STATUS_CHANGED | NOTE | STEP_COMPLETED | ESCALATED | CONTACTED
-  kind String
+  kind    String
   /// Who did it. Null when the system or a scheduled job did.
   actorId String?
   summary String
@@ -730,11 +776,11 @@ model WorkflowRun {
   workItem   WorkItem @relation(fields: [workItemId], references: [id], onDelete: Cascade)
 
   /// CLAIM_APPROVAL | KYC | RENEWAL | COMPLAINT
-  definition String
+  definition  String
   /// The step key it is sitting on. Null once finished.
   currentStep String?
   /// RUNNING | AWAITING_HUMAN | COMPLETED | REJECTED | ABANDONED
-  status String @default("RUNNING")
+  status      String  @default("RUNNING")
 
   startedAt   DateTime  @default(now())
   completedAt DateTime?
@@ -761,15 +807,15 @@ model WorkflowStep {
   order Int
 
   /// PENDING | IN_PROGRESS | COMPLETED | SKIPPED | REJECTED
-  status String @default("PENDING")
+  status    String           @default("PENDING")
   /// SYSTEM | ASSISTANT | EMPLOYEE
   actorKind String?
   actorId   String?
   actor     EmployeeProfile? @relation("StepActor", fields: [actorId], references: [id], onDelete: SetNull)
 
   /// APPROVE | REJECT | ESCALATE | REQUEST_INFO — set on decision steps only.
-  decision String?
-  notes    String?
+  decision   String?
+  notes      String?
   /// What the assistant suggested, kept even when a human overrode it. That
   /// disagreement is the most useful record this table holds.
   suggestion String?
@@ -787,15 +833,15 @@ model WorkflowStep {
 /// guidance. Stored rather than fetched from a wiki so search, permissions and
 /// versioning are the platform's problem and not a second system's.
 model KnowledgeArticle {
-  id    String @id @default(uuid())
-  slug  String @unique
-  title String
+  id       String  @id @default(uuid())
+  slug     String  @unique
+  title    String
   /// POLICY | SOP | CIRCULAR | GUIDELINE | FAQ | TRAINING | PRODUCT
   category String
   summary  String
   body     String
   /// Comma-separated; SQLite has no list type and this schema targets both.
-  tags String?
+  tags     String?
 
   /// Which departments it applies to. Null means everyone.
   departments String?
@@ -834,7 +880,7 @@ model KnowledgeArticle {
   sourceRef  String?
   sourceKind String? // IRDAI | INTERNAL | INSURER | STATUTE | MANUAL
 
-  authorId   String?
+  authorId     String?
   approvedById String?
   approvedAt   DateTime?
   /// When it should next be checked. Regulation goes stale silently.
@@ -843,8 +889,8 @@ model KnowledgeArticle {
 
   /// Read counters, so knowledge analytics can show what is actually used
   /// rather than what was merely written.
-  viewCount     Int       @default(0)
-  lastViewedAt  DateTime?
+  viewCount    Int       @default(0)
+  lastViewedAt DateTime?
 
   /// The domain category. Nullable so existing rows stay valid — an article
   /// filed before categories existed is uncategorised, not broken.
@@ -875,10 +921,10 @@ model KnowledgeVersion {
   id        String @id @default(uuid())
   articleId String
 
-  version Int
-  title   String
-  summary String
-  body    String
+  version    Int
+  title      String
+  summary    String
+  body       String
   /// Why it changed. A diff without a reason is archaeology.
   changeNote String?
 
@@ -901,7 +947,7 @@ model KnowledgeReview {
   reviewerId String
   /// Required for anything but APPROVED — the same rule the document platform
   /// applies to a rejection.
-  notes String?
+  notes      String?
 
   createdAt DateTime @default(now())
 
@@ -948,12 +994,23 @@ model Organization {
   /// Free-form operator notes. Never shown to the tenant.
   notes String?
 
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @default(now()) @updatedAt
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @default(now()) @updatedAt
   archivedAt DateTime?
 
-  members User[]    @relation("OrganizationMembers")
+  members User[]   @relation("OrganizationMembers")
   license License?
+
+  // Tenant-owned business records.
+  orgPolicys           Policy[]           @relation("OrgPolicy")
+  orgLeads             Lead[]             @relation("OrgLead")
+  orgUploadedDocuments UploadedDocument[] @relation("OrgUploadedDocument")
+  orgWorkItems         WorkItem[]         @relation("OrgWorkItem")
+  orgEmployeeProfiles  EmployeeProfile[]  @relation("OrgEmployeeProfile")
+  orgHeldPolicys       HeldPolicy[]       @relation("OrgHeldPolicy")
+  orgInsuranceProfiles InsuranceProfile[] @relation("OrgInsuranceProfile")
+  orgDocumentRequests  DocumentRequest[]  @relation("OrgDocumentRequest")
+  orgIntelligenceRuns  IntelligenceRun[]  @relation("OrgIntelligenceRun")
 
   @@index([status])
   @@index([createdAt])
@@ -1002,10 +1059,10 @@ model PlatformSetting {
   key   String @id
   value String
   /// string | number | boolean | json
-  type String @default("string")
+  type  String @default("string")
 
   /// Grouping for the console: auth | security | email | storage | ai | branding
-  category String @default("general")
+  category    String  @default("general")
   label       String
   description String?
 
@@ -1040,7 +1097,7 @@ model DocumentEvent {
 
   /// UPLOADED | SCANNING | SCANNED | EXTRACTING | EXTRACTED | VALIDATING
   /// | VALIDATED | ANALYSING | ANALYSED | VERIFIED | REJECTED | REPLACED | DELETED
-  stage String
+  stage     String
   /// SYSTEM | ASSISTANT | EMPLOYEE — who moved it. "The software verified it"
   /// is not an acceptable answer months later, so the actor is always recorded.
   actorKind String
@@ -1049,7 +1106,7 @@ model DocumentEvent {
   /// What happened, in a sentence a colleague can read.
   summary String
   /// JSON. Structured findings from whichever service produced this stage.
-  detail String?
+  detail  String?
 
   createdAt DateTime @default(now())
 
@@ -1080,7 +1137,7 @@ model DocumentRequest {
   workItemId String @default("")
 
   /// health | motor | travel | home-property | general — the domain that asked.
-  domain String
+  domain      String
   /// Stable key, e.g. `rc_book`. What the platform calls this document.
   documentKey String
   /// What a person reads: "Vehicle registration certificate".
@@ -1090,7 +1147,7 @@ model DocumentRequest {
   /// Whether the application can proceed without it.
   required Boolean @default(true)
   /// PENDING | SUPPLIED | WAIVED | EXPIRED
-  status String @default("PENDING")
+  status   String  @default("PENDING")
 
   /// Why it was asked for. Shown to the customer, because "we need your RC book"
   /// is far less useful than "to confirm the vehicle is registered to you".
@@ -1104,7 +1161,16 @@ model DocumentRequest {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @default(now()) @updatedAt
 
+  /// Which tenant owns this record.
+  ///
+  /// Nullable because rows created before multi-tenancy have no organisation to
+  /// belong to and none may be invented for them. A null is invisible to every
+  /// tenant-scoped query — fail closed — until an operator assigns it.
+  organizationId String?
+  organization   Organization? @relation("OrgDocumentRequest", fields: [organizationId], references: [id], onDelete: SetNull)
+
   @@unique([subjectId, workItemId, documentKey])
+  @@index([organizationId])
   @@index([subjectId, status])
   @@index([workItemId])
 }
@@ -1140,9 +1206,9 @@ model InsuranceProfile {
   // Who depends on them. `dependents` is not `familyMembers`: a household of
   // four with two earners carries different risk from one with a single earner,
   // and that distinction drives the whole life-cover recommendation.
-  maritalStatus String? // SINGLE | MARRIED | WIDOWED | SEPARATED
-  familyMembers Int?
-  dependents    Int?
+  maritalStatus    String? // SINGLE | MARRIED | WIDOWED | SEPARATED
+  familyMembers    Int?
+  dependents       Int?
   parentsDependent Boolean?
 
   // What they own and do
@@ -1164,16 +1230,25 @@ model InsuranceProfile {
   insuranceHistory String? // JSON: { yearsHeld, priorClaims, lapses }
 
   // Bookkeeping
-  profileHash String? // snapshot identity, so a cached analysis can be invalidated
-  completeness Int    @default(0) // 0–100, computed on write
-  source      String  @default("SELF") // SELF | ADVISOR | AI | IMPORT
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @default(now()) @updatedAt
+  profileHash  String? // snapshot identity, so a cached analysis can be invalidated
+  completeness Int      @default(0) // 0–100, computed on write
+  source       String   @default("SELF") // SELF | ADVISOR | AI | IMPORT
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @default(now()) @updatedAt
 
-  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  heldPolicies   HeldPolicy[]
-  analyses       IntelligenceRun[]
+  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  heldPolicies HeldPolicy[]
+  analyses     IntelligenceRun[]
 
+  /// Which tenant owns this record.
+  ///
+  /// Nullable because rows created before multi-tenancy have no organisation to
+  /// belong to and none may be invented for them. A null is invisible to every
+  /// tenant-scoped query — fail closed — until an operator assigns it.
+  organizationId String?
+  organization   Organization? @relation("OrgInsuranceProfile", fields: [organizationId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId])
   @@index([updatedAt])
   @@index([profileHash])
 }
@@ -1189,9 +1264,9 @@ model HeldPolicy {
   id        String @id @default(uuid())
   profileId String
 
-  domain      String // motor | health | life | travel | property | commercial
-  insurer     String?
-  productName String?
+  domain       String // motor | health | life | travel | property | commercial
+  insurer      String?
+  productName  String?
   policyNumber String?
 
   sumInsured  Float?
@@ -1199,7 +1274,7 @@ model HeldPolicy {
   startDate   DateTime?
   renewalDate DateTime?
 
-/// Whether Aegis sold it. Cover held elsewhere still counts as cover.
+  /// Whether Aegis sold it. Cover held elsewhere still counts as cover.
   external Boolean @default(true)
   status   String  @default("ACTIVE") // ACTIVE | LAPSED | EXPIRED | CANCELLED
 
@@ -1209,6 +1284,15 @@ model HeldPolicy {
 
   profile InsuranceProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
 
+  /// Which tenant owns this record.
+  ///
+  /// Nullable because rows created before multi-tenancy have no organisation to
+  /// belong to and none may be invented for them. A null is invisible to every
+  /// tenant-scoped query — fail closed — until an operator assigns it.
+  organizationId String?
+  organization   Organization? @relation("OrgHeldPolicy", fields: [organizationId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId])
   @@index([profileId, domain])
   @@index([renewalDate])
   @@index([status])
@@ -1223,7 +1307,7 @@ model HeldPolicy {
 /// version of the facts produced it, so "the advice changed" can be answered
 /// with "because your circumstances did".
 model IntelligenceRun {
-  id        String @id @default(uuid())
+  id        String  @id @default(uuid())
   profileId String
   userId    String?
 
@@ -1232,13 +1316,22 @@ model IntelligenceRun {
   payload     String // JSON of the full report, including every explanation
   confidence  Float?
 
-/// Which engine produced it, so a change in advice can be traced to a change in code.
-  engineVersion String @default("1.0.0")
+  /// Which engine produced it, so a change in advice can be traced to a change in code.
+  engineVersion String   @default("1.0.0")
   createdAt     DateTime @default(now())
 
   profile InsuranceProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
   user    User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
 
+  /// Which tenant owns this record.
+  ///
+  /// Nullable because rows created before multi-tenancy have no organisation to
+  /// belong to and none may be invented for them. A null is invisible to every
+  /// tenant-scoped query — fail closed — until an operator assigns it.
+  organizationId String?
+  organization   Organization? @relation("OrgIntelligenceRun", fields: [organizationId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId])
   @@index([profileId, kind, createdAt])
   @@index([userId, createdAt])
   @@index([profileHash])
@@ -1280,9 +1373,9 @@ model Conversation {
   /// OPEN | RESOLVED | ARCHIVED
   status String @default("OPEN")
 
-  createdById String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @default(now()) @updatedAt
+  createdById   String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @default(now()) @updatedAt
   /// Denormalised so an inbox can sort without touching the messages table.
   lastMessageAt DateTime @default(now())
 
@@ -1312,7 +1405,7 @@ model ConversationParticipant {
   lastReadAt DateTime?
   mutedAt    DateTime?
   leftAt     DateTime?
-  addedAt    DateTime @default(now())
+  addedAt    DateTime  @default(now())
   addedById  String?
 
   conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
@@ -1328,9 +1421,9 @@ model Message {
   conversationId String
 
   /// Null when the sender is the platform or an AI agent — see `senderKind`.
-  senderId   String?
+  senderId    String?
   /// USER | AI | SYSTEM
-  senderKind String @default("USER")
+  senderKind  String  @default("USER")
   /// Which agent, when senderKind is AI. Named so a customer can be told.
   senderAgent String?
 
@@ -1424,7 +1517,7 @@ model Announcement {
   body  String
 
   /// ALL | CUSTOMER | EMPLOYEE | ENTERPRISE | PLATFORM
-  audienceRealm String @default("ALL")
+  audienceRealm      String  @default("ALL")
   /// Narrows further within a realm. Null means the whole realm.
   audienceDepartment String?
 
@@ -1478,7 +1571,7 @@ model DeliveryRecord {
   /// IN_APP | EMAIL | SMS | PUSH | REALTIME
   channel String
   /// PENDING | SENT | DELIVERED | FAILED | SUPPRESSED
-  status String @default("PENDING")
+  status  String @default("PENDING")
 
   /// Why it was suppressed or failed. Populated for anything but SENT.
   reason String?
@@ -1521,10 +1614,10 @@ model MemoryRecord {
   subjectId String
 
   /// PREFERENCE | FACT | CONTEXT | HISTORY | CONSENT | CONSTRAINT
-  kind String
+  kind  String
   /// A stable key, e.g. "contact.preferred_channel" or "claim.prior_count".
   /// Namespaced by dots so a family of facts can be read together.
-  key String
+  key   String
   /// JSON. Typed values would need a column per type or a lossy cast.
   value String
 
@@ -1535,7 +1628,7 @@ model MemoryRecord {
 
   /// Where it came from: CUSTOMER_STATED | ADVISOR_ENTERED | AI_INFERRED |
   /// DOCUMENT | SYSTEM. Provenance is what lets somebody challenge a fact.
-  source String @default("SYSTEM")
+  source    String  @default("SYSTEM")
   /// The specific thing it came from — a conversationId, a documentId, a run.
   sourceRef String?
 
@@ -1546,7 +1639,7 @@ model MemoryRecord {
   /// Superseding rather than overwriting. "They preferred email, now they
   /// prefer phone" is a history worth keeping — and a fact that was acted on
   /// must remain visible after it changes.
-  supersededById String?  @unique
+  supersededById String?   @unique
   supersededAt   DateTime?
 
   createdById String?
@@ -1688,9 +1781,9 @@ model SearchIndexEntry {
   entityId   String
 
   /// Occurrences, used for term-frequency scoring.
-  frequency Int @default(1)
+  frequency Int    @default(1)
   /// Where it appeared — title matches count for more than body matches.
-  field String @default("body") // title | summary | body | tag
+  field     String @default("body") // title | summary | body | tag
 
   createdAt DateTime @default(now())
 
@@ -1717,7 +1810,7 @@ model ConversationMemory {
   /// The thread this belongs to. A Sprint 10 conversation, or an AI session id.
   sessionRef String
   /// Whose conversation. Null for internal or system sessions.
-  userId String?
+  userId     String?
 
   /// SUMMARY | ESTABLISHED_FACT | OPEN_QUESTION | INTENT | HANDOFF_NOTE
   kind String

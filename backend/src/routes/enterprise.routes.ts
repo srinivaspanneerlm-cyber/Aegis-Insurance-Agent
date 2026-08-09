@@ -2,6 +2,7 @@ import express from "express";
 import type { Request, Response } from "express";
 import catchAsync from "../utils/catchAsync";
 import { sendSuccess } from "../utils/apiResponse";
+import AppError from "../utils/appError";
 import { protect, requirePermission, requireRealm } from "../middleware/auth.middleware";
 import { enterpriseAdminService, toCsv } from "../services/admin.enterprise.service";
 
@@ -29,21 +30,45 @@ router.use(protect, requireRealm("ENTERPRISE"));
 const q = (req: Request, key: string): string | undefined =>
   typeof req.query[key] === "string" ? (req.query[key] as string) : undefined;
 
+/**
+ * The tenant this request may see, taken from the session and nowhere else.
+ *
+ * Never from the query, the body or a header: an organisation id a client can
+ * supply is an organisation id a client can change. `req.user` is loaded from
+ * the database by `protect` on every request, so this is the stored membership
+ * rather than anything the caller asserted.
+ *
+ * An administrator with no organisation gets nothing, not everything. Before
+ * this the service queried globally, so a tenant admin read every tenant's
+ * records; failing closed is the only safe reading of "no organisation".
+ */
+const orgScope = (req: Request): string => {
+  const organizationId = (req.user as { organizationId?: string | null } | undefined)?.organizationId;
+  if (!organizationId) {
+    throw new AppError(
+      "This account is not attached to an organisation, so there is nothing for it to administer.",
+      403,
+      "NO_ORGANIZATION"
+    );
+  }
+  return organizationId;
+};
+
 // ── Overview ─────────────────────────────────────────────────────────────────
 
 router.get(
   "/dashboard",
   requirePermission("analytics.read"),
-  catchAsync(async (_req, res) => {
-    sendSuccess(res, 200, await enterpriseAdminService.dashboard());
+  catchAsync(async (req, res) => {
+    sendSuccess(res, 200, await enterpriseAdminService.dashboard(orgScope(req)));
   })
 );
 
 router.get(
   "/analytics",
   requirePermission("analytics.read"),
-  catchAsync(async (_req, res) => {
-    sendSuccess(res, 200, await enterpriseAdminService.analytics());
+  catchAsync(async (req, res) => {
+    sendSuccess(res, 200, await enterpriseAdminService.analytics(orgScope(req)));
   })
 );
 
@@ -53,7 +78,7 @@ router.get(
   "/customers",
   requirePermission("customer.read"),
   catchAsync(async (req, res) => {
-    const result = await enterpriseAdminService.customers({
+    const result = await enterpriseAdminService.customers(orgScope(req), {
       ...(q(req, "search") ? { search: q(req, "search") as string } : {}),
       take: req.query.take,
     });
@@ -66,7 +91,7 @@ router.get(
   requirePermission("customer.read"),
   catchAsync(async (req, res) => {
     const id = typeof req.params.id === "string" ? req.params.id : "";
-    sendSuccess(res, 200, await enterpriseAdminService.customer(id));
+    sendSuccess(res, 200, await enterpriseAdminService.customer(orgScope(req), id));
   })
 );
 
@@ -74,7 +99,7 @@ router.get(
   "/employees",
   requirePermission("staff.manage"),
   catchAsync(async (req, res) => {
-    const result = await enterpriseAdminService.employees({
+    const result = await enterpriseAdminService.employees(orgScope(req), {
       ...(q(req, "department") ? { department: q(req, "department") as string } : {}),
       take: req.query.take,
     });
@@ -88,15 +113,15 @@ router.get(
   "/products",
   requirePermission("policy.read"),
   catchAsync(async (req, res) => {
-    sendSuccess(res, 200, await enterpriseAdminService.products({ take: req.query.take }));
+    sendSuccess(res, 200, await enterpriseAdminService.products(orgScope(req), { take: req.query.take }));
   })
 );
 
 router.get(
   "/claims",
   requirePermission("claim.read"),
-  catchAsync(async (_req, res) => {
-    sendSuccess(res, 200, await enterpriseAdminService.claims());
+  catchAsync(async (req, res) => {
+    sendSuccess(res, 200, await enterpriseAdminService.claims(orgScope(req)));
   })
 );
 
@@ -107,16 +132,16 @@ router.get(
 router.get(
   "/ai-systems",
   requirePermission("platform.configure"),
-  catchAsync(async (_req, res) => {
-    sendSuccess(res, 200, { systems: await enterpriseAdminService.aiSystems() });
+  catchAsync(async (req, res) => {
+    sendSuccess(res, 200, { systems: await enterpriseAdminService.aiSystems(orgScope(req)) });
   })
 );
 
 router.get(
   "/workflows",
   requirePermission("analytics.read"),
-  catchAsync(async (_req, res) => {
-    sendSuccess(res, 200, await enterpriseAdminService.workflows());
+  catchAsync(async (req, res) => {
+    sendSuccess(res, 200, await enterpriseAdminService.workflows(orgScope(req)));
   })
 );
 
@@ -125,8 +150,8 @@ router.get(
 router.get(
   "/compliance",
   requirePermission("audit.read"),
-  catchAsync(async (_req, res) => {
-    sendSuccess(res, 200, await enterpriseAdminService.compliance());
+  catchAsync(async (req, res) => {
+    sendSuccess(res, 200, await enterpriseAdminService.compliance(orgScope(req)));
   })
 );
 
@@ -134,7 +159,7 @@ router.get(
   "/audit",
   requirePermission("audit.read"),
   catchAsync(async (req, res) => {
-    const result = await enterpriseAdminService.auditLog({
+    const result = await enterpriseAdminService.auditLog(orgScope(req), {
       ...(q(req, "action") ? { action: q(req, "action") as string } : {}),
       ...(q(req, "actorId") ? { actorId: q(req, "actorId") as string } : {}),
       take: req.query.take,
@@ -147,7 +172,7 @@ router.get(
   "/security-events",
   requirePermission("audit.read"),
   catchAsync(async (req, res) => {
-    sendSuccess(res, 200, await enterpriseAdminService.securityEvents({ take: req.query.take }));
+    sendSuccess(res, 200, await enterpriseAdminService.securityEvents(orgScope(req), { take: req.query.take }));
   })
 );
 
@@ -165,7 +190,7 @@ router.get(
   requirePermission("analytics.read"),
   catchAsync(async (req: Request, res: Response) => {
     const kind = typeof req.params.kind === "string" ? req.params.kind : "";
-    const report = await enterpriseAdminService.report(kind, req.user!.id);
+    const report = await enterpriseAdminService.report(orgScope(req), kind, req.user!.id);
 
     if (q(req, "format") === "csv") {
       const stamp = new Date().toISOString().slice(0, 10);

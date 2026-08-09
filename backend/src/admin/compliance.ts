@@ -34,7 +34,15 @@ const daysAgo = (n: number) => new Date(Date.now() - n * 24 * 60 * 60_000);
  * Ordered by severity so the first thing an administrator reads is the thing
  * that matters most, rather than whichever query happened to be written first.
  */
-export async function complianceFindings(): Promise<ComplianceFinding[]> {
+/**
+ * Compliance findings for one tenant.
+ *
+ * `workflowStep`, `authSession` and `uploadedDocument`-without-an-owner are
+ * scoped through the record they hang off, since none carries an organisation
+ * of its own. An unowned document has no owner to scope through, so it is
+ * matched on its own organisation column instead.
+ */
+export async function complianceFindings(organizationId: string): Promise<ComplianceFinding[]> {
   const [
     unverifiedStaff,
     staleOpenWork,
@@ -48,25 +56,30 @@ export async function complianceFindings(): Promise<ComplianceFinding[]> {
     // Staff realms require a verified address to sign in; one that slipped
     // through is a provisioning error worth catching.
     prisma.user.count({
-      where: { realm: { in: ["EMPLOYEE", "ENTERPRISE", "PLATFORM"] }, emailVerifiedAt: null },
+      where: { organizationId, realm: { in: ["EMPLOYEE", "ENTERPRISE", "PLATFORM"] }, emailVerifiedAt: null },
     }),
-    prisma.workItem.count({ where: { closedAt: null, openedAt: { lt: daysAgo(30) } } }),
-    prisma.workItem.count({ where: { closedAt: null, assigneeId: null } }),
+    prisma.workItem.count({ where: { organizationId, closedAt: null, openedAt: { lt: daysAgo(30) } } }),
+    prisma.workItem.count({ where: { organizationId, closedAt: null, assigneeId: null } }),
     // The one that would actually fail an audit: a completed run whose decision
     // step was not completed by a person.
     prisma.workflowStep.count({
-      where: { key: decisionStepKeys(), status: "COMPLETED", actorKind: { not: "EMPLOYEE" } },
+      where: {
+        run: { workItem: { organizationId } },
+        key: decisionStepKeys(),
+        status: "COMPLETED",
+        actorKind: { not: "EMPLOYEE" },
+      },
     }),
     // Documents carry no verification field, so "unreviewed" cannot be
     // measured — see the not-instrumented note on the overview. What *is*
     // measurable, and matters more: a document with no owner cannot be served
     // to the person it belongs to, and cannot be deleted when they ask.
-    prisma.uploadedDocument.count({ where: { deletedAt: null, ownerId: null } }),
+    prisma.uploadedDocument.count({ where: { organizationId, deletedAt: null, ownerId: null } }),
     prisma.authSession.count({
-      where: { revokedAt: null, expiresAt: { gt: new Date() }, user: { isActive: false } },
+      where: { revokedAt: null, expiresAt: { gt: new Date() }, user: { organizationId, isActive: false } },
     }),
-    prisma.user.count({ where: { lockedUntil: { gt: new Date() } } }),
-    prisma.user.count({ where: { realm: "EMPLOYEE", employeeProfile: null } }),
+    prisma.user.count({ where: { organizationId, lockedUntil: { gt: new Date() } } }),
+    prisma.user.count({ where: { organizationId, realm: "EMPLOYEE", employeeProfile: null } }),
   ]);
 
   const findings: ComplianceFinding[] = [
@@ -169,8 +182,8 @@ function decisionStepKeys() {
 }
 
 /** A single headline for the dashboard: are we audit-ready right now? */
-export async function complianceSummary() {
-  const findings = await complianceFindings();
+export async function complianceSummary(organizationId: string) {
+  const findings = await complianceFindings(organizationId);
   const failing = findings.filter((f) => f.count > 0);
   const critical = failing.filter((f) => f.severity === "CRITICAL");
   const high = failing.filter((f) => f.severity === "HIGH");

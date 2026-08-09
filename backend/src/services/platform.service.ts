@@ -49,7 +49,7 @@ export const platformService = {
       prisma.user.groupBy({ by: ["realm"], where: { deletedAt: null }, _count: { _all: true } }),
       prisma.organization.groupBy({ by: ["status"], _count: { _all: true } }),
       prisma.license.groupBy({ by: ["plan"], _count: { _all: true } }),
-      aiSystemStatuses(),
+      aiSystemStatuses(null),
       securitySnapshot(),
     ]);
 
@@ -516,7 +516,7 @@ export const platformService = {
    * invented, because none of them is reported back to this API today.
    */
   async aiGovernance() {
-    const systems = await aiSystemStatuses();
+    const systems = await aiSystemStatuses(null);
     return {
       systems: systems.map((system) => ({
         ...system,

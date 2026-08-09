@@ -62,7 +62,30 @@ const rate = (part: number, whole: number): number | null =>
  * The window is seven days: long enough that a quiet Sunday does not read as an
  * outage, short enough that last month's incident does not still colour it.
  */
-export async function aiSystemStatuses(): Promise<AiSystemStatus[]> {
+/**
+ * AI activity for one tenant.
+ *
+ * The systems themselves are shared platform infrastructure, but the *activity*
+ * counted here is somebody's customers talking to them, so every count is
+ * scoped. Chat, Session, AgentTransfer and RecommendationHistory hang off a
+ * user; workflow steps and events hang off a work item.
+ */
+export async function aiSystemStatuses(
+  /**
+   * The tenant to count, or `null` for the whole platform.
+   *
+   * Explicit rather than optional: the platform console legitimately reads
+   * every tenant, and an argument that may be omitted is one that gets omitted
+   * by accident from a tenant-facing caller.
+   */
+  organizationId: string | null
+): Promise<AiSystemStatus[]> {
+  // The three shapes the tenant boundary takes here: records that hang off a
+  // user, off a work item, and work items themselves.
+  const byUser = organizationId ? { user: { organizationId } } : {};
+  const byWorkItem = organizationId ? { workItem: { organizationId } } : {};
+  const byRun = organizationId ? { run: { workItem: { organizationId } } } : {};
+  const byOwn = organizationId ? { organizationId } : {};
   const since = daysAgo(7);
 
   const [
@@ -80,28 +103,40 @@ export async function aiSystemStatuses(): Promise<AiSystemStatus[]> {
     unroutedWork,
     escalatedEvents,
   ] = await Promise.all([
-    prisma.chat.count({ where: { createdAt: { gte: since } } }),
-    prisma.session.count({ where: { startedAt: { gte: since } } }),
-    prisma.session.count({ where: { status: "active" } }),
-    prisma.chat.findFirst({ orderBy: { createdAt: "desc" }, select: { createdAt: true } }),
-    prisma.agentTransfer.count({ where: { createdAt: { gte: since } } }),
-    prisma.recommendationHistory.count({ where: { createdAt: { gte: since } } }),
+    prisma.chat.count({ where: { ...byUser, createdAt: { gte: since } } }),
+    prisma.session.count({ where: { ...byUser, startedAt: { gte: since } } }),
+    prisma.session.count({ where: { ...byUser, status: "active" } }),
+    prisma.chat.findFirst({ where: byUser, orderBy: { createdAt: "desc" }, select: { createdAt: true } }),
+    // AgentTransfer hangs off a Session, not a user, so the tenant boundary is
+    // one relation further out.
+    prisma.agentTransfer.count({
+      where: {
+        ...(organizationId ? { session: { user: { organizationId } } } : {}),
+        createdAt: { gte: since },
+      },
+    }),
+    prisma.recommendationHistory.count({ where: { user: { organizationId }, createdAt: { gte: since } } }),
     prisma.recommendationHistory.findFirst({
       orderBy: { createdAt: "desc" },
       select: { createdAt: true },
     }),
-    prisma.workflowStep.count({ where: { createdAt: { gte: since }, actorKind: "ASSISTANT" } }),
+    prisma.workflowStep.count({ where: { ...byRun, createdAt: { gte: since }, actorKind: "ASSISTANT" } }),
     prisma.workflowStep.count({
-      where: { createdAt: { gte: since }, actorKind: "ASSISTANT", status: "COMPLETED" },
+      where: {
+        ...byRun,
+        createdAt: { gte: since },
+        actorKind: "ASSISTANT",
+        status: "COMPLETED",
+      },
     }),
     prisma.workflowStep.findFirst({
-      where: { actorKind: "ASSISTANT" },
+      where: { ...byRun, actorKind: "ASSISTANT" },
       orderBy: { completedAt: "desc" },
       select: { completedAt: true },
     }),
-    prisma.workItem.count({ where: { openedAt: { gte: since }, assigneeId: { not: null } } }),
-    prisma.workItem.count({ where: { openedAt: { gte: since }, assigneeId: null } }),
-    prisma.workItemEvent.count({ where: { createdAt: { gte: since }, kind: "ESCALATED" } }),
+    prisma.workItem.count({ where: { ...byOwn, openedAt: { gte: since }, assigneeId: { not: null } } }),
+    prisma.workItem.count({ where: { ...byOwn, openedAt: { gte: since }, assigneeId: null } }),
+    prisma.workItemEvent.count({ where: { ...byWorkItem, createdAt: { gte: since }, kind: "ESCALATED" } }),
   ]);
 
   const routingTotal = routedWork + unroutedWork;
@@ -232,10 +267,10 @@ export function workflowCatalogue() {
 }
 
 /** How many runs of each workflow are in flight, and how they have ended. */
-export async function workflowActivity() {
+export async function workflowActivity(organizationId: string) {
   const [byDefinition, byStatus] = await Promise.all([
-    prisma.workflowRun.groupBy({ by: ["definition", "status"], _count: { _all: true } }),
-    prisma.workflowRun.groupBy({ by: ["status"], _count: { _all: true } }),
+    prisma.workflowRun.groupBy({ by: ["definition", "status"], where: { workItem: { organizationId } }, _count: { _all: true } }),
+    prisma.workflowRun.groupBy({ by: ["status"], where: { workItem: { organizationId } }, _count: { _all: true } }),
   ]);
 
   return {

@@ -50,7 +50,14 @@ const daysAgo = (n: number) => new Date(Date.now() - n * 24 * 60 * 60_000);
  * screen an administrator sees, and twelve serial queries would be a visible
  * wait on every load.
  */
-export async function enterpriseOverview() {
+/**
+ * Every figure on this page belongs to one tenant.
+ *
+ * Insurers are the exception — shared reference data, counted whole — and
+ * `authSession` / `loginEvent` / `auditLog` carry no organisation of their own,
+ * so they are scoped through the user they belong to.
+ */
+export async function enterpriseOverview(organizationId: string) {
   const today = startOfDay();
   const weekAgo = daysAgo(7);
   const monthAgo = daysAgo(30);
@@ -73,27 +80,27 @@ export async function enterpriseOverview() {
     auditEventsToday,
     unverifiedCustomers,
   ] = await Promise.all([
-    prisma.user.count({ where: { realm: "CUSTOMER", deletedAt: null } }),
-    prisma.user.count({ where: { realm: "CUSTOMER", createdAt: { gte: weekAgo } } }),
-    prisma.employeeProfile.count(),
-    prisma.employeeProfile.count({ where: { status: "ACTIVE" } }),
-    prisma.policy.count({ where: { isActive: true, deletedAt: null } }),
+    prisma.user.count({ where: { organizationId, realm: "CUSTOMER", deletedAt: null } }),
+    prisma.user.count({ where: { organizationId, realm: "CUSTOMER", createdAt: { gte: weekAgo } } }),
+    prisma.employeeProfile.count({ where: { organizationId } }),
+    prisma.employeeProfile.count({ where: { organizationId, status: "ACTIVE" } }),
+    prisma.policy.count({ where: { organizationId, isActive: true, deletedAt: null } }),
     prisma.company.count({ where: { isActive: true, deletedAt: null } }),
-    prisma.workItem.groupBy({ by: ["status"], _count: { _all: true } }),
-    prisma.workItem.groupBy({ by: ["kind"], _count: { _all: true } }),
+    prisma.workItem.groupBy({ by: ["status"], where: { organizationId }, _count: { _all: true } }),
+    prisma.workItem.groupBy({ by: ["kind"], where: { organizationId }, _count: { _all: true } }),
     prisma.workItem.findMany({
-      where: { resolvedAt: { gte: monthAgo } },
+      where: { organizationId, resolvedAt: { gte: monthAgo } },
       select: { openedAt: true, resolvedAt: true, kind: true },
     }),
-    prisma.workItem.count({ where: { closedAt: null, dueAt: { lt: new Date() } } }),
-    prisma.uploadedDocument.count({ where: { deletedAt: null } }),
-    prisma.uploadedDocument.count({ where: { uploadedAt: { gte: weekAgo } } }),
-    prisma.authSession.count({ where: { revokedAt: null, expiresAt: { gt: new Date() } } }),
+    prisma.workItem.count({ where: { organizationId, closedAt: null, dueAt: { lt: new Date() } } }),
+    prisma.uploadedDocument.count({ where: { organizationId, deletedAt: null } }),
+    prisma.uploadedDocument.count({ where: { organizationId, uploadedAt: { gte: weekAgo } } }),
+    prisma.authSession.count({ where: { user: { organizationId }, revokedAt: null, expiresAt: { gt: new Date() } } }),
     prisma.loginEvent.count({
-      where: { createdAt: { gte: today }, outcome: { not: "SUCCESS" } },
+      where: { user: { organizationId }, createdAt: { gte: today }, outcome: { not: "SUCCESS" } },
     }),
-    prisma.auditLog.count({ where: { createdAt: { gte: today } } }),
-    prisma.user.count({ where: { realm: "CUSTOMER", emailVerifiedAt: null, deletedAt: null } }),
+    prisma.auditLog.count({ where: { actor: { organizationId }, createdAt: { gte: today } } }),
+    prisma.user.count({ where: { organizationId, realm: "CUSTOMER", emailVerifiedAt: null, deletedAt: null } }),
   ]);
 
   const byStatus = Object.fromEntries(workByStatus.map((r) => [r.status, r._count._all]));
@@ -165,10 +172,10 @@ export async function enterpriseOverview() {
  * SQLite and Postgres, and date bucketing is where their dialects diverge most
  * sharply. The window is bounded, so the cost is a few hundred rows.
  */
-export async function resolutionTrend(days = 14) {
+export async function resolutionTrend(organizationId: string, days = 14) {
   const from = daysAgo(days);
   const resolved = await prisma.workItem.findMany({
-    where: { resolvedAt: { gte: from } },
+    where: { organizationId, resolvedAt: { gte: from } },
     select: { resolvedAt: true, kind: true },
     take: 5000,
   });
@@ -194,20 +201,21 @@ export async function resolutionTrend(days = 14) {
  * quality signal the platform does not capture, and ranking people on volume
  * alone is how an operation learns to close cases badly.
  */
-export async function branchComparison() {
+export async function branchComparison(organizationId: string) {
   const profiles = await prisma.employeeProfile.findMany({
+    where: { organizationId },
     select: { id: true, branch: true, department: true, status: true },
   });
   if (profiles.length === 0) return [];
 
   const open = await prisma.workItem.groupBy({
     by: ["assigneeId"],
-    where: { closedAt: null },
+    where: { organizationId, closedAt: null },
     _count: { _all: true },
   });
   const overdue = await prisma.workItem.groupBy({
     by: ["assigneeId"],
-    where: { closedAt: null, dueAt: { lt: new Date() } },
+    where: { organizationId, closedAt: null, dueAt: { lt: new Date() } },
     _count: { _all: true },
   });
 

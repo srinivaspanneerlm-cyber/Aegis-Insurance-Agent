@@ -57,13 +57,28 @@ async function account(tag, realm = "CUSTOMER", role = "CUSTOMER") {
     .send({ name: `Subject ${tag}`, email, password: PASSWORD });
   assert.equal(res.status, 201);
 
-  if (realm !== "CUSTOMER") {
-    await prisma.user.update({
-      where: { id: res.body.data.user.id },
-      data: { realm, role, emailVerifiedAt: new Date() },
-    });
-  }
-  return { userId: res.body.data.user.id, email, cookie: cookieHeader(res) };
+    // Staff accounts belong to a tenant. Since organisation isolation landed, an
+    // ENTERPRISE account with no organisation administers nothing and is
+    // refused — which is why the fixture now carries one.
+    let organizationId = null;
+    if (realm !== "CUSTOMER") {
+      if (realm === "ENTERPRISE") {
+        const org = await prisma.organization.create({
+          data: { slug: `ent-fixture-${Date.now()}-${seq}`, name: `Fixture org ${seq}` },
+        });
+        organizationId = org.id;
+      }
+      await prisma.user.update({
+        where: { id: res.body.data.user.id },
+        data: {
+          realm,
+          role,
+          emailVerifiedAt: new Date(),
+          ...(organizationId ? { organizationId } : {}),
+        },
+      });
+    }
+    return { userId: res.body.data.user.id, email, cookie: cookieHeader(res), organizationId };
 }
 
 const admin = () => account("admin", "ENTERPRISE", "ENTERPRISE_ADMIN");
@@ -153,12 +168,17 @@ describe("Enterprise admin — the authority it does not have", () => {
   test("customer records carry no conversation content", async () => {
     // An administrator has a legitimate need to see that a customer exists and
     // what is open for them — and none at all to read what they told an advisor.
+    const boss = await admin();
+    // The customer belongs to the admin's organisation — otherwise the record
+    // is correctly invisible, which would be a different test.
     const customer = await account("private");
+    await prisma.user.update({
+      where: { id: customer.userId },
+      data: { organizationId: boss.organizationId },
+    });
     await prisma.chat.create({
       data: { message: "SECRET-CONFIDENTIAL-PHRASE", sender: "customer", userId: customer.userId },
     });
-
-    const boss = await admin();
     const res = await api(boss.cookie).get(`/customers/${customer.userId}`);
 
     assert.equal(res.status, 200);
@@ -208,6 +228,7 @@ describe("Enterprise admin — figures that do not exist say so", () => {
 
 describe("Compliance checks find real problems", () => {
   test("an unassigned open case is reported", async () => {
+    const boss = await admin();
     await prisma.workItem.create({
       data: {
         kind: "CLAIM",
@@ -215,20 +236,21 @@ describe("Compliance checks find real problems", () => {
         title: "Nobody owns this",
         status: "OPEN",
         assigneeId: null,
+        organizationId: boss.organizationId,
       },
     });
-
-    const boss = await admin();
     const res = await api(boss.cookie).get("/compliance");
     const finding = res.body.data.findings.find((f) => f.id === "work-without-owner");
     assert.ok(finding.count >= 1);
   });
 
   test("a live session on a deactivated account is CRITICAL", async () => {
-    const victim = await account("deactivated");
-    await prisma.user.update({ where: { id: victim.userId }, data: { isActive: false } });
-
     const boss = await admin();
+    const victim = await account("deactivated");
+    await prisma.user.update({
+      where: { id: victim.userId },
+      data: { isActive: false, organizationId: boss.organizationId },
+    });
     const res = await api(boss.cookie).get("/compliance");
     const finding = res.body.data.findings.find((f) => f.id === "live-session-inactive-account");
 
