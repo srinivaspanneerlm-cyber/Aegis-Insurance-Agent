@@ -838,16 +838,56 @@ export const enterpriseAdminService = {
       ...(query.actorId ? { actorId: query.actorId } : {}),
     };
 
-    const [total, entries, actions] = await Promise.all([
+    const [total, rows, actions] = await Promise.all([
       prisma.auditLog.count({ where }),
-      prisma.auditLog.findMany({ where, orderBy: { createdAt: "desc" }, take }),
+      prisma.auditLog.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        take,
+        select: {
+          id: true,
+          action: true,
+          actorId: true,
+          entity: true,
+          entityId: true,
+          metadata: true,
+          ipAddress: true,
+          createdAt: true,
+        },
+      }),
       prisma.auditLog.groupBy({ by: ["action"], where, _count: { _all: true }, orderBy: { _count: { action: "desc" } }, take: 20 }),
     ]);
 
+    // Who, by name. The trail stored an id and the console showed neither, so
+    // an audit record answered what happened and not who did it — half a record.
+    // One query for the page rather than a join per row, the same shape
+    // activityFeed already uses.
+    const actorIds = [...new Set(rows.map((r) => r.actorId).filter((v): v is string => !!v))];
+    const actors = await prisma.user.findMany({
+      where: { id: { in: actorIds } },
+      select: { id: true, name: true, email: true },
+    });
+    const byId = new Map(actors.map((a) => [a.id, a]));
+
+    // Who has been acting, so "everything this person did" is one click rather
+    // than a guessed id. Ranked by volume, capped like the action list.
+    const actorCounts = new Map<string, number>();
+    for (const r of rows) if (r.actorId) actorCounts.set(r.actorId, (actorCounts.get(r.actorId) ?? 0) + 1);
+
     return {
       total,
-      entries,
+      entries: rows.map((r) => ({
+        ...r,
+        // An actor outside this tenant cannot appear — the scope is their
+        // membership — so an unresolved id means the account was deleted.
+        actorName: r.actorId ? (byId.get(r.actorId)?.name ?? "a removed account") : "the platform",
+        actorEmail: r.actorId ? (byId.get(r.actorId)?.email ?? null) : null,
+      })),
       actions: actions.map((a) => ({ action: a.action, count: a._count._all })),
+      actors: [...actorCounts.entries()]
+        .map(([id, count]) => ({ id, name: byId.get(id)?.name ?? "a removed account", count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 20),
     };
   },
 

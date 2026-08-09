@@ -85,10 +85,17 @@ export const consoleApi = {
   workflows: () => call<WorkflowsPayload>("/enterprise/workflows"),
   compliance: () =>
     call<{ summary: ComplianceSummary; findings: ComplianceFinding[] }>("/enterprise/compliance"),
-  audit: (action: string) =>
-    call<{ total: number; entries: AuditEntry[]; actions: { action: string; count: number }[] }>(
-      `/enterprise/audit${action ? `?action=${encodeURIComponent(action)}` : ""}`
-    ),
+  audit: (action: string, actorId?: string) => {
+    const q = new URLSearchParams();
+    if (action) q.set("action", action);
+    if (actorId) q.set("actorId", actorId);
+    return call<{
+      total: number;
+      entries: AuditEntry[];
+      actions: { action: string; count: number }[];
+      actors: { id: string; name: string; count: number }[];
+    }>(`/enterprise/audit${q.toString() ? `?${q}` : ""}`);
+  },
 };
 
 /** Where a CSV download points. A plain link, so the browser handles it. */
@@ -194,9 +201,13 @@ export interface AuditEntry {
   id: string;
   action: string;
   actorId: string | null;
+  /** Resolved server-side. "the platform" when no person acted. */
+  actorName: string;
+  actorEmail: string | null;
   entity: string | null;
   entityId: string | null;
   metadata: string | null;
+  ipAddress: string | null;
   createdAt: string;
 }
 

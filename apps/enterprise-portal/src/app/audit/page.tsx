@@ -19,14 +19,18 @@ export default function AuditPage() {
     total: number;
     entries: AuditEntry[];
     actions: { action: string; count: number }[];
+    actors: { id: string; name: string; count: number }[];
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // "Everything this person did" was unanswerable: the endpoint took an
+  // actorId and nothing sent one.
+  const [actorId, setActorId] = useState<string | null>(null);
 
-  const run = useCallback(async (action: string) => {
+  const run = useCallback(async (action: string, actor?: string | null) => {
     setData(null);
     setError(null);
     try {
-      setData(await consoleApi.audit(action));
+      setData(await consoleApi.audit(action, actor ?? undefined));
     } catch (e) {
       setError(e instanceof Error ? e.message : "Search failed.");
     }
@@ -35,7 +39,7 @@ export default function AuditPage() {
   useEffect(() => {
     const initial = new URLSearchParams(window.location.search).get("action") ?? "";
     setTerm(initial);
-    void run(initial);
+    void run(initial, null);
   }, [run]);
 
   return (
@@ -84,6 +88,41 @@ export default function AuditPage() {
 
       {data ? (
         <>
+          {/* Who has been acting. The endpoint has always taken an actorId and
+              nothing sent one, so "everything this person did" — the first
+              question asked of an audit trail — was unanswerable. */}
+          {data.actors.length > 0 ? (
+            <Panel title="Who has been acting">
+              <ul className="flex flex-wrap gap-2">
+                {data.actors.map((a) => (
+                  <li key={a.id}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const next = actorId === a.id ? null : a.id;
+                        setActorId(next);
+                        void run(term, next);
+                      }}
+                      aria-pressed={actorId === a.id}
+                      className={
+                        actorId === a.id
+                          ? "focus-ring rounded-pill border border-brand/40 bg-brand/10 px-3 py-1 text-caption font-medium text-content"
+                          : "focus-ring rounded-pill border border-line/60 px-3 py-1 text-caption text-content-secondary transition-colors hover:border-line hover:text-content"
+                      }
+                    >
+                      {a.name} · {a.count}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              {actorId ? (
+                <p className="mt-3 text-caption text-content-muted">
+                  Showing one person&rsquo;s actions. Click their name again to see everyone.
+                </p>
+              ) : null}
+            </Panel>
+          ) : null}
+
           {data.actions.length > 0 ? (
             <Panel title="Most frequent events">
               <ul className="flex flex-wrap gap-2">
@@ -93,7 +132,7 @@ export default function AuditPage() {
                       type="button"
                       onClick={() => {
                         setTerm(a.action);
-                        void run(a.action);
+                        void run(a.action, actorId);
                       }}
                       className="focus-ring rounded-pill border border-line/60 px-3 py-1 text-caption text-content-secondary transition-colors hover:border-line hover:text-content"
                     >
@@ -125,7 +164,24 @@ export default function AuditPage() {
                       >
                         {entry.action}
                       </Badge>
-                      <span className="text-caption tabular-nums text-content-muted">
+                      {/* Who. The trail stored an id and the console showed
+                          neither, so a record said what happened and not who
+                          did it. */}
+                      <span className="text-body-sm text-content">{entry.actorName}</span>
+                      {/* What was acted on. entity and entityId were in every
+                          payload and rendered nowhere. */}
+                      {entry.entity ? (
+                        <span className="text-caption text-content-secondary">
+                          on {entry.entity}
+                          {entry.entityId ? (
+                            <span className="tabular-nums text-content-muted">
+                              {" "}
+                              {entry.entityId.slice(0, 8)}…
+                            </span>
+                          ) : null}
+                        </span>
+                      ) : null}
+                      <span className="ml-auto text-caption tabular-nums text-content-muted">
                         {new Date(entry.createdAt).toLocaleString(undefined, {
                           day: "numeric",
                           month: "short",
@@ -134,6 +190,13 @@ export default function AuditPage() {
                         })}
                       </span>
                     </div>
+                    {entry.actorEmail || entry.ipAddress ? (
+                      <p className="mt-0.5 break-words text-caption text-content-muted">
+                        {entry.actorEmail ?? ""}
+                        {entry.actorEmail && entry.ipAddress ? " · " : ""}
+                        {entry.ipAddress ?? ""}
+                      </p>
+                    ) : null}
                     {entry.metadata ? (
                       <pre className="mt-2 overflow-x-auto rounded-control bg-surface-raised/40 p-2 text-caption text-content-secondary">
                         {entry.metadata}
