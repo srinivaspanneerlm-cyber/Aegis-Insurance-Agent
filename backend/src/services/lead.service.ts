@@ -40,8 +40,21 @@ export const leadService = {
     return lead;
   },
 
+  /**
+   * Change a lead.
+   *
+   * The columns are named rather than spread. `leadUpdateSchema` already rejects
+   * anything else at the route, and this is the second lock on the same door:
+   * spreading meant every column on the row was writable by whatever reached
+   * here, so a caller arriving by any other path could still set `deletedAt`.
+   */
   async update(id: string, input: Partial<LeadInput> & { status?: string }, actorId?: string) {
-    const lead = await leadRepository.update(id, { ...input });
+    const writable: Record<string, unknown> = {};
+    for (const field of ["customerName", "email", "phone", "insuranceType", "budget", "status"] as const) {
+      if (input[field] !== undefined) writable[field] = input[field];
+    }
+
+    const lead = await leadRepository.update(id, writable);
     auditService.record({ actorId, action: "lead.updated", entity: "Lead", entityId: id, metadata: { status: input.status } });
     return lead;
   },

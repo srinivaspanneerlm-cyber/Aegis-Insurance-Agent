@@ -185,6 +185,89 @@ export const leadSchema = (data: RequestData): ValidationErrors => {
   return errors.length > 0 ? errors : null;
 };
 
+/**
+ * Fields a lead update may carry.
+ *
+ * `status` is included; the five identity fields are the same ones `leadSchema`
+ * accepts on create. Nothing else is writable through this route.
+ */
+const LEAD_UPDATABLE = [
+  "customerName",
+  "email",
+  "phone",
+  "insuranceType",
+  "budget",
+  "status",
+] as const;
+
+/**
+ * Statuses an operator may set.
+ *
+ * The first five are the pipeline the schema documents. `approved` is included
+ * because the platform itself produces it — the auto-qualify job writes it —
+ * and every lead in an existing deployment carries it, so refusing it would
+ * reject a request that is both ordinary and already true of the record.
+ */
+const LEAD_STATUSES = ["pending", "contacted", "qualified", "won", "lost", "approved"];
+
+/**
+ * A partial update to a lead.
+ *
+ * Separate from `leadSchema` because create and update are different shapes:
+ * create requires every identity field, update requires only that at least one
+ * known field is present.
+ *
+ * The important half is the rejection of unknown keys. This route previously
+ * had no body validation at all, and `leadService.update` spreads what it is
+ * given straight into the row — so `deletedAt` soft-deleted a lead without the
+ * `lead.delete` capability, which no role holding `lead.write` has. An
+ * allow-list is the only form that closes that: listing the fields to reject
+ * would have to be updated every time a column is added.
+ */
+export const leadUpdateSchema = (data: RequestData): ValidationErrors => {
+  const errors: string[] = [];
+  const allowed = new Set<string>(LEAD_UPDATABLE);
+
+  const unknown = Object.keys(data).filter((key) => !allowed.has(key));
+  if (unknown.length > 0) {
+    errors.push(`These fields cannot be updated: ${unknown.sort().join(", ")}.`);
+  }
+
+  const provided = Object.keys(data).filter((key) => allowed.has(key));
+  if (provided.length === 0 && unknown.length === 0) {
+    errors.push("Provide at least one field to update.");
+  }
+
+  // Each field is checked only when present — this is a partial update, and an
+  // absent field means "leave it alone", not "clear it".
+  if ("customerName" in data) {
+    if (typeof data.customerName !== "string" || data.customerName.trim().length < 2) {
+      errors.push("Customer name must be at least 2 characters long.");
+    }
+  }
+  if ("email" in data && !validateEmail(data.email)) {
+    errors.push("A valid email address is required.");
+  }
+  if ("phone" in data) {
+    if (typeof data.phone !== "string" || data.phone.trim().length < 8) {
+      errors.push("A valid contact number is required.");
+    }
+  }
+  if ("insuranceType" in data && typeof data.insuranceType !== "string") {
+    errors.push("Insurance type must be text.");
+  }
+  if ("budget" in data && typeof data.budget !== "string") {
+    errors.push("Monthly budget scope must be text.");
+  }
+  if ("status" in data) {
+    if (typeof data.status !== "string" || !LEAD_STATUSES.includes(data.status)) {
+      errors.push(`Status must be one of: ${LEAD_STATUSES.join(", ")}.`);
+    }
+  }
+
+  return errors.length > 0 ? errors : null;
+};
+
 export const policySchema = (data: RequestData): ValidationErrors => {
   const errors: string[] = [];
   if (!data.policyName || typeof data.policyName !== "string") {
