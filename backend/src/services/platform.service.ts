@@ -14,6 +14,11 @@ import { componentHealth, missingTelemetry, resourceUsage } from "../platform/te
 import { aiSystemStatuses } from "../admin/aiSystems";
 import { REALMS } from "../auth/realms";
 import { PERMISSIONS, ROLE_PERMISSIONS, ROLE_NAMES } from "../auth/permissions";
+import crypto from "crypto";
+import bcrypt from "bcrypt";
+import { issueToken } from "../auth/verification";
+import { identityUrl, sendAuthMail } from "../auth/mailer";
+import { AUTH } from "../config/constants";
 
 const ORG_STATUSES = ["ACTIVE", "SUSPENDED", "ARCHIVED"] as const;
 const PLANS = ["TRIAL", "STANDARD", "ENTERPRISE"] as const;
@@ -166,6 +171,133 @@ export const platformService = {
    * suspension that leaves people signed in until their token expires is not a
    * suspension — it is a note in a database.
    */
+  /**
+   * Put somebody into a tenant's staff.
+   *
+   * The gap this closes: self-registration is customer-only by design — a form
+   * is not an acceptable barrier into a staff realm — and until now nothing
+   * else could create a staff account either, so the only way in was a direct
+   * database write.
+   *
+   * No password is chosen here. The account is created with an unusable random
+   * secret, exactly as the provider-only path does, and the invitee sets their
+   * own through the existing reset flow. Nobody, including whoever provisioned
+   * the account, ever knows it.
+   *
+   * `emailVerifiedAt` is set because provisioning is itself the vouching: a
+   * platform operator naming a colleague's address carries the assurance an
+   * enterprise directory would, and the enterprise realm demands a verified
+   * address to sign in at all. Self-registration gets no such shortcut.
+   */
+  async provisionMember(
+    organizationId: string,
+    input: { email?: string; name?: string; role?: string },
+    actorId: string
+  ) {
+    const email = input.email?.toLowerCase().trim();
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      throw new AppError("A valid email address is required.", 400);
+    }
+
+    // Roles that make sense inside a tenant. PLATFORM_ADMIN is absent
+    // deliberately: a tenant member who could configure the platform would make
+    // the realm boundary decorative.
+    const ENTERPRISE_ROLES = [
+      "ENTERPRISE_ADMIN",
+      "EMPLOYEE",
+      "SUPPORT",
+      "CLAIMS",
+      "OPERATIONS",
+      "COMPLIANCE",
+    ];
+    const role = input.role ?? "ENTERPRISE_ADMIN";
+    if (!ENTERPRISE_ROLES.includes(role)) {
+      throw new AppError(
+        `Role must be one of: ${ENTERPRISE_ROLES.join(", ")}.`,
+        400,
+        "ROLE_NOT_ALLOWED"
+      );
+    }
+    const realm = role === "ENTERPRISE_ADMIN" ? "ENTERPRISE" : "EMPLOYEE";
+
+    const organization = await prisma.organization.findUnique({
+      where: { id: organizationId },
+      include: { license: true },
+    });
+    if (!organization) throw new AppError("That organisation does not exist.", 404);
+    if (organization.status !== "ACTIVE") {
+      throw new AppError(
+        `That organisation is ${organization.status.toLowerCase()}. Reactivate it before adding people.`,
+        409,
+        "ORGANIZATION_NOT_ACTIVE"
+      );
+    }
+    if (!organization.license) {
+      throw new AppError("That organisation has no licence, so it has no seats.", 409, "NO_LICENCE");
+    }
+
+    // The same seat rule updateLicense enforces, applied at the other end —
+    // otherwise seats could be exceeded by adding people rather than by cutting
+    // the count.
+    const seatsInUse = await prisma.user.count({
+      where: { organizationId, realm: { in: ["EMPLOYEE", "ENTERPRISE"] }, deletedAt: null },
+    });
+    if (seatsInUse >= organization.license.seats) {
+      throw new AppError(
+        `All ${organization.license.seats} seat(s) are in use. Raise the seat count before adding another person.`,
+        409,
+        "NO_SEATS_AVAILABLE"
+      );
+    }
+
+    const existing = await prisma.user.findUnique({ where: { email } });
+    if (existing) {
+      throw new AppError("An account already exists with that address.", 409, "EMAIL_IN_USE");
+    }
+
+    // Random and never disclosed — the account cannot be signed into until the
+    // invitee sets their own password.
+    const unusableSecret = crypto.randomBytes(32).toString("base64url");
+    const user = await prisma.user.create({
+      data: {
+        name: input.name?.trim() || (email.split("@")[0] as string),
+        email,
+        password: await bcrypt.hash(unusableSecret, AUTH.BCRYPT_ROUNDS),
+        realm,
+        role,
+        organizationId,
+        emailVerifiedAt: new Date(),
+      },
+      select: { id: true, name: true, email: true, realm: true, role: true, organizationId: true },
+    });
+
+    // The existing token: 32 bytes of CSPRNG, stored only as a SHA-256 hash,
+    // one hour to live, single-use, bound to this address.
+    const { token, expiresAt } = await issueToken(user.id, email, "PASSWORD_RESET");
+    await sendAuthMail({
+      to: email,
+      kind: "PASSWORD_RESET",
+      subject: "Set your Aegis password",
+      actionUrl: identityUrl("/reset-password", { token }),
+      expiresAt,
+    });
+
+    auditService.record({
+      actorId,
+      action: "platform.organization.member_provisioned",
+      entity: "User",
+      entityId: user.id,
+      // The token is never recorded. What is worth keeping is who was let in,
+      // where, and as what.
+      metadata: { organizationId, email, role, realm },
+    });
+
+    // The raw token is returned to nobody; it reaches the invitee through the
+    // same mail path every other reset link uses.
+    return { user, invitation: { sentTo: email, expiresAt } };
+  },
+
+
   async setOrganizationStatus(id: string, status: string, actorId: string) {
     if (!(ORG_STATUSES as readonly string[]).includes(status)) {
       throw new AppError("Unknown status.", 400);

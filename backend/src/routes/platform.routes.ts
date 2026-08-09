@@ -70,6 +70,28 @@ router.post(
 
 // Suspension ends every session that tenant's staff hold, so it is a write in
 // the fullest sense — hence the fresh-auth gate.
+/**
+ * Put somebody into a tenant's staff.
+ *
+ * Behind the same gates as every other write here — PLATFORM realm,
+ * platform.configure, and fresh authentication — because it creates an account
+ * that can read another organisation's records. The organisation comes from the
+ * path and is validated against the database; nothing the body says about a
+ * tenant is read.
+ */
+router.post(
+  "/organizations/:id/members",
+  requireFreshAuth,
+  catchAsync(async (req, res) => {
+    const result = await platformService.provisionMember(
+      (req.params as { id: string }).id,
+      req.body ?? {},
+      req.user!.id
+    );
+    sendSuccess(res, 201, result);
+  })
+);
+
 router.patch(
   "/organizations/:id/status",
   requireFreshAuth,
