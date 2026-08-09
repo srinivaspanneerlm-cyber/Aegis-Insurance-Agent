@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import { useCallback, useEffect, useState } from "react";
 import { Badge, Empty, Panel, Skeleton } from "@/components/Cards";
 import { Icon } from "@/components/Icon";
@@ -112,8 +114,15 @@ export default function CustomersPage() {
                 {data.customers.map((c) => (
                   <tr key={c.id} className="border-b border-line/30 last:border-0">
                     <td className="py-3 pr-4">
-                      <p className="text-body-sm text-content">{c.name}</p>
-                      <p className="text-caption text-content-muted">{c.email}</p>
+                      {/* The detail endpoint has been live since this console was
+                          built and these rows linked nowhere. */}
+                      <Link
+                        href={`/customers/${c.id}`}
+                        className="focus-ring rounded text-body-sm font-medium text-brand"
+                      >
+                        {c.name}
+                      </Link>
+                      <p className="break-words text-caption text-content-muted">{c.email}</p>
                     </td>
                     <td className="py-3 pr-4">
                       <div className="flex flex-wrap gap-1.5">

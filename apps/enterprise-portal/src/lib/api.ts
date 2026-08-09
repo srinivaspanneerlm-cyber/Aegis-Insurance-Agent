@@ -55,6 +55,9 @@ export const consoleApi = {
     call<{ total: number; customers: CustomerRow[] }>(
       `/enterprise/customers${search ? `?search=${encodeURIComponent(search)}` : ""}`
     ),
+  /** One customer's operational record. No conversation content, by design. */
+  customer: (id: string) => call<CustomerDetail>(`/enterprise/customers/${encodeURIComponent(id)}`),
+
   /** The workforce. `department` is filtered by the server, not here. */
   employees: (department?: string) =>
     call<{ employees: EmployeeRow[]; departments: { department: string; count: number }[] }>(
@@ -189,4 +192,37 @@ export interface OrganizationPayload {
   seats: { used: number; total: number } | { available: false; used: number; reason: string };
   customers: number;
   editable: { available: false; reason: string; needs: string };
+}
+
+export interface CustomerDetail {
+  customer: {
+    id: string;
+    name: string;
+    email: string;
+    createdAt: string;
+    lastLoginAt: string | null;
+    emailVerifiedAt: string | null;
+    onboardedAt: string | null;
+    isActive: boolean;
+    preferredLanguage: string | null;
+  };
+  work: {
+    id: string;
+    reference: string;
+    kind: string;
+    title: string;
+    status: string;
+    priority: string;
+    openedAt: string;
+    resolvedAt: string | null;
+  }[];
+  /** A count, not the files — an administrator has no need to open them. */
+  documents: number;
+  logins: {
+    id: string;
+    outcome: string;
+    method: string | null;
+    ipAddress: string | null;
+    createdAt: string;
+  }[];
 }

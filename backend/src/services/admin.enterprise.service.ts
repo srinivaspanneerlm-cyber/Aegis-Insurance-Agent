@@ -199,7 +199,9 @@ export const enterpriseAdminService = {
       // is the scope.
       prisma.loginEvent.findMany({
         where: { userId: id },
-        select: { outcome: true, method: true, ipAddress: true, createdAt: true },
+        // The id is selected so a list can key on it: two sign-ins can share a
+        // timestamp, and an array index is not a stable identity.
+        select: { id: true, outcome: true, method: true, ipAddress: true, createdAt: true },
         orderBy: { createdAt: "desc" },
         take: 10,
       }),
