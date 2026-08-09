@@ -404,9 +404,26 @@ export interface SecurityPayload {
     id: string;
     outcome: string;
     method: string | null;
+    realm: string | null;
+    /** Whose account the attempt was against. */
+    email: string;
     ipAddress: string | null;
     userAgent: string | null;
     createdAt: string;
   }[];
   byOutcome: Record<string, number>;
+  /** Repeated failures against one account from one address, last 24 hours. */
+  clusters: { email: string; ipAddress: string | null; count: number; latest: string }[];
+  failuresLastDay: number;
+  sessions: {
+    id: string;
+    realm: string;
+    ipAddress: string | null;
+    deviceLabel: string | null;
+    trustedAt: string | null;
+    lastSeenAt: string | null;
+    createdAt: string;
+    expiresAt: string;
+    user: { id: string; name: string; email: string } | null;
+  }[];
 }

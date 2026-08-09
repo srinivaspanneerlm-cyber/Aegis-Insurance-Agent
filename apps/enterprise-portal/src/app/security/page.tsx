@@ -76,6 +76,88 @@ export default function SecurityPage() {
             <Stat label="Events recorded" value={data.recent.length} icon="layers" />
           </div>
 
+          {/* A list of failures is data; repeated failures against one account
+              from one address is a finding. Grouped by the pair because either
+              alone is noise — one person mistyping all morning is not one
+              address trying many accounts. */}
+          {data.clusters.length > 0 ? (
+            <Panel title="Repeated failures, last 24 hours">
+              <ul className="flex flex-col gap-2">
+                {data.clusters.map((c) => (
+                  <li
+                    key={`${c.email}-${c.ipAddress ?? "none"}`}
+                    className="flex flex-wrap items-center gap-3 rounded-control border border-warning/40 bg-warning/10 px-4 py-2.5"
+                  >
+                    <Badge tone="danger">{c.count} failures</Badge>
+                    <span className="break-words text-body-sm text-content">{c.email}</span>
+                    <span className="text-caption tabular-nums text-content-muted">
+                      from {c.ipAddress ?? "an unrecorded address"}
+                    </span>
+                    <time
+                      dateTime={c.latest}
+                      className="ml-auto text-caption tabular-nums text-content-muted"
+                    >
+                      last{" "}
+                      {new Date(c.latest).toLocaleTimeString(undefined, {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </time>
+                  </li>
+                ))}
+              </ul>
+            </Panel>
+          ) : data.failuresLastDay > 0 ? (
+            <p className="text-pretty text-caption text-content-muted">
+              {data.failuresLastDay} failed attempt
+              {data.failuresLastDay === 1 ? "" : "s"} in the last 24 hours, none repeated against
+              the same account from the same address.
+            </p>
+          ) : null}
+
+          <Panel
+            title={`${data.sessions.length} live session${data.sessions.length === 1 ? "" : "s"}`}
+          >
+            {data.sessions.length === 0 ? (
+              <Empty icon="check">Nobody from your organisation is signed in right now.</Empty>
+            ) : (
+              <ul className="flex flex-col gap-2">
+                {data.sessions.map((sn) => (
+                  <li
+                    key={sn.id}
+                    className="flex flex-wrap items-center gap-3 border-b border-line/30 pb-2 last:border-0 last:pb-0"
+                  >
+                    <span className="text-body-sm text-content">
+                      {sn.user?.name ?? "account removed"}
+                    </span>
+                    <Badge>{sn.realm}</Badge>
+                    {sn.trustedAt ? <Badge tone="success">trusted device</Badge> : null}
+                    <span className="break-words text-caption text-content-muted">
+                      {sn.deviceLabel ?? "device not recorded"} · {sn.ipAddress ?? "no address"}
+                    </span>
+                    <time
+                      dateTime={sn.lastSeenAt ?? sn.createdAt}
+                      className="ml-auto text-caption tabular-nums text-content-muted"
+                    >
+                      seen{" "}
+                      {new Date(sn.lastSeenAt ?? sn.createdAt).toLocaleString(undefined, {
+                        day: "numeric",
+                        month: "short",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </time>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {/* Ending a session is a platform-operator action. Saying so beats
+                a button that 403s. */}
+            <p className="mt-4 text-pretty text-caption text-content-muted">
+              Ending a session is done by the platform operator, not from this console.
+            </p>
+          </Panel>
+
           <Panel title="Most recent sign-in attempts">
             {data.recent.length === 0 ? (
               <Empty icon="check">
@@ -89,14 +171,26 @@ export default function SecurityPage() {
                     className="flex flex-wrap items-center gap-3 border-b border-line/30 pb-2 last:border-0 last:pb-0"
                   >
                     <Badge tone={e.outcome === "SUCCESS" ? "success" : "danger"}>{e.outcome}</Badge>
+                    {/* Whose account it was against. An outcome and an address
+                        tell you something is wrong and not who it happened to. */}
+                    <span className="break-words text-body-sm text-content">{e.email}</span>
                     <span className="text-caption text-content-secondary">
                       {e.method ?? "password"}
+                      {e.realm ? ` · ${e.realm}` : ""}
                     </span>
                     {/* The address is what turns a list of failures into a
                         pattern somebody can act on. */}
                     <span className="text-caption tabular-nums text-content-muted">
                       {e.ipAddress ?? "address not recorded"}
                     </span>
+                    {e.userAgent ? (
+                      <span
+                        title={e.userAgent}
+                        className="max-w-[16rem] truncate text-caption text-content-muted"
+                      >
+                        {e.userAgent}
+                      </span>
+                    ) : null}
                     <time
                       dateTime={e.createdAt}
                       className="ml-auto text-caption tabular-nums text-content-muted"

@@ -851,17 +851,92 @@ export const enterpriseAdminService = {
     };
   },
 
-  /** Sign-in security events, which live in their own trail. */
+  /**
+   * Sign-in security, for one tenant.
+   *
+   * Three things, and the second is the point. A list of failures is data; a
+   * count of failures against one account from one address is a finding, and
+   * nobody reads twenty rows to arrive at it themselves.
+   *
+   * No score and no green badge: nothing in this codebase defines what a
+   * "healthy" failure rate is, and inventing a threshold would dress a guess as
+   * a measurement.
+   */
   async securityEvents(organizationId: string, query: { take?: unknown }) {
     const take = clampTake(query.take, 50);
-    const [recent, byOutcome] = await Promise.all([
+    const scope = { user: { organizationId } };
+    const dayAgo = new Date(Date.now() - 86_400_000);
+
+    const [recent, byOutcome, failures, sessions] = await Promise.all([
       // Same shape as the audit trail: the event belongs to whoever signed in.
-      prisma.loginEvent.findMany({ where: { user: { organizationId } }, orderBy: { createdAt: "desc" }, take }),
-      prisma.loginEvent.groupBy({ by: ["outcome"], where: { user: { organizationId } }, _count: { _all: true } }),
+      prisma.loginEvent.findMany({
+        where: scope,
+        orderBy: { createdAt: "desc" },
+        take,
+        select: {
+          id: true,
+          outcome: true,
+          method: true,
+          realm: true,
+          email: true,
+          ipAddress: true,
+          userAgent: true,
+          createdAt: true,
+        },
+      }),
+      prisma.loginEvent.groupBy({ by: ["outcome"], where: scope, _count: { _all: true } }),
+      // The last day only. A cluster from three months ago is history, not an
+      // alert, and mixing them would bury the one that matters.
+      prisma.loginEvent.findMany({
+        where: { ...scope, outcome: { not: "SUCCESS" }, createdAt: { gte: dayAgo } },
+        select: { email: true, ipAddress: true, createdAt: true },
+        take: 500,
+      }),
+      // AuthSession had no query in this service at all, so a tenant could not
+      // see who currently holds a session — the first question an administrator
+      // asks after a run of failures.
+      prisma.authSession.findMany({
+        where: { ...scope, revokedAt: null, expiresAt: { gt: new Date() } },
+        orderBy: { lastSeenAt: "desc" },
+        take: 50,
+        select: {
+          id: true,
+          realm: true,
+          ipAddress: true,
+          deviceLabel: true,
+          trustedAt: true,
+          lastSeenAt: true,
+          createdAt: true,
+          expiresAt: true,
+          user: { select: { id: true, name: true, email: true } },
+        },
+      }),
     ]);
+
+    // Grouped by the pair, because either alone is noise: one person mistyping
+    // a password all morning is not the same as one address trying many
+    // accounts, and the pair separates them.
+    const clusters = new Map<string, { email: string; ipAddress: string | null; count: number; latest: Date }>();
+    for (const f of failures) {
+      const key = `${f.email}|${f.ipAddress ?? ""}`;
+      const seen = clusters.get(key);
+      if (seen) {
+        seen.count += 1;
+        if (f.createdAt > seen.latest) seen.latest = f.createdAt;
+      } else {
+        clusters.set(key, { email: f.email, ipAddress: f.ipAddress, count: 1, latest: f.createdAt });
+      }
+    }
+
     return {
       recent,
       byOutcome: Object.fromEntries(byOutcome.map((r) => [r.outcome, r._count._all])),
+      clusters: [...clusters.values()]
+        .filter((c) => c.count > 1)
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 10),
+      failuresLastDay: failures.length,
+      sessions,
     };
   },
 
