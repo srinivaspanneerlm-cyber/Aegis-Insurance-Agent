@@ -178,6 +178,45 @@ export default function DashboardPage() {
         />
       </div>
 
+      {/* Work waiting on somebody. The endpoint has always returned these three
+          and the page rendered none of them, so the console showed the estate
+          and not the queue inside it. No links yet — the screens they belong to
+          are not built, and a tile linking to a 404 is worse than a tile. */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <MetricCard
+          label="Renewals"
+          metric={overview.renewals}
+          icon="refresh"
+          render={(v) => ({
+            value: v.total,
+            hint: v.total > 0 ? "Coming up for renewal" : "None outstanding",
+          })}
+        />
+        <MetricCard
+          label="KYC"
+          metric={overview.kyc}
+          icon="users"
+          render={(v) => ({
+            value: v.total,
+            hint: v.total > 0 ? "Identity checks in flight" : "None outstanding",
+          })}
+        />
+        <MetricCard
+          label="Complaints"
+          metric={overview.complaints}
+          icon="mail"
+          tone={
+            overview.complaints.available && overview.complaints.value.total > 0
+              ? "warning"
+              : "neutral"
+          }
+          render={(v) => ({
+            value: v.total,
+            hint: v.total > 0 ? "Open and unresolved" : "None open",
+          })}
+        />
+      </div>
+
       {/* The four the platform cannot measure, grouped so they read as one known
           gap rather than four scattered apologies. */}
       <section>
