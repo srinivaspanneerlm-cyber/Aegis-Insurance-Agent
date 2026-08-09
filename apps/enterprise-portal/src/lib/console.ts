@@ -192,6 +192,8 @@ export interface ComplianceFinding {
   count: number;
   detail: string;
   remedy: string;
+  /** Which records are affected — a count alone cannot be investigated. */
+  evidence?: { label: string; id: string }[];
 }
 
 export interface AiSystem {

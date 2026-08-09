@@ -24,6 +24,15 @@ export interface ComplianceFinding {
   readonly detail: string;
   /** What to do about it, concretely. */
   readonly remedy: string;
+  /**
+   * Which records are affected, up to a handful.
+   *
+   * A count is unactionable alone: "3 decisions completed without a person"
+   * cannot be investigated without knowing which three. Capped, because a
+   * finding listing four hundred references is a report rather than a finding
+   * — `count` remains the true total.
+   */
+  readonly evidence?: readonly { label: string; id: string }[];
 }
 
 const daysAgo = (n: number) => new Date(Date.now() - n * 24 * 60 * 60_000);
@@ -82,6 +91,38 @@ export async function complianceFindings(organizationId: string): Promise<Compli
     prisma.user.count({ where: { organizationId, realm: "EMPLOYEE", employeeProfile: null } }),
   ]);
 
+  // The references behind the counts. Only these three name identifiable
+  // records; the rest count a condition, and inventing a reference for those
+  // would be worse than the count alone.
+  const [staleRefs, unownedRefs, decisionRefs] = await Promise.all([
+    prisma.workItem.findMany({
+      where: { organizationId, closedAt: null, openedAt: { lt: daysAgo(30) } },
+      select: { id: true, reference: true },
+      orderBy: { openedAt: "asc" },
+      take: 5,
+    }),
+    prisma.workItem.findMany({
+      where: { organizationId, closedAt: null, assigneeId: null },
+      select: { id: true, reference: true },
+      orderBy: { openedAt: "asc" },
+      take: 5,
+    }),
+    prisma.workflowStep.findMany({
+      where: {
+        run: { workItem: { organizationId } },
+        key: decisionStepKeys(),
+        status: "COMPLETED",
+        actorKind: { not: "EMPLOYEE" },
+      },
+      select: { run: { select: { workItem: { select: { id: true, reference: true } } } } },
+      take: 5,
+    }),
+  ]);
+
+  const refs = (rows: { id: string; reference: string }[]) =>
+    rows.map((r) => ({ label: r.reference, id: r.id }));
+
+
   const findings: ComplianceFinding[] = [
     {
       id: "decision-without-person",
@@ -91,6 +132,7 @@ export async function complianceFindings(organizationId: string): Promise<Compli
       detail:
         "A workflow step requiring a human decision was completed by something other than an employee. The platform is built to make this impossible; a non-zero count means an invariant has been breached.",
       remedy: "Investigate immediately. Every affected case needs re-review by a named person.",
+      evidence: refs(decisionRefs.map((d) => d.run.workItem)),
     },
     {
       id: "live-session-inactive-account",
@@ -118,6 +160,7 @@ export async function complianceFindings(organizationId: string): Promise<Compli
       detail:
         "Nobody owns these cases, so nobody is working them and no promise is being measured against them.",
       remedy: "Assign them, or raise the department's workload limits so routing can place them.",
+      evidence: refs(unownedRefs),
     },
     {
       id: "stale-open-work",
@@ -126,6 +169,7 @@ export async function complianceFindings(organizationId: string): Promise<Compli
       count: staleOpenWork,
       detail: "Cases open for over a month, whatever their due time. These are what an audit samples.",
       remedy: "Review and either progress or close with a reason.",
+      evidence: refs(staleRefs),
     },
     {
       id: "orphaned-documents",

@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import { useEffect, useState } from "react";
 import { Badge, Empty, Panel, Skeleton } from "@/components/Cards";
 import { consoleApi } from "@/lib/api";
@@ -54,6 +56,33 @@ export default function CompliancePage() {
             </p>
           </div>
 
+          {/* The verdict is the one field that says what to do now, and this page
+              rendered every count except it. `high` was folded into a generic
+              failing total, which loses the difference between a housekeeping item
+              and something an audit would open with. */}
+          <div
+            className={
+              data.summary.verdict === "ACTION_REQUIRED"
+                ? "rounded-card border border-danger/40 bg-danger/10 px-4 py-3"
+                : data.summary.verdict === "ATTENTION"
+                  ? "rounded-card border border-warning/40 bg-warning/10 px-4 py-3"
+                  : "rounded-card border border-line/50 bg-surface-raised/30 px-4 py-3"
+            }
+          >
+            <p className="text-body-sm font-medium text-content">
+              {data.summary.verdict === "ACTION_REQUIRED"
+                ? `${data.summary.critical} critical finding${data.summary.critical === 1 ? "" : "s"} need attention now`
+                : data.summary.verdict === "ATTENTION"
+                  ? `${data.summary.high} finding${data.summary.high === 1 ? "" : "s"} to review`
+                  : "Every check is passing"}
+            </p>
+            <p className="mt-0.5 text-caption text-content-secondary">
+              {data.summary.passing} of {data.summary.checksRun} checks clear
+              {data.summary.high > 0 ? ` · ${data.summary.high} high severity` : ""}
+              {data.summary.critical > 0 ? ` · ${data.summary.critical} critical` : ""}
+            </p>
+          </div>
+
           <div className="grid gap-4 sm:grid-cols-4">
             {[
               { label: "Checks run", value: data.summary.checksRun },
@@ -92,6 +121,26 @@ export default function CompliancePage() {
                   {f.count > 0 ? (
                     <p className="mt-2 text-pretty text-caption text-content-muted">
                       <span className="font-medium">Remedy:</span> {f.remedy}
+                    </p>
+                  ) : null}
+
+                  {/* Which records, not just how many. "3 decisions completed
+                      without a person" cannot be investigated from a number. */}
+                  {f.count > 0 && f.evidence && f.evidence.length > 0 ? (
+                    <p className="mt-2 flex flex-wrap items-baseline gap-2 text-caption text-content-muted">
+                      <span className="font-medium">Affected:</span>
+                      {f.evidence.map((e) => (
+                        <Link
+                          key={e.id}
+                          href={`/claims`}
+                          className="focus-ring rounded font-medium tabular-nums text-brand"
+                        >
+                          {e.label}
+                        </Link>
+                      ))}
+                      {f.count > f.evidence.length ? (
+                        <span>and {f.count - f.evidence.length} more</span>
+                      ) : null}
                     </p>
                   ) : null}
                 </li>
