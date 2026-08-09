@@ -39,6 +39,12 @@ export const NAVIGATION: readonly NavGroup[] = [
     items: [
       { label: "Dashboard", href: "/", icon: "chart" },
       {
+        label: "Organisation",
+        href: "/organisation",
+        icon: "building",
+        permission: "analytics.read",
+      },
+      {
         label: "Business Analytics",
         href: "/analytics",
         icon: "chart",

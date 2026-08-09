@@ -72,6 +72,19 @@ router.get(
   })
 );
 
+// ── The tenant itself ────────────────────────────────────────────────────────
+
+// Read-only by construction. Creating, suspending and licensing an
+// organisation live in the platform realm — a tenant that could lift its own
+// suspension is not a tenant.
+router.get(
+  "/organization",
+  requirePermission("analytics.read"),
+  catchAsync(async (req, res) => {
+    sendSuccess(res, 200, await enterpriseAdminService.organization(orgScope(req)));
+  })
+);
+
 // ── People ───────────────────────────────────────────────────────────────────
 
 router.get(

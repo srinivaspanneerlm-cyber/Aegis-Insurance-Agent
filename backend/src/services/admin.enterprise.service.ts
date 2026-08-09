@@ -50,6 +50,64 @@ export const enterpriseAdminService = {
   },
 
   /**
+   * The tenant's own record.
+   *
+   * Read-only, and that is the design rather than a shortfall: plan, seats,
+   * status and archival belong to whoever operates the platform, not to the
+   * tenant subject to them. A console where an organisation could grant itself
+   * seats or lift its own suspension would make the licence decorative.
+   *
+   * Seat usage counts staff, not customers — the same rule the platform applies
+   * when it refuses to cut seats below the accounts that exist.
+   */
+  async organization(organizationId: string) {
+    const organization = await prisma.organization.findUnique({
+      where: { id: organizationId },
+      select: {
+        id: true,
+        slug: true,
+        name: true,
+        status: true,
+        emailDomains: true,
+        contactEmail: true,
+        contactPhone: true,
+        createdAt: true,
+        archivedAt: true,
+        license: {
+          select: { plan: true, seats: true, startsAt: true, expiresAt: true, updatedAt: true },
+        },
+      },
+    });
+    // The scope came from the session, so this can only fail if the record was
+    // removed mid-session — which is worth saying plainly rather than 500ing.
+    if (!organization) throw new AppError("That organisation no longer exists.", 404);
+
+    const [seatsInUse, customers] = await Promise.all([
+      prisma.user.count({
+        where: { organizationId, realm: { in: ["EMPLOYEE", "ENTERPRISE"] }, deletedAt: null },
+      }),
+      prisma.user.count({ where: { organizationId, realm: "CUSTOMER", deletedAt: null } }),
+    ]);
+
+    return {
+      organization,
+      seats: organization.license
+        ? { used: seatsInUse, total: organization.license.seats }
+        : // No licence row means nothing has been issued, which is different
+          // from a licence with zero seats.
+          { available: false as const, used: seatsInUse, reason: "No licence has been issued to this organisation." },
+      customers,
+      // Everything here is set by the platform operator. Saying so beats a
+      // screen of fields that silently refuse to save.
+      editable: {
+        available: false as const,
+        reason: "Plan, seats, status and contact details are managed by the platform operator.",
+        needs: "A tenant-facing route that may write the fields an organisation is allowed to change.",
+      },
+    };
+  },
+
+  /**
    * Customer records, searchable.
    *
    * Deliberately returns no conversation content. An administrator has a

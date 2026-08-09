@@ -42,6 +42,9 @@ async function call<T>(path: string): Promise<T> {
 
 export const consoleApi = {
   dashboard: () => call<DashboardPayload>("/enterprise/dashboard"),
+
+  /** The tenant's own record. Read-only — the platform operator owns these fields. */
+  organization: () => call<OrganizationPayload>("/enterprise/organization"),
   analytics: () =>
     call<{
       overview: DashboardPayload["overview"];
@@ -158,4 +161,29 @@ export interface AuditEntry {
   entityId: string | null;
   metadata: string | null;
   createdAt: string;
+}
+
+export interface OrganizationPayload {
+  organization: {
+    id: string;
+    slug: string;
+    name: string;
+    status: string;
+    emailDomains: string | null;
+    contactEmail: string | null;
+    contactPhone: string | null;
+    createdAt: string;
+    archivedAt: string | null;
+    license: {
+      plan: string;
+      seats: number;
+      startsAt: string;
+      expiresAt: string | null;
+      updatedAt: string;
+    } | null;
+  };
+  /** A licence with no seats and no licence at all are different things. */
+  seats: { used: number; total: number } | { available: false; used: number; reason: string };
+  customers: number;
+  editable: { available: false; reason: string; needs: string };
 }
