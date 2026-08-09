@@ -321,6 +321,15 @@ export interface IntelligencePayload {
   withPolicies: number;
   averageCompleteness: number | null;
   byKind: Record<string, number>;
+  cohorts: {
+    byIncome: { value: string; count: number }[];
+    byRisk: { value: string; count: number }[];
+    byCity: { value: string; count: number }[];
+    withDependents: number;
+    smokers: number;
+    /** Profiles the cohorts are computed over — not the customer total. */
+    basis: number;
+  };
   recent: {
     id: string;
     kind: string;

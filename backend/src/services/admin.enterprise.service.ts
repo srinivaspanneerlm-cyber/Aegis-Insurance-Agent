@@ -586,6 +586,37 @@ export const enterpriseAdminService = {
       }),
     ]);
 
+    // Who the advised customers actually are.
+    //
+    // Totals say how many can be advised; they say nothing about whom this
+    // tenant serves, which is the substance of customer intelligence for a
+    // platform aimed at people insurance usually underserves. Grouped rather
+    // than listed — an administrator has a legitimate need for the shape of the
+    // book and none for an individual's circumstances.
+    //
+    // Counted here rather than through intelligenceAnalytics.service, which is
+    // global by design because the employee portal reads it.
+    const cohortOf = async (by: "incomeRange" | "riskPreference" | "city") => {
+      const rows = await prisma.insuranceProfile.groupBy({
+        by: [by],
+        where: { organizationId },
+        _count: { _all: true },
+      });
+      return rows
+        .map((r) => ({ value: (r as Record<string, unknown>)[by] as string | null, count: r._count._all }))
+        .filter((r) => r.value !== null && r.value !== "")
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 8) as { value: string; count: number }[];
+    };
+
+    const [byIncome, byRisk, byCity, withDependents, smokers] = await Promise.all([
+      cohortOf("incomeRange"),
+      cohortOf("riskPreference"),
+      cohortOf("city"),
+      prisma.insuranceProfile.count({ where: { organizationId, dependents: { gt: 0 } } }),
+      prisma.insuranceProfile.count({ where: { organizationId, smoker: true } }),
+    ]);
+
     // A customer with no profile cannot be advised at all, which is the number
     // worth acting on rather than the average.
     const customers = await prisma.user.count({
@@ -601,6 +632,17 @@ export const enterpriseAdminService = {
       averageCompleteness:
         completeness._avg.completeness === null ? null : Math.round(completeness._avg.completeness),
       byKind: Object.fromEntries(byKind.map((r) => [r.kind, r._count._all])),
+      cohorts: {
+        byIncome,
+        byRisk,
+        byCity,
+        withDependents,
+        smokers,
+        // Every cohort is over profiles that exist, not over customers. A
+        // tenant whose customers mostly have no profile would otherwise read
+        // these as describing their whole book.
+        basis: profiles,
+      },
       recent,
       // Whether advice was taken is not recorded: nothing links a
       // recommendation to a policy that followed it.

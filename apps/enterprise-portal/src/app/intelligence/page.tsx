@@ -23,6 +23,44 @@ const KIND_LABELS: Record<string, string> = {
  * No recommendation is computed here — these are counts over what the engine
  * already produced.
  */
+/**
+ * One cohort column.
+ *
+ * A share is shown beside the count because "12" means nothing without the
+ * denominator, and the denominator here is profiles rather than customers.
+ */
+function Cohort({
+  title,
+  rows,
+  basis,
+}: {
+  title: string;
+  rows: { value: string; count: number }[];
+  basis: number;
+}) {
+  return (
+    <div>
+      <h3 className="text-caption font-medium uppercase tracking-wide text-content-muted">
+        {title}
+      </h3>
+      {rows.length === 0 ? (
+        <p className="mt-2 text-caption text-content-muted">Nobody has answered this yet.</p>
+      ) : (
+        <ul className="mt-2 flex flex-col gap-1.5">
+          {rows.map((row) => (
+            <li key={row.value} className="flex items-baseline justify-between gap-3">
+              <span className="min-w-0 truncate text-body-sm text-content">{row.value}</span>
+              <span className="shrink-0 text-caption tabular-nums text-content-secondary">
+                {row.count} · {Math.round((row.count / basis) * 100)}%
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 export default function IntelligencePage() {
   const [data, setData] = useState<IntelligencePayload | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -101,6 +139,51 @@ export default function IntelligencePage() {
               </div>
             </Panel>
           ) : null}
+
+          {/* Who the advised customers are, not just how many. Grouped, never
+              listed: the shape of the book is an administrator's business, an
+              individual's circumstances are not. */}
+          <Panel title="Who your advised customers are">
+            {data.cohorts.basis === 0 ? (
+              <Empty icon="users">
+                No profiles yet, so there is nothing to break down. These appear as customers
+                complete enough of their profile to be advised.
+              </Empty>
+            ) : (
+              <>
+                <div className="grid gap-6 sm:grid-cols-3">
+                  <Cohort
+                    title="Monthly budget"
+                    rows={data.cohorts.byIncome}
+                    basis={data.cohorts.basis}
+                  />
+                  <Cohort
+                    title="Risk preference"
+                    rows={data.cohorts.byRisk}
+                    basis={data.cohorts.basis}
+                  />
+                  <Cohort
+                    title="Where they are"
+                    rows={data.cohorts.byCity}
+                    basis={data.cohorts.basis}
+                  />
+                </div>
+
+                <div className="mt-6 flex flex-wrap gap-2">
+                  <Badge>{data.cohorts.withDependents} with dependents</Badge>
+                  <Badge>{data.cohorts.smokers} declared smoker</Badge>
+                  <Badge>{data.withPolicies} policies held</Badge>
+                </div>
+
+                {/* Said, because the denominator is not the one people assume. */}
+                <p className="mt-4 text-pretty text-caption text-content-muted">
+                  Across the {data.cohorts.basis} customer{data.cohorts.basis === 1 ? "" : "s"} who
+                  have a profile — not all {data.customers}. Blank answers are left out rather than
+                  counted as a category, so a column may total less than the basis.
+                </p>
+              </>
+            )}
+          </Panel>
 
           <Panel title="Most recent analyses">
             {data.recent.length === 0 ? (
