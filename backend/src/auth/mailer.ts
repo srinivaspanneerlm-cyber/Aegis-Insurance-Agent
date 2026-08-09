@@ -39,7 +39,15 @@ export async function sendAuthMail(mail: AuthMail): Promise<void> {
     try {
       const response = await fetch(webhook, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          // Proves the relay is being called by this platform. Optional, so an
+          // existing deployment keeps working; without it a relay that sends
+          // from your domain will send for anyone who finds its URL.
+          ...(process.env.AUTH_MAIL_WEBHOOK_SECRET
+            ? { "X-Webhook-Secret": process.env.AUTH_MAIL_WEBHOOK_SECRET }
+            : {}),
+        },
         body: JSON.stringify(mail),
         signal: AbortSignal.timeout(8000),
       });

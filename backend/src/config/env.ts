@@ -142,6 +142,12 @@ const env = {
   // delivered, which is what the startup warning above is for.
   AUTH_MAIL_WEBHOOK_URL: process.env.AUTH_MAIL_WEBHOOK_URL || "",
 
+  // Shared secret proving a mail-webhook call came from this platform. Optional
+  // — unset means the header is not sent — but a relay reachable beyond
+  // localhost should require it, or anyone who learns the URL can send mail
+  // from your domain.
+  AUTH_MAIL_WEBHOOK_SECRET: process.env.AUTH_MAIL_WEBHOOK_SECRET || "",
+
   AI_SERVICE_URL: process.env.AI_SERVICE_URL || "http://localhost:8000/api/ai",
   AI_INTERNAL_API_KEY: process.env.AI_INTERNAL_API_KEY || "",
 
