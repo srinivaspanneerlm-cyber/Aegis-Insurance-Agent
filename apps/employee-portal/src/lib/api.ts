@@ -172,7 +172,47 @@ export const workspaceApi = {
     call<{ total: number; byCategory: Record<string, number> }>(
       "/communication/notifications/unread-count"
     ),
+  /**
+   * The notification list.
+   *
+   * `status` is passed to the server rather than filtered here: fetching
+   * everything and dropping most of it client-side would make the 100-row cap
+   * meaningless the moment somebody has a busy week.
+   */
+  notifications: (status?: NotificationStatus) =>
+    call<{ notifications: EmployeeNotification[] }>(
+      `/communication/notifications?take=100${status ? `&status=${status}` : ""}`
+    ),
+
+  markNotificationsRead: (ids: readonly string[]) =>
+    call<{ updated: number }>("/communication/notifications/read", {
+      method: "POST",
+      body: JSON.stringify({ ids }),
+    }),
+
+  archiveNotifications: (ids: readonly string[]) =>
+    call<{ updated: number }>("/communication/notifications/archive", {
+      method: "POST",
+      body: JSON.stringify({ ids }),
+    }),
 };
+
+export type NotificationStatus = "UNREAD" | "READ" | "ARCHIVED";
+
+export interface EmployeeNotification {
+  id: string;
+  category: string;
+  title: string;
+  body: string | null;
+  priority: "LOW" | "NORMAL" | "HIGH" | "URGENT";
+  status: NotificationStatus;
+  /** A relative portal path. Never rendered as a link without checking that. */
+  deepLink: string | null;
+  subjectKind: string | null;
+  subjectId: string | null;
+  createdAt: string;
+  readAt: string | null;
+}
 
 export interface RenewalAnalytics {
   activePolicies: number;
