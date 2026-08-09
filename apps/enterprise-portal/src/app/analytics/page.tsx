@@ -51,6 +51,16 @@ export default function AnalyticsPage() {
   const peak = Math.max(1, ...trend.map((d) => d.count));
   const resolvedInWindow = trend.reduce((sum, d) => sum + d.count, 0);
 
+  // Split the window the server already sent rather than asking for a second
+  // one. The endpoint takes no date range, so this is the only comparison
+  // available without a backend change — and it is a real one.
+  const half = Math.floor(trend.length / 2);
+  const earlier = trend.slice(0, half).reduce((sum, d) => sum + d.count, 0);
+  const recent = trend.slice(trend.length - half).reduce((sum, d) => sum + d.count, 0);
+  // Null rather than Infinity when the earlier half is empty: "+∞%" is not a
+  // finding, and 0 → 5 is better told as the two counts.
+  const change = earlier === 0 ? null : Math.round(((recent - earlier) / earlier) * 100);
+
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
       <header>
@@ -85,6 +95,85 @@ export default function AnalyticsPage() {
           icon="phone"
           render={(v) => ({ value: v.total })}
         />
+      </div>
+
+      {/* The endpoint returns thirteen measures and this screen rendered
+            eight. These five were in every payload and shown nowhere, so the
+            analytics view could describe the caseload and not the estate
+            carrying it. */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <MetricCard
+          label="Active employees"
+          metric={overview.employees}
+          icon="briefcase"
+          render={(v) => ({ value: v.active, hint: `${v.total} on record` })}
+        />
+        <MetricCard
+          label="Active policies"
+          metric={overview.policies}
+          icon="shield"
+          render={(v) => ({ value: v.active, hint: `${v.insurers} insurer(s)` })}
+        />
+        <MetricCard
+          label="Documents held"
+          metric={overview.documents}
+          icon="book"
+          render={(v) => ({ value: v.total, hint: `${v.thisWeek} this week` })}
+        />
+        <MetricCard
+          label="KYC in flight"
+          metric={overview.kyc}
+          icon="users"
+          render={(v) => ({ value: v.total })}
+        />
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <MetricCard
+          label="Live sessions"
+          metric={overview.system}
+          icon="bolt"
+          render={(v) => ({
+            value: v.liveSessions,
+            hint: `${v.failedLoginsToday} failed sign-in(s) today`,
+          })}
+        />
+        {/* Direction, not just a total. A period sum with nothing to compare
+              it against is a number rather than an analytic, and the comparison
+              comes from the series already on the page. */}
+        <div className="rounded-card border border-line/50 p-5">
+          <p className="text-caption uppercase tracking-wide text-content-muted">
+            Against the previous {half} days
+          </p>
+          {recent + earlier === 0 ? (
+            <p className="mt-3 text-body-sm text-content-secondary">
+              Nothing resolved in either half of this window, so there is no trend to report.
+            </p>
+          ) : (
+            <>
+              <p
+                className={
+                  change === null
+                    ? "mt-3 text-h1 font-bold text-content"
+                    : change >= 0
+                      ? "mt-3 text-h1 font-bold text-success"
+                      : "mt-3 text-h1 font-bold text-danger"
+                }
+              >
+                {change === null ? "—" : `${change >= 0 ? "+" : ""}${change}%`}
+              </p>
+              <p className="mt-1 text-caption text-content-secondary">
+                {recent} resolved in the last {half} days, {earlier} in the {half} before.
+              </p>
+              {change === null ? (
+                <p className="mt-1 text-caption text-content-muted">
+                  Nothing resolved in the earlier half, so a percentage would divide by zero. The
+                  counts are given instead.
+                </p>
+              ) : null}
+            </>
+          )}
+        </div>
       </div>
 
       <Panel title={`Cases resolved, last 30 days — ${resolvedInWindow} total`}>
