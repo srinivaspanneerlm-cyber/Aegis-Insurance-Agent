@@ -313,6 +313,70 @@ export const enterpriseAdminService = {
     };
   },
 
+  /**
+   * The book: policies customers actually hold.
+   *
+   * Distinct from the catalogue, which is what the tenant offers. The split
+   * that matters here is `external` — cover the customer declared they hold
+   * elsewhere counts as cover, and counting it as this tenant's book would
+   * overstate the business by however many policies their customers bought
+   * from somebody else. Both are reported, separately.
+   */
+  async policies(organizationId: string, query: { status?: string; take?: unknown }) {
+    const take = clampTake(query.take, 50);
+    const where = {
+      organizationId,
+      ...(query.status ? { status: query.status } : {}),
+    };
+
+    const soon = new Date(Date.now() + 90 * 86_400_000);
+
+    const [total, byStatus, sold, held, renewingSoon, policies] = await Promise.all([
+      prisma.heldPolicy.count({ where: { organizationId } }),
+      prisma.heldPolicy.groupBy({ by: ["status"], where: { organizationId }, _count: { _all: true } }),
+      prisma.heldPolicy.count({ where: { organizationId, external: false } }),
+      prisma.heldPolicy.count({ where: { organizationId, external: true } }),
+      prisma.heldPolicy.count({
+        where: { organizationId, status: "ACTIVE", renewalDate: { gte: new Date(), lte: soon } },
+      }),
+      prisma.heldPolicy.findMany({
+        where,
+        select: {
+          id: true,
+          domain: true,
+          insurer: true,
+          productName: true,
+          policyNumber: true,
+          sumInsured: true,
+          premium: true,
+          startDate: true,
+          renewalDate: true,
+          external: true,
+          status: true,
+          profile: { select: { user: { select: { id: true, name: true, email: true } } } },
+        },
+        orderBy: { renewalDate: "asc" },
+        take,
+      }),
+    ]);
+
+    return {
+      total,
+      byStatus: Object.fromEntries(byStatus.map((r) => [r.status, r._count._all])),
+      sold,
+      held,
+      renewingSoon,
+      policies,
+      // Premium is stored per policy, but nothing records what was actually
+      // collected — so a book value would be a list price, not revenue.
+      bookValue: {
+        available: false as const,
+        reason: "Policies carry a premium figure, but no payment is ever recorded against one.",
+        needs: "A payment or collection record linked to the held policy.",
+      },
+    };
+  },
+
   /** Claims, as an operations view. */
   async claims(organizationId: string) {
     const [byStatus, byPriority, recent, resolved] = await Promise.all([

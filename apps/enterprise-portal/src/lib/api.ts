@@ -64,6 +64,12 @@ export const consoleApi = {
       `/enterprise/employees${department ? `?department=${encodeURIComponent(department)}` : ""}`
     ),
   products: () => call<ProductsPayload>("/enterprise/products"),
+
+  /** The book of policies customers hold. Distinct from the catalogue above. */
+  policies: (status?: string) =>
+    call<PoliciesPayload>(
+      `/enterprise/policies${status ? `?status=${encodeURIComponent(status)}` : ""}`
+    ),
   claims: () => call<ClaimsPayload>("/enterprise/claims"),
   aiSystems: () => call<{ systems: AiSystem[] }>("/enterprise/ai-systems"),
   workflows: () => call<WorkflowsPayload>("/enterprise/workflows"),
@@ -225,4 +231,29 @@ export interface CustomerDetail {
     ipAddress: string | null;
     createdAt: string;
   }[];
+}
+
+export interface PoliciesPayload {
+  total: number;
+  byStatus: Record<string, number>;
+  /** Sold by this tenant. */
+  sold: number;
+  /** Declared by the customer as held elsewhere. */
+  held: number;
+  renewingSoon: number;
+  policies: {
+    id: string;
+    domain: string;
+    insurer: string | null;
+    productName: string | null;
+    policyNumber: string | null;
+    sumInsured: number | null;
+    premium: number | null;
+    startDate: string | null;
+    renewalDate: string | null;
+    external: boolean;
+    status: string;
+    profile: { user: { id: string; name: string; email: string } | null } | null;
+  }[];
+  bookValue: { available: false; reason: string; needs: string };
 }

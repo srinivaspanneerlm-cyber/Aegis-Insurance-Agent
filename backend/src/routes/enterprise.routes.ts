@@ -138,6 +138,18 @@ router.get(
   })
 );
 
+router.get(
+  "/policies",
+  requirePermission("policy.read"),
+  catchAsync(async (req, res) => {
+    const result = await enterpriseAdminService.policies(orgScope(req), {
+      ...(q(req, "status") ? { status: q(req, "status") as string } : {}),
+      take: req.query.take,
+    });
+    sendSuccess(res, 200, result, { results: result.policies.length });
+  })
+);
+
 // ── AI and workflow ──────────────────────────────────────────────────────────
 
 // Monitoring only. There is deliberately no route that changes a model, a
