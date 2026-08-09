@@ -4,7 +4,13 @@ import { useCallback, useEffect, useState } from "react";
 import { use } from "react";
 import { Badge, Empty, Panel, Skeleton } from "@/components/Cards";
 import { Icon } from "@/components/Icon";
-import { API_URL, KIND_LABELS, STATUS_LABELS, type WorkItem } from "@/lib/workspace";
+import {
+  API_URL,
+  KIND_LABELS,
+  STATUS_LABELS,
+  raisedByAssistant,
+  type WorkItem,
+} from "@/lib/workspace";
 import { WorkspaceError } from "@/lib/api";
 
 interface Step {
@@ -134,6 +140,29 @@ export default function WorkItemPage({ params }: { params: Promise<{ id: string 
 
       {item.summary ? (
         <p className="max-w-3xl text-pretty text-body-sm text-content-secondary">{item.summary}</p>
+      ) : null}
+
+      {/* Where the case came from.
+
+          `origin` and `originRationale` have been on this record since the work
+          system was built and no screen read them, so a case the assistant
+          raised was indistinguishable from one a colleague raised. That matters
+          most at the point of deciding: the reason is a model's inference, and
+          somebody weighing it is entitled to know that before they act on it. */}
+      {raisedByAssistant(item) ? (
+        <div className="flex max-w-3xl items-start gap-3 rounded-card border border-brand/30 bg-brand/5 px-4 py-3">
+          <Icon name="spark" size={18} className="mt-0.5 shrink-0 text-brand" />
+          <div className="min-w-0">
+            <p className="text-body-sm font-medium text-content">The assistant raised this.</p>
+            <p className="mt-1 text-pretty text-body-sm text-content-secondary">
+              {item.originRationale ??
+                "No reason was recorded with it. Treat it as a prompt to look, not as a finding."}
+            </p>
+            <p className="mt-2 text-caption text-content-muted">
+              It is a suggestion. Closing it is your call, and your decision is what gets recorded.
+            </p>
+          </div>
+        </div>
       ) : null}
 
       <div className="grid gap-4 lg:grid-cols-3">

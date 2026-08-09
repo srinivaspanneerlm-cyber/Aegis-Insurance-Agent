@@ -2,7 +2,14 @@
 
 import Link from "next/link";
 import { Badge, Empty } from "@/components/Cards";
-import { KIND_LABELS, STATUS_LABELS, isOverdue, type WorkItem } from "@/lib/workspace";
+import { Icon } from "@/components/Icon";
+import {
+  KIND_LABELS,
+  STATUS_LABELS,
+  isOverdue,
+  raisedByAssistant,
+  type WorkItem,
+} from "@/lib/workspace";
 
 const PRIORITY_TONE = {
   URGENT: "danger",
@@ -63,6 +70,7 @@ export function QueueTable({ items }: { items: readonly WorkItem[] }) {
                   <p className="text-caption text-content-muted">
                     {KIND_LABELS[item.kind] ?? item.kind}
                   </p>
+                  {raisedByAssistant(item) ? <AssistantMark /> : null}
                 </td>
                 <td className="py-3 pr-4">
                   <Badge>{STATUS_LABELS[item.status] ?? item.status}</Badge>
@@ -93,6 +101,7 @@ export function QueueTable({ items }: { items: readonly WorkItem[] }) {
               {item.reference}
             </Link>
             <p className="mt-1 text-body-sm text-content">{item.title}</p>
+            {raisedByAssistant(item) ? <AssistantMark /> : null}
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <Badge>{STATUS_LABELS[item.status] ?? item.status}</Badge>
               <Badge tone={PRIORITY_TONE[item.priority as keyof typeof PRIORITY_TONE] ?? "neutral"}>
@@ -104,6 +113,23 @@ export function QueueTable({ items }: { items: readonly WorkItem[] }) {
         ))}
       </ul>
     </>
+  );
+}
+
+/**
+ * Says the assistant raised this piece of work.
+ *
+ * In words, not as an icon or a colour: the point of the label is that somebody
+ * can weigh the suggestion differently from a colleague's request, and a symbol
+ * they have to learn does not do that. The reason itself is on the case — it is
+ * a sentence, and a queue row is not where a sentence belongs.
+ */
+function AssistantMark() {
+  return (
+    <span className="mt-1 inline-flex items-center gap-1 text-caption text-content-muted">
+      <Icon name="spark" size={12} aria-hidden="true" />
+      Raised by the assistant
+    </span>
   );
 }
 

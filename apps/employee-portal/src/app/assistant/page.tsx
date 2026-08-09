@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Badge, Empty, Panel, Skeleton } from "@/components/Cards";
 import { Icon } from "@/components/Icon";
 import { workspaceApi, type WorkflowDefinitionView } from "@/lib/api";
+import { KIND_LABELS, raisedByAssistant, type WorkItem } from "@/lib/workspace";
 
 /**
  * The employee assistant.
@@ -15,6 +16,11 @@ import { workspaceApi, type WorkflowDefinitionView } from "@/lib/api";
  * workflow definitions refuse to load if a step marked `requiresDecision` is
  * given to anything other than an employee.
  *
+ * The page opens with what the assistant has actually done in this employee's
+ * queue, because a page about the assistant that shows only its job description
+ * is a page nobody can check. The remit below is still worth stating — it is
+ * what the server enforces — but it is the second thing, not the first.
+ *
  * What is not wired is the language model behind it. That lives in the
  * customer-facing engine, which is protected code needing explicit sign-off to
  * extend. Rather than ship a chat box that fabricates answers about claim
@@ -25,6 +31,10 @@ import { workspaceApi, type WorkflowDefinitionView } from "@/lib/api";
 export default function AssistantPage() {
   const [definitions, setDefinitions] = useState<WorkflowDefinitionView[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [raised, setRaised] = useState<WorkItem[] | null>(null);
+  // Kept apart from `error`: the remit below is worth showing even when the
+  // queue call fails, and one failure should not blank the other panel.
+  const [raisedFailed, setRaisedFailed] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -36,6 +46,15 @@ export default function AssistantPage() {
       .catch((err) => {
         if (!cancelled) setError(err instanceof Error ? err.message : "Could not load workflows.");
       });
+    workspaceApi
+      .queue()
+      .then((data) => {
+        if (!cancelled) setRaised(data.items.filter(raisedByAssistant));
+      })
+      .catch(() => {
+        if (!cancelled) setRaisedFailed(true);
+      });
+
     return () => {
       cancelled = true;
     };
@@ -63,6 +82,56 @@ export default function AssistantPage() {
           </p>
         </div>
       </div>
+
+      <Panel title="What it has raised for you">
+        {raisedFailed ? (
+          <p className="text-body-sm text-content-secondary">
+            Your queue could not be loaded, so this list is not available right now.
+          </p>
+        ) : raised === null ? (
+          <div className="flex flex-col gap-3">
+            {[0, 1].map((i) => (
+              <Skeleton key={i} className="h-14 w-full" />
+            ))}
+          </div>
+        ) : raised.length === 0 ? (
+          <Empty icon="check">
+            The assistant has raised nothing in your open queue. Everything assigned to you came
+            from a person or a scheduled process.
+          </Empty>
+        ) : (
+          <ul className="flex flex-col gap-2">
+            {raised.map((item) => (
+              <li
+                key={item.id}
+                className="rounded-control border border-line/40 bg-surface-raised/20 px-4 py-3"
+              >
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <a
+                    href={`/work/${item.id}`}
+                    className="focus-ring rounded text-body-sm font-medium tabular-nums text-brand"
+                  >
+                    {item.reference}
+                  </a>
+                  <span className="text-caption text-content-muted">
+                    {KIND_LABELS[item.kind] ?? item.kind}
+                  </span>
+                </div>
+                <p className="mt-1 text-body-sm text-content">{item.title}</p>
+                {/* The reason, verbatim. Paraphrasing a model's rationale into
+                    something tidier is how a guess starts reading as a finding. */}
+                {item.originRationale ? (
+                  <p className="mt-1 text-pretty text-caption text-content-secondary">
+                    {item.originRationale}
+                  </p>
+                ) : (
+                  <p className="mt-1 text-caption text-content-muted">No reason was recorded.</p>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </Panel>
 
       <Panel title="Where the assistant works">
         {error ? (

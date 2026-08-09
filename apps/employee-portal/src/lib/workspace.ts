@@ -154,6 +154,17 @@ export interface WorkItem {
   priority: string;
   dueAt: string | null;
   openedAt: string;
+
+  /**
+   * HUMAN | AI | SYSTEM — who decided this needed doing.
+   *
+   * The server has always sent this and every screen dropped it, so work the
+   * assistant raised arrived looking exactly like work a colleague raised.
+   */
+  origin: "HUMAN" | "AI" | "SYSTEM";
+
+  /** Set when the assistant raised it: why, in terms the assignee can judge. */
+  originRationale: string | null;
 }
 
 export interface Analytics {
@@ -198,5 +209,14 @@ export const STATUS_LABELS: Record<string, string> = {
 export const PRIORITY_ORDER = ["URGENT", "HIGH", "NORMAL", "LOW"] as const;
 
 /** Overdue is a state, not a status — it is derived, and it is what people act on. */
+/**
+ * Whether the assistant raised this rather than a person.
+ *
+ * `SYSTEM` is excluded deliberately: a renewal opened by a scheduled job is not
+ * a judgement anybody made, and badging it as the assistant's would overstate
+ * what the model did.
+ */
+export const raisedByAssistant = (item: WorkItem): boolean => item.origin === "AI";
+
 export const isOverdue = (item: WorkItem): boolean =>
   Boolean(item.dueAt) && new Date(item.dueAt as string) < new Date();
