@@ -80,7 +80,6 @@ export const NAVIGATION: readonly NavGroup[] = [
         href: "/appointments",
         icon: "clock",
         permission: "work.read",
-        comingSoon: true,
       },
       {
         label: "Policy Management",

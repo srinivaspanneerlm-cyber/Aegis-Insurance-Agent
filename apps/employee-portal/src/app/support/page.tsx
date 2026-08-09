@@ -4,13 +4,10 @@ import { useState } from "react";
 import { QueuePage } from "@/components/QueuePage";
 import { RaiseTicket } from "@/components/RaiseTicket";
 
-const KINDS = ["COMPLAINT", "APPOINTMENT"];
+const KINDS = ["COMPLAINT"];
 
-/** What this screen may raise. A support desk does not open claims. */
-const RAISABLE = [
-  { value: "COMPLAINT", label: "Complaint" },
-  { value: "APPOINTMENT", label: "Appointment" },
-] as const;
+/** What this screen may raise. Appointments have their own screen. */
+const RAISABLE = [{ value: "COMPLAINT", label: "Complaint" }] as const;
 
 /**
  * Customer support.
@@ -29,7 +26,7 @@ export default function Page() {
 
       <QueuePage
         title="Customer Support"
-        description="Complaints and appointments you are handling."
+        description="Complaints you are handling. Appointments have their own screen."
         kinds={KINDS}
         emptyMessage="No support cases are assigned to you."
         reloadToken={reloadToken}
