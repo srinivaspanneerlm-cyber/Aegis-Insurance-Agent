@@ -67,6 +67,7 @@ export const NAVIGATION: readonly NavGroup[] = [
         icon: "users",
         permission: "customer.read",
       },
+      { label: "Leads", href: "/leads", icon: "users", permission: "lead.read" },
       {
         label: "Customer Support",
         href: "/support",

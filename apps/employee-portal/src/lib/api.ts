@@ -139,6 +139,29 @@ export const workspaceApi = {
    * slicing here — the endpoint bounds the result, and a client-side slice
    * would silently miss anything past the first page.
    */
+  /**
+   * The lead pipeline.
+   *
+   * Paginated by the server with no status filter, so the page fetches a page
+   * at a time and counts the pipeline from what the server reports rather than
+   * from the rows on screen.
+   */
+  leads: (page = 1, limit = 20) =>
+    callPaged<{ leads: Lead[] }>(`/leads?page=${page}&limit=${limit}`),
+
+  /**
+   * Move a lead along the pipeline.
+   *
+   * Only `status` is sent. PUT /leads/:id has no body validation and the
+   * service spreads whatever it receives into the update, so a wider payload
+   * from here would be writing columns nobody meant to expose.
+   */
+  updateLeadStatus: (id: string, status: LeadStatus) =>
+    call<{ lead: Lead }>(`/leads/${encodeURIComponent(id)}`, {
+      method: "PUT",
+      body: JSON.stringify({ status }),
+    }),
+
   policies: (page = 1, limit = 20) =>
     callPaged<{ policies: CataloguePolicy[] }>(`/policies?page=${page}&limit=${limit}`),
 
@@ -306,4 +329,19 @@ export interface Escalation {
   workItemId: string;
   reason: string;
   detail: string;
+}
+
+export type LeadStatus = "pending" | "contacted" | "qualified" | "won" | "lost";
+
+export interface Lead {
+  id: string;
+  customerName: string;
+  email: string;
+  phone: string;
+  insuranceType: string;
+  budget: string;
+  status: string;
+  assignedToId: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
