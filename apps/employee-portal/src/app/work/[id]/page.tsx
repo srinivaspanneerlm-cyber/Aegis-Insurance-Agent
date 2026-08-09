@@ -12,6 +12,7 @@ import {
   type WorkItem,
 } from "@/lib/workspace";
 import { WorkspaceError } from "@/lib/api";
+import { useWorkspace } from "@/context/WorkspaceProvider";
 
 interface Step {
   id: string;
@@ -31,6 +32,53 @@ interface TimelineEvent {
   kind: string;
   summary: string;
   createdAt: string;
+  /** Null when the platform acted rather than a person. */
+  actorId: string | null;
+  /** A JSON blob — the routing decision, the permission checked, and so on. */
+  detail: string | null;
+}
+
+/** Event kinds, in words. The raw values are database enums. */
+const EVENT_LABELS: Record<string, string> = {
+  OPENED: "Opened",
+  ASSIGNED: "Assigned",
+  STATUS_CHANGED: "Status changed",
+  STEP_COMPLETED: "Step completed",
+  NOTE: "Note added",
+  ESCALATED: "Escalated",
+  RESOLVED: "Resolved",
+  CONTACTED: "Customer contacted",
+  REOPENED: "Reopened",
+};
+
+const EVENT_TONE: Record<string, "neutral" | "info" | "success" | "warning" | "danger"> = {
+  OPENED: "info",
+  RESOLVED: "success",
+  ESCALATED: "danger",
+};
+
+/**
+ * Who did it, as precisely as this realm can say.
+ *
+ * The endpoint sends `actorId` and no name, and resolving one would need a
+ * lookup this portal has no route for. So the answer is the platform, you, or
+ * somebody else — naming the colleague would mean inventing it.
+ */
+function actorLabel(actorId: string | null, meId: string | undefined): string {
+  if (!actorId) return "By the platform";
+  if (meId && actorId === meId) return "By you";
+  return "By another member of staff";
+}
+
+/** Formats the recorded detail blob, or gives up honestly. */
+function formatDetail(detail: string): string {
+  try {
+    return JSON.stringify(JSON.parse(detail), null, 2);
+  } catch {
+    // Not JSON after all. Showing it raw beats showing nothing on an audit
+    // trail — the record is the point.
+    return detail;
+  }
 }
 
 interface WorkDetail {
@@ -56,6 +104,7 @@ const DECISIONS = [
  */
 export default function WorkItemPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  const { session } = useWorkspace();
   const [detail, setDetail] = useState<WorkDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -255,18 +304,44 @@ export default function WorkItemPage({ params }: { params: Promise<{ id: string 
                     aria-hidden="true"
                     className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-line"
                   />
-                  <div className="min-w-0">
-                    <p className="text-pretty text-body-sm text-content-secondary">
+                  <div className="min-w-0 flex-1">
+                    {/* kind, actorId and detail were all in the payload and none
+                        was rendered. On an audit trail, what happened and who
+                        did it are the two things that matter most. */}
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge tone={EVENT_TONE[event.kind] ?? "neutral"}>
+                        {EVENT_LABELS[event.kind] ?? event.kind}
+                      </Badge>
+                      <time
+                        dateTime={event.createdAt}
+                        className="text-caption tabular-nums text-content-muted"
+                      >
+                        {new Date(event.createdAt).toLocaleString(undefined, {
+                          day: "numeric",
+                          month: "short",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </time>
+                    </div>
+
+                    <p className="mt-1 text-pretty text-body-sm text-content-secondary">
                       {event.summary}
                     </p>
                     <p className="mt-0.5 text-caption text-content-muted">
-                      {new Date(event.createdAt).toLocaleString(undefined, {
-                        day: "numeric",
-                        month: "short",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
+                      {actorLabel(event.actorId, session?.user.id)}
                     </p>
+
+                    {event.detail ? (
+                      <details className="mt-2">
+                        <summary className="focus-ring cursor-pointer rounded text-caption text-brand">
+                          What was recorded
+                        </summary>
+                        <pre className="mt-2 overflow-x-auto rounded-control border border-line/40 bg-surface-raised/30 p-3 text-caption text-content-secondary">
+                          {formatDetail(event.detail)}
+                        </pre>
+                      </details>
+                    ) : null}
                   </div>
                 </li>
               ))}
