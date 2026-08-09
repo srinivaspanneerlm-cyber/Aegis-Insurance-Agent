@@ -33,6 +33,14 @@ export default function ProductsPage() {
         </p>
       </header>
 
+      <p className="-mt-3 text-body-sm text-content-secondary">
+        What customers actually hold is in{" "}
+        <a href="/policies" className="focus-ring rounded text-brand underline underline-offset-4">
+          Policy Management
+        </a>
+        .
+      </p>
+
       {error ? <Empty icon="close">{error}</Empty> : null}
 
       {data ? (

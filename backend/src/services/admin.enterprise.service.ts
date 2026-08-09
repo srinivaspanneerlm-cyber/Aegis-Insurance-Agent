@@ -423,6 +423,129 @@ export const enterpriseAdminService = {
     };
   },
 
+  /**
+   * Renewals, from both places they live.
+   *
+   * A renewal work item is one somebody has raised. A held policy with a
+   * renewal date approaching is one nobody has noticed yet, and those are
+   * precisely the ones that lapse — so a screen showing only the queue would
+   * show the work and hide the risk.
+   */
+  async renewals(organizationId: string) {
+    const now = new Date();
+    const in30 = new Date(Date.now() + 30 * 86_400_000);
+    const in90 = new Date(Date.now() + 90 * 86_400_000);
+
+    const [raised, byStatus, overdue, next30, next90, upcoming] = await Promise.all([
+      prisma.workItem.count({ where: { organizationId, kind: "RENEWAL", closedAt: null } }),
+      prisma.workItem.groupBy({
+        by: ["status"],
+        where: { organizationId, kind: "RENEWAL" },
+        _count: { _all: true },
+      }),
+      prisma.heldPolicy.count({
+        where: { organizationId, status: "ACTIVE", renewalDate: { lt: now } },
+      }),
+      prisma.heldPolicy.count({
+        where: { organizationId, status: "ACTIVE", renewalDate: { gte: now, lte: in30 } },
+      }),
+      prisma.heldPolicy.count({
+        where: { organizationId, status: "ACTIVE", renewalDate: { gt: in30, lte: in90 } },
+      }),
+      prisma.heldPolicy.findMany({
+        where: { organizationId, status: "ACTIVE", renewalDate: { gte: now, lte: in90 } },
+        select: {
+          id: true,
+          domain: true,
+          insurer: true,
+          productName: true,
+          premium: true,
+          renewalDate: true,
+          external: true,
+          profile: { select: { user: { select: { id: true, name: true, email: true } } } },
+        },
+        orderBy: { renewalDate: "asc" },
+        take: 50,
+      }),
+    ]);
+
+    return {
+      raised,
+      byStatus: Object.fromEntries(byStatus.map((r) => [r.status, r._count._all])),
+      overdue,
+      next30,
+      next90,
+      upcoming,
+      // Whether a renewal actually completed is not recorded anywhere: a lapsed
+      // policy and one renewed elsewhere look identical in this data.
+      renewalRate: {
+        available: false as const,
+        reason: "Nothing records whether a policy was renewed, lapsed, or moved to another insurer.",
+        needs: "An outcome written onto the policy when its renewal date passes.",
+      },
+    };
+  },
+
+  /**
+   * Documents and identity checks.
+   *
+   * Verification counts come from the document's own status; KYC counts from the
+   * work items that carry the check. They are reported side by side and not
+   * added together — a KYC case can span several documents, and one document
+   * can settle none of them on its own.
+   */
+  async documents(organizationId: string) {
+    const [byStatus, unowned, kycByStatus, kycOverdue, recent] = await Promise.all([
+      prisma.uploadedDocument.groupBy({
+        by: ["status"],
+        where: { organizationId, deletedAt: null },
+        _count: { _all: true },
+      }),
+      prisma.uploadedDocument.count({
+        where: { organizationId, deletedAt: null, ownerId: null },
+      }),
+      prisma.workItem.groupBy({
+        by: ["status"],
+        where: { organizationId, kind: "KYC" },
+        _count: { _all: true },
+      }),
+      prisma.workItem.count({
+        where: { organizationId, kind: "KYC", closedAt: null, dueAt: { lt: new Date() } },
+      }),
+      prisma.uploadedDocument.findMany({
+        where: { organizationId, deletedAt: null },
+        select: {
+          id: true,
+          filename: true,
+          documentKey: true,
+          domain: true,
+          status: true,
+          uploadedAt: true,
+          verifiedAt: true,
+          rejectionReason: true,
+          owner: { select: { id: true, name: true } },
+        },
+        orderBy: { uploadedAt: "desc" },
+        take: 50,
+      }),
+    ]);
+
+    return {
+      byStatus: Object.fromEntries(byStatus.map((r) => [r.status, r._count._all])),
+      unowned,
+      kycByStatus: Object.fromEntries(kycByStatus.map((r) => [r.status, r._count._all])),
+      kycOverdue,
+      recent,
+      // The document platform stores an extraction blob but never records
+      // whether a machine or a person produced the verdict.
+      automatedVerification: {
+        available: false as const,
+        reason: "Documents record who verified them and when, but not whether any check was automated.",
+        needs: "A verification method written alongside the verdict.",
+      },
+    };
+  },
+
   /** The audit trail, filterable. Read-only by construction — it is append-only. */
   async auditLog(organizationId: string, query: { action?: string; actorId?: string; take?: unknown }) {
     const take = clampTake(query.take, 50);

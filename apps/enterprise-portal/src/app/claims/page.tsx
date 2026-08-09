@@ -62,6 +62,26 @@ export default function ClaimsPage() {
             />
           </div>
 
+          {/* Open claims by urgency. It was in the payload and rendered nowhere,
+          which left the operations view able to say how many are open and not
+          which ones are on fire. */}
+          {Object.keys(data.byPriority).length > 0 ? (
+            <Panel title="Open claims by urgency">
+              <div className="flex flex-wrap gap-2">
+                {["URGENT", "HIGH", "NORMAL", "LOW"]
+                  .filter((p) => (data.byPriority[p] ?? 0) > 0)
+                  .map((p) => (
+                    <Badge
+                      key={p}
+                      tone={p === "URGENT" ? "danger" : p === "HIGH" ? "warning" : "neutral"}
+                    >
+                      {p.charAt(0) + p.slice(1).toLowerCase()} · {data.byPriority[p]}
+                    </Badge>
+                  ))}
+              </div>
+            </Panel>
+          ) : null}
+
           <div className="rounded-card border border-dashed border-line/50 bg-surface-raised/20 p-5">
             <p className="text-body-sm font-semibold text-content-secondary">
               Fraud indicators — not measured

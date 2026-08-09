@@ -150,6 +150,22 @@ router.get(
   })
 );
 
+router.get(
+  "/renewals",
+  requirePermission("policy.read"),
+  catchAsync(async (req, res) => {
+    sendSuccess(res, 200, await enterpriseAdminService.renewals(orgScope(req)));
+  })
+);
+
+router.get(
+  "/documents",
+  requirePermission("customer.read"),
+  catchAsync(async (req, res) => {
+    sendSuccess(res, 200, await enterpriseAdminService.documents(orgScope(req)));
+  })
+);
+
 // ── AI and workflow ──────────────────────────────────────────────────────────
 
 // Monitoring only. There is deliberately no route that changes a model, a

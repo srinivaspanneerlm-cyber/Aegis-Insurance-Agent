@@ -65,6 +65,9 @@ export const consoleApi = {
     ),
   products: () => call<ProductsPayload>("/enterprise/products"),
 
+  renewals: () => call<RenewalsPayload>("/enterprise/renewals"),
+  documents: () => call<DocumentsPayload>("/enterprise/documents"),
+
   /** The book of policies customers hold. Distinct from the catalogue above. */
   policies: (status?: string) =>
     call<PoliciesPayload>(
@@ -256,4 +259,50 @@ export interface PoliciesPayload {
     profile: { user: { id: string; name: string; email: string } | null } | null;
   }[];
   bookValue: { available: false; reason: string; needs: string };
+}
+
+export interface Unavailable {
+  available: false;
+  reason: string;
+  needs: string;
+}
+
+export interface RenewalsPayload {
+  /** Renewal work somebody has raised. */
+  raised: number;
+  byStatus: Record<string, number>;
+  /** Policies whose renewal date has already passed. */
+  overdue: number;
+  next30: number;
+  next90: number;
+  upcoming: {
+    id: string;
+    domain: string;
+    insurer: string | null;
+    productName: string | null;
+    premium: number | null;
+    renewalDate: string | null;
+    external: boolean;
+    profile: { user: { id: string; name: string; email: string } | null } | null;
+  }[];
+  renewalRate: Unavailable;
+}
+
+export interface DocumentsPayload {
+  byStatus: Record<string, number>;
+  unowned: number;
+  kycByStatus: Record<string, number>;
+  kycOverdue: number;
+  recent: {
+    id: string;
+    filename: string;
+    documentKey: string | null;
+    domain: string | null;
+    status: string;
+    uploadedAt: string;
+    verifiedAt: string | null;
+    rejectionReason: string | null;
+    owner: { id: string; name: string } | null;
+  }[];
+  automatedVerification: Unavailable;
 }
