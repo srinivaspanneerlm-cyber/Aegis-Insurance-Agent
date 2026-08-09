@@ -19,12 +19,21 @@ export function QueuePage({
   description,
   kinds,
   emptyMessage,
+  reloadToken = 0,
 }: {
   title: string;
   description: string;
   /** Null shows everything assigned to them. */
   kinds: readonly string[] | null;
   emptyMessage: string;
+  /**
+   * Bumped by a parent that has just changed the queue, to re-read it.
+   *
+   * A number rather than a callback: the queue is the server's answer, and a
+   * parent that could splice a row in locally would be showing its own guess at
+   * where routing put it.
+   */
+  reloadToken?: number;
 }) {
   const [items, setItems] = useState<WorkItem[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -50,7 +59,7 @@ export function QueuePage({
     return () => {
       cancelled = true;
     };
-  }, [kinds]);
+  }, [kinds, reloadToken]);
 
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-6">

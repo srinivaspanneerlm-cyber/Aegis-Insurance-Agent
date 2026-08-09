@@ -184,6 +184,27 @@ export const workspaceApi = {
       `/communication/notifications?take=100${status ? `&status=${status}` : ""}`
     ),
 
+  /**
+   * Raise a piece of work.
+   *
+   * Only `kind`, `title`, `summary`, `priority` and the customer are sent —
+   * routing, the SLA and the due time are decided by the server, and a caller
+   * that could set its own due time could quietly opt out of the measurement.
+   */
+  createWork: (input: {
+    kind: string;
+    title: string;
+    summary?: string;
+    priority?: string;
+    customerId?: string | null;
+  }) =>
+    // The envelope is `{ item }`, not a bare work item — typing it as the latter
+    // compiles and yields `undefined` for every field at runtime.
+    call<{ item: WorkItem }>("/employee/work", {
+      method: "POST",
+      body: JSON.stringify(input),
+    }),
+
   markNotificationsRead: (ids: readonly string[]) =>
     call<{ updated: number }>("/communication/notifications/read", {
       method: "POST",
