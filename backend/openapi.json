@@ -53,6 +53,30 @@
       "description": "Tenant administration. Read-heavy by design: it watches and reports, and decides nothing a person is answerable for."
     },
     {
+      "name": "Employee Workspace",
+      "description": "The queue an employee works, realm-walled as a whole. A customer's session reaches none of it."
+    },
+    {
+      "name": "Documents",
+      "description": "The document platform. Scoped by caller rather than realm-walled — a customer legitimately manages their own documents."
+    },
+    {
+      "name": "Intelligence",
+      "description": "A customer's insurance profile, the advice derived from it, and aggregate views for staff."
+    },
+    {
+      "name": "Communication",
+      "description": "Notifications, conversations, timelines and announcements."
+    },
+    {
+      "name": "Knowledge",
+      "description": "Approved guidance and institutional memory. Provenance is the point: advice traced to nothing is advice the business cannot defend."
+    },
+    {
+      "name": "Platform",
+      "description": "Platform operation — tenants, licences, settings and sessions. The narrowest door on the API."
+    },
+    {
       "name": "Undocumented",
       "description": "Served, but not yet described. A gap, shown rather than hidden."
     }
@@ -957,8 +981,10 @@
     "/api/v1/communication/activity": {
       "get": {
         "tags": [
-          "Undocumented"
+          "Communication"
         ],
+        "summary": "Recent activity across the operation.",
+        "x-permission": "work.read",
         "security": [
           {
             "cookieAuth": []
@@ -967,7 +993,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -994,8 +1019,11 @@
     "/api/v1/communication/analytics/health": {
       "get": {
         "tags": [
-          "Undocumented"
+          "Communication"
         ],
+        "summary": "Whether the delivery channels are working.",
+        "description": "A platform capability: channel health is infrastructure, not a tenant's business.",
+        "x-permission": "platform.configure",
         "security": [
           {
             "cookieAuth": []
@@ -1004,7 +1032,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -1031,8 +1058,10 @@
     "/api/v1/communication/analytics/overview": {
       "get": {
         "tags": [
-          "Undocumented"
+          "Communication"
         ],
+        "summary": "Delivery and engagement figures.",
+        "x-permission": "analytics.read",
         "security": [
           {
             "cookieAuth": []
@@ -1041,7 +1070,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -1068,8 +1096,9 @@
     "/api/v1/communication/announcements": {
       "get": {
         "tags": [
-          "Undocumented"
+          "Communication"
         ],
+        "summary": "Announcements addressed to the caller.",
         "security": [
           {
             "cookieAuth": []
@@ -1078,7 +1107,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -1103,8 +1131,10 @@
       },
       "post": {
         "tags": [
-          "Undocumented"
+          "Communication"
         ],
+        "summary": "Publish an announcement.",
+        "description": "The audience realm is taken from the request body, defaulting to EMPLOYEE, and validated against the known realms — it is not derived from the caller. This route carries no capability beyond being signed in, so any authenticated account may publish to any realm. Announcements also carry no organisation, so they are platform-wide.",
         "security": [
           {
             "cookieAuth": []
@@ -1113,7 +1143,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -1140,8 +1169,9 @@
     "/api/v1/communication/announcements/{id}/read": {
       "post": {
         "tags": [
-          "Undocumented"
+          "Communication"
         ],
+        "summary": "Mark an announcement read.",
         "parameters": [
           {
             "name": "id",
@@ -1160,7 +1190,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -1187,8 +1216,9 @@
     "/api/v1/communication/conversations": {
       "post": {
         "tags": [
-          "Undocumented"
+          "Communication"
         ],
+        "summary": "Start a conversation.",
         "security": [
           {
             "cookieAuth": []
@@ -1197,7 +1227,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -1224,8 +1253,9 @@
     "/api/v1/communication/conversations/{id}": {
       "get": {
         "tags": [
-          "Undocumented"
+          "Communication"
         ],
+        "summary": "One conversation and its messages.",
         "parameters": [
           {
             "name": "id",
@@ -1244,7 +1274,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -1271,8 +1300,10 @@
     "/api/v1/communication/conversations/{id}/draft": {
       "post": {
         "tags": [
-          "Undocumented"
+          "Communication"
         ],
+        "summary": "Draft a reply for a person to send.",
+        "description": "A draft, never a send — the assistant proposes and a person decides.",
         "parameters": [
           {
             "name": "id",
@@ -1291,7 +1322,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -1318,8 +1348,9 @@
     "/api/v1/communication/conversations/{id}/messages": {
       "post": {
         "tags": [
-          "Undocumented"
+          "Communication"
         ],
+        "summary": "Send a message.",
         "parameters": [
           {
             "name": "id",
@@ -1338,7 +1369,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -1365,8 +1395,9 @@
     "/api/v1/communication/conversations/{id}/participants": {
       "post": {
         "tags": [
-          "Undocumented"
+          "Communication"
         ],
+        "summary": "Add a participant.",
         "parameters": [
           {
             "name": "id",
@@ -1385,7 +1416,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -1412,8 +1442,9 @@
     "/api/v1/communication/conversations/{id}/read": {
       "post": {
         "tags": [
-          "Undocumented"
+          "Communication"
         ],
+        "summary": "Mark a conversation read.",
         "parameters": [
           {
             "name": "id",
@@ -1432,7 +1463,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -1459,8 +1489,9 @@
     "/api/v1/communication/conversations/{id}/summary": {
       "get": {
         "tags": [
-          "Undocumented"
+          "Communication"
         ],
+        "summary": "A summary of the exchange.",
         "parameters": [
           {
             "name": "id",
@@ -1479,7 +1510,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -1506,8 +1536,9 @@
     "/api/v1/communication/conversations/{id}/triage": {
       "get": {
         "tags": [
-          "Undocumented"
+          "Communication"
         ],
+        "summary": "What the conversation appears to need.",
         "parameters": [
           {
             "name": "id",
@@ -1526,7 +1557,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -1553,8 +1583,9 @@
     "/api/v1/communication/inbox": {
       "get": {
         "tags": [
-          "Undocumented"
+          "Communication"
         ],
+        "summary": "Conversations the caller is part of.",
         "security": [
           {
             "cookieAuth": []
@@ -1563,7 +1594,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -1590,8 +1620,9 @@
     "/api/v1/communication/notifications": {
       "get": {
         "tags": [
-          "Undocumented"
+          "Communication"
         ],
+        "summary": "The caller's notifications.",
         "security": [
           {
             "cookieAuth": []
@@ -1600,7 +1631,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -1627,8 +1657,9 @@
     "/api/v1/communication/notifications/archive": {
       "post": {
         "tags": [
-          "Undocumented"
+          "Communication"
         ],
+        "summary": "Archive notifications.",
         "security": [
           {
             "cookieAuth": []
@@ -1637,7 +1668,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -1664,8 +1694,9 @@
     "/api/v1/communication/notifications/read": {
       "post": {
         "tags": [
-          "Undocumented"
+          "Communication"
         ],
+        "summary": "Mark notifications read.",
         "security": [
           {
             "cookieAuth": []
@@ -1674,7 +1705,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -1701,8 +1731,9 @@
     "/api/v1/communication/notifications/unread-count": {
       "get": {
         "tags": [
-          "Undocumented"
+          "Communication"
         ],
+        "summary": "How many are unread.",
         "security": [
           {
             "cookieAuth": []
@@ -1711,7 +1742,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -1738,8 +1768,9 @@
     "/api/v1/communication/preferences": {
       "get": {
         "tags": [
-          "Undocumented"
+          "Communication"
         ],
+        "summary": "How the caller wants to be contacted.",
         "security": [
           {
             "cookieAuth": []
@@ -1748,7 +1779,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -1773,8 +1803,9 @@
       },
       "put": {
         "tags": [
-          "Undocumented"
+          "Communication"
         ],
+        "summary": "Change contact preferences.",
         "security": [
           {
             "cookieAuth": []
@@ -1783,7 +1814,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -1810,8 +1840,9 @@
     "/api/v1/communication/timeline": {
       "get": {
         "tags": [
-          "Undocumented"
+          "Communication"
         ],
+        "summary": "What has happened, for the caller.",
         "security": [
           {
             "cookieAuth": []
@@ -1820,7 +1851,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -1847,8 +1877,9 @@
     "/api/v1/communication/timeline/{subjectKind}/{subjectId}": {
       "get": {
         "tags": [
-          "Undocumented"
+          "Communication"
         ],
+        "summary": "The timeline of one subject.",
         "parameters": [
           {
             "name": "subjectKind",
@@ -1875,7 +1906,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -1996,8 +2026,10 @@
     "/api/v1/documents": {
       "get": {
         "tags": [
-          "Undocumented"
+          "Documents"
         ],
+        "summary": "Documents the caller may see.",
+        "description": "Always the caller's own. An employee reaching a customer's documents goes through the work item, which is already scoped.",
         "security": [
           {
             "cookieAuth": []
@@ -2006,7 +2038,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -2033,8 +2064,9 @@
     "/api/v1/documents/{id}": {
       "delete": {
         "tags": [
-          "Undocumented"
+          "Documents"
         ],
+        "summary": "Delete a document the caller owns.",
         "parameters": [
           {
             "name": "id",
@@ -2053,7 +2085,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -2078,8 +2109,9 @@
       },
       "get": {
         "tags": [
-          "Undocumented"
+          "Documents"
         ],
+        "summary": "One document.",
         "parameters": [
           {
             "name": "id",
@@ -2098,7 +2130,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -2125,8 +2156,10 @@
     "/api/v1/documents/{id}/decision": {
       "post": {
         "tags": [
-          "Undocumented"
+          "Documents"
         ],
+        "summary": "Verify or reject a document.",
+        "description": "The only path to VERIFIED or REJECTED, and it always records who decided.",
         "parameters": [
           {
             "name": "id",
@@ -2137,6 +2170,7 @@
             }
           }
         ],
+        "x-permission": "work.write",
         "security": [
           {
             "cookieAuth": []
@@ -2145,7 +2179,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -2172,8 +2205,10 @@
     "/api/v1/documents/{id}/process": {
       "post": {
         "tags": [
-          "Undocumented"
+          "Documents"
         ],
+        "summary": "Re-run the extraction pipeline.",
+        "description": "The only way a document that failed processing gets another attempt.",
         "parameters": [
           {
             "name": "id",
@@ -2184,6 +2219,7 @@
             }
           }
         ],
+        "x-permission": "work.write",
         "security": [
           {
             "cookieAuth": []
@@ -2192,7 +2228,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -2219,8 +2254,10 @@
     "/api/v1/documents/queue/pending": {
       "get": {
         "tags": [
-          "Undocumented"
+          "Documents"
         ],
+        "summary": "Documents awaiting verification.",
+        "x-permission": "work.read",
         "security": [
           {
             "cookieAuth": []
@@ -2229,7 +2266,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -2256,8 +2292,11 @@
     "/api/v1/documents/requests": {
       "post": {
         "tags": [
-          "Undocumented"
+          "Documents"
         ],
+        "summary": "Ask a customer for documents.",
+        "description": "A person decides the facts; the resolver decides what those facts require.",
+        "x-permission": "work.write",
         "security": [
           {
             "cookieAuth": []
@@ -2266,7 +2305,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -2293,8 +2331,9 @@
     "/api/v1/documents/requirements": {
       "get": {
         "tags": [
-          "Undocumented"
+          "Documents"
         ],
+        "summary": "What this caller still owes.",
         "security": [
           {
             "cookieAuth": []
@@ -2303,7 +2342,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -2330,8 +2368,11 @@
     "/api/v1/documents/stats/overview": {
       "get": {
         "tags": [
-          "Undocumented"
+          "Documents"
         ],
+        "summary": "Throughput counts.",
+        "description": "Counts only — no contents, no filenames. Monitoring throughput needs no sight of what a customer uploaded.",
+        "x-permission": "analytics.read",
         "security": [
           {
             "cookieAuth": []
@@ -2340,7 +2381,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -2367,8 +2407,11 @@
     "/api/v1/employee/analytics": {
       "get": {
         "tags": [
-          "Undocumented"
+          "Employee Workspace"
         ],
+        "summary": "Operational figures for the team.",
+        "x-permission": "analytics.read",
+        "x-realm": "EMPLOYEE",
         "security": [
           {
             "cookieAuth": []
@@ -2377,7 +2420,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -2404,8 +2446,12 @@
     "/api/v1/employee/escalations": {
       "get": {
         "tags": [
-          "Undocumented"
+          "Employee Workspace"
         ],
+        "summary": "Escalations across the operation.",
+        "description": "Needs the wider read by definition: `work.read` is one person's queue, this is everybody's.",
+        "x-permission": "work.read.all",
+        "x-realm": "EMPLOYEE",
         "security": [
           {
             "cookieAuth": []
@@ -2414,7 +2460,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -2441,8 +2486,11 @@
     "/api/v1/employee/knowledge": {
       "get": {
         "tags": [
-          "Undocumented"
+          "Employee Workspace"
         ],
+        "summary": "Guidance relevant to the work in hand.",
+        "x-permission": "knowledge.read",
+        "x-realm": "EMPLOYEE",
         "security": [
           {
             "cookieAuth": []
@@ -2451,7 +2499,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -2478,8 +2525,10 @@
     "/api/v1/employee/me": {
       "get": {
         "tags": [
-          "Undocumented"
+          "Employee Workspace"
         ],
+        "summary": "The signed-in employee and how their queue is doing.",
+        "x-realm": "EMPLOYEE",
         "security": [
           {
             "cookieAuth": []
@@ -2488,7 +2537,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -2515,8 +2563,11 @@
     "/api/v1/employee/work": {
       "get": {
         "tags": [
-          "Undocumented"
+          "Employee Workspace"
         ],
+        "summary": "The queue assigned to this employee.",
+        "x-permission": "work.read",
+        "x-realm": "EMPLOYEE",
         "security": [
           {
             "cookieAuth": []
@@ -2525,7 +2576,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -2550,8 +2600,11 @@
       },
       "post": {
         "tags": [
-          "Undocumented"
+          "Employee Workspace"
         ],
+        "summary": "Raise a work item.",
+        "x-permission": "work.write",
+        "x-realm": "EMPLOYEE",
         "security": [
           {
             "cookieAuth": []
@@ -2560,7 +2613,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -2587,8 +2639,9 @@
     "/api/v1/employee/work/{id}": {
       "get": {
         "tags": [
-          "Undocumented"
+          "Employee Workspace"
         ],
+        "summary": "One work item, with its workflow run.",
         "parameters": [
           {
             "name": "id",
@@ -2599,6 +2652,8 @@
             }
           }
         ],
+        "x-permission": "work.read",
+        "x-realm": "EMPLOYEE",
         "security": [
           {
             "cookieAuth": []
@@ -2607,7 +2662,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -2634,8 +2688,10 @@
     "/api/v1/employee/work/{id}/advance": {
       "post": {
         "tags": [
-          "Undocumented"
+          "Employee Workspace"
         ],
+        "summary": "Advance a workflow step.",
+        "description": "A step marked as requiring a decision can only be completed by a person — the engine will not complete one on an employee's behalf.",
         "parameters": [
           {
             "name": "id",
@@ -2646,6 +2702,8 @@
             }
           }
         ],
+        "x-permission": "workflow.advance",
+        "x-realm": "EMPLOYEE",
         "security": [
           {
             "cookieAuth": []
@@ -2654,7 +2712,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -2681,8 +2738,10 @@
     "/api/v1/employee/workflows": {
       "get": {
         "tags": [
-          "Undocumented"
+          "Employee Workspace"
         ],
+        "summary": "The workflow definitions the platform runs.",
+        "x-realm": "EMPLOYEE",
         "security": [
           {
             "cookieAuth": []
@@ -2691,7 +2750,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -3689,8 +3747,10 @@
     "/api/v1/intelligence/analytics/coverage-gaps": {
       "get": {
         "tags": [
-          "Undocumented"
+          "Intelligence"
         ],
+        "summary": "Where customers are underinsured.",
+        "x-permission": "analytics.read",
         "security": [
           {
             "cookieAuth": []
@@ -3699,7 +3759,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -3726,8 +3785,10 @@
     "/api/v1/intelligence/analytics/overview": {
       "get": {
         "tags": [
-          "Undocumented"
+          "Intelligence"
         ],
+        "summary": "Aggregate intelligence figures.",
+        "x-permission": "analytics.read",
         "security": [
           {
             "cookieAuth": []
@@ -3736,7 +3797,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -3763,8 +3823,10 @@
     "/api/v1/intelligence/analytics/renewals": {
       "get": {
         "tags": [
-          "Undocumented"
+          "Intelligence"
         ],
+        "summary": "Renewal exposure across the book.",
+        "x-permission": "analytics.read",
         "security": [
           {
             "cookieAuth": []
@@ -3773,7 +3835,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -3800,8 +3861,10 @@
     "/api/v1/intelligence/analytics/risk-distribution": {
       "get": {
         "tags": [
-          "Undocumented"
+          "Intelligence"
         ],
+        "summary": "How risk is spread across profiles.",
+        "x-permission": "analytics.read",
         "security": [
           {
             "cookieAuth": []
@@ -3810,7 +3873,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -3837,8 +3899,9 @@
     "/api/v1/intelligence/customer/{userId}/brief": {
       "get": {
         "tags": [
-          "Undocumented"
+          "Intelligence"
         ],
+        "summary": "One customer's position, for the person advising them.",
         "parameters": [
           {
             "name": "userId",
@@ -3849,6 +3912,7 @@
             }
           }
         ],
+        "x-permission": "customer.read",
         "security": [
           {
             "cookieAuth": []
@@ -3857,7 +3921,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -3884,8 +3947,10 @@
     "/api/v1/intelligence/customers": {
       "get": {
         "tags": [
-          "Undocumented"
+          "Intelligence"
         ],
+        "summary": "Customers an employee may advise.",
+        "x-permission": "customer.read",
         "security": [
           {
             "cookieAuth": []
@@ -3894,7 +3959,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -3921,8 +3985,9 @@
     "/api/v1/intelligence/history": {
       "get": {
         "tags": [
-          "Undocumented"
+          "Intelligence"
         ],
+        "summary": "Previous analyses, so advice can be traced to when it was given.",
         "security": [
           {
             "cookieAuth": []
@@ -3931,7 +3996,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -3958,8 +4022,9 @@
     "/api/v1/intelligence/policies": {
       "post": {
         "tags": [
-          "Undocumented"
+          "Intelligence"
         ],
+        "summary": "Declare a policy the caller holds.",
         "security": [
           {
             "cookieAuth": []
@@ -3968,7 +4033,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -3995,8 +4059,9 @@
     "/api/v1/intelligence/policies/{id}": {
       "delete": {
         "tags": [
-          "Undocumented"
+          "Intelligence"
         ],
+        "summary": "Remove a declared policy.",
         "parameters": [
           {
             "name": "id",
@@ -4015,7 +4080,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -4042,8 +4106,9 @@
     "/api/v1/intelligence/profile": {
       "get": {
         "tags": [
-          "Undocumented"
+          "Intelligence"
         ],
+        "summary": "The caller's insurance profile.",
         "security": [
           {
             "cookieAuth": []
@@ -4052,7 +4117,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -4077,8 +4141,10 @@
       },
       "put": {
         "tags": [
-          "Undocumented"
+          "Intelligence"
         ],
+        "summary": "Update the caller's profile.",
+        "description": "Changing the profile invalidates advice derived from it — a recommendation is cached against a hash of the profile it was built from.",
         "security": [
           {
             "cookieAuth": []
@@ -4087,7 +4153,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -4114,8 +4179,10 @@
     "/api/v1/intelligence/report": {
       "get": {
         "tags": [
-          "Undocumented"
+          "Intelligence"
         ],
+        "summary": "The full analysis for the caller.",
+        "description": "Needs, gaps, risk and recommendations, each carrying its own explanation.",
         "security": [
           {
             "cookieAuth": []
@@ -4124,7 +4191,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -4151,8 +4217,10 @@
     "/api/v1/knowledge/analytics": {
       "get": {
         "tags": [
-          "Undocumented"
+          "Knowledge"
         ],
+        "summary": "What is read, and what is going stale.",
+        "x-permission": "knowledge.write",
         "security": [
           {
             "cookieAuth": []
@@ -4161,7 +4229,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -4188,8 +4255,9 @@
     "/api/v1/knowledge/articles": {
       "get": {
         "tags": [
-          "Undocumented"
+          "Knowledge"
         ],
+        "summary": "Articles the caller may read.",
         "security": [
           {
             "cookieAuth": []
@@ -4198,7 +4266,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -4223,8 +4290,10 @@
       },
       "post": {
         "tags": [
-          "Undocumented"
+          "Knowledge"
         ],
+        "summary": "Draft an article.",
+        "x-permission": "knowledge.write",
         "security": [
           {
             "cookieAuth": []
@@ -4233,7 +4302,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -4260,8 +4328,10 @@
     "/api/v1/knowledge/articles/{id}": {
       "patch": {
         "tags": [
-          "Undocumented"
+          "Knowledge"
         ],
+        "summary": "Edit a draft.",
+        "description": "Every edit writes a version, so what changed and who changed it survives the edit.",
         "parameters": [
           {
             "name": "id",
@@ -4272,6 +4342,7 @@
             }
           }
         ],
+        "x-permission": "knowledge.write",
         "security": [
           {
             "cookieAuth": []
@@ -4280,7 +4351,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -4307,8 +4377,9 @@
     "/api/v1/knowledge/articles/{id}/archive": {
       "post": {
         "tags": [
-          "Undocumented"
+          "Knowledge"
         ],
+        "summary": "Withdraw an article from use.",
         "parameters": [
           {
             "name": "id",
@@ -4319,6 +4390,7 @@
             }
           }
         ],
+        "x-permission": "knowledge.write",
         "security": [
           {
             "cookieAuth": []
@@ -4327,7 +4399,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -4354,8 +4425,9 @@
     "/api/v1/knowledge/articles/{id}/history": {
       "get": {
         "tags": [
-          "Undocumented"
+          "Knowledge"
         ],
+        "summary": "Every version, and who approved which.",
         "parameters": [
           {
             "name": "id",
@@ -4374,7 +4446,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -4401,8 +4472,9 @@
     "/api/v1/knowledge/articles/{id}/permissions": {
       "get": {
         "tags": [
-          "Undocumented"
+          "Knowledge"
         ],
+        "summary": "Who may read this article.",
         "parameters": [
           {
             "name": "id",
@@ -4413,6 +4485,7 @@
             }
           }
         ],
+        "x-permission": "knowledge.write",
         "security": [
           {
             "cookieAuth": []
@@ -4421,7 +4494,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -4446,8 +4518,9 @@
       },
       "post": {
         "tags": [
-          "Undocumented"
+          "Knowledge"
         ],
+        "summary": "Grant read access.",
         "parameters": [
           {
             "name": "id",
@@ -4458,6 +4531,7 @@
             }
           }
         ],
+        "x-permission": "knowledge.write",
         "security": [
           {
             "cookieAuth": []
@@ -4466,7 +4540,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -4493,8 +4566,10 @@
     "/api/v1/knowledge/articles/{id}/review": {
       "post": {
         "tags": [
-          "Undocumented"
+          "Knowledge"
         ],
+        "summary": "Approve or reject a submission.",
+        "description": "The gate that makes the difference between guidance and opinion.",
         "parameters": [
           {
             "name": "id",
@@ -4505,6 +4580,7 @@
             }
           }
         ],
+        "x-permission": "knowledge.write",
         "security": [
           {
             "cookieAuth": []
@@ -4513,7 +4589,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -4540,8 +4615,9 @@
     "/api/v1/knowledge/articles/{id}/submit": {
       "post": {
         "tags": [
-          "Undocumented"
+          "Knowledge"
         ],
+        "summary": "Submit for review.",
         "parameters": [
           {
             "name": "id",
@@ -4552,6 +4628,7 @@
             }
           }
         ],
+        "x-permission": "knowledge.write",
         "security": [
           {
             "cookieAuth": []
@@ -4560,7 +4637,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -4587,8 +4663,9 @@
     "/api/v1/knowledge/articles/{idOrSlug}": {
       "get": {
         "tags": [
-          "Undocumented"
+          "Knowledge"
         ],
+        "summary": "One article, by id or slug.",
         "parameters": [
           {
             "name": "idOrSlug",
@@ -4607,7 +4684,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -4634,8 +4710,9 @@
     "/api/v1/knowledge/categories": {
       "get": {
         "tags": [
-          "Undocumented"
+          "Knowledge"
         ],
+        "summary": "The category tree.",
         "security": [
           {
             "cookieAuth": []
@@ -4644,7 +4721,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -4671,8 +4747,10 @@
     "/api/v1/knowledge/categories/seed": {
       "post": {
         "tags": [
-          "Undocumented"
+          "Knowledge"
         ],
+        "summary": "Create the default categories.",
+        "x-permission": "knowledge.write",
         "security": [
           {
             "cookieAuth": []
@@ -4681,7 +4759,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -4708,8 +4785,9 @@
     "/api/v1/knowledge/conversation-memory": {
       "post": {
         "tags": [
-          "Undocumented"
+          "Knowledge"
         ],
+        "summary": "Record something worth keeping from a conversation.",
         "security": [
           {
             "cookieAuth": []
@@ -4718,7 +4796,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -4745,8 +4822,9 @@
     "/api/v1/knowledge/conversation-memory/{id}/pin": {
       "post": {
         "tags": [
-          "Undocumented"
+          "Knowledge"
         ],
+        "summary": "Keep an item in view.",
         "parameters": [
           {
             "name": "id",
@@ -4765,7 +4843,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -4792,8 +4869,9 @@
     "/api/v1/knowledge/conversation-memory/{id}/promote": {
       "post": {
         "tags": [
-          "Undocumented"
+          "Knowledge"
         ],
+        "summary": "Promote a conversation note into institutional memory.",
         "parameters": [
           {
             "name": "id",
@@ -4812,7 +4890,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -4839,8 +4916,9 @@
     "/api/v1/knowledge/conversation-memory/{sessionRef}": {
       "get": {
         "tags": [
-          "Undocumented"
+          "Knowledge"
         ],
+        "summary": "What was kept from a session.",
         "parameters": [
           {
             "name": "sessionRef",
@@ -4859,7 +4937,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -4886,8 +4963,10 @@
     "/api/v1/knowledge/memory": {
       "post": {
         "tags": [
-          "Undocumented"
+          "Knowledge"
         ],
+        "summary": "Record a fact, with its source.",
+        "description": "A fact about a customer with no recorded source is one the business cannot defend when challenged, so provenance is required rather than optional.",
         "security": [
           {
             "cookieAuth": []
@@ -4896,7 +4975,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -4923,8 +5001,9 @@
     "/api/v1/knowledge/memory/{scope}/{subjectId}": {
       "get": {
         "tags": [
-          "Undocumented"
+          "Knowledge"
         ],
+        "summary": "What is known about a subject.",
         "parameters": [
           {
             "name": "scope",
@@ -4951,7 +5030,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -4978,8 +5056,9 @@
     "/api/v1/knowledge/memory/{scope}/{subjectId}/{key}": {
       "delete": {
         "tags": [
-          "Undocumented"
+          "Knowledge"
         ],
+        "summary": "Forget one fact.",
         "parameters": [
           {
             "name": "scope",
@@ -5014,7 +5093,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -5041,8 +5119,10 @@
     "/api/v1/knowledge/memory/{scope}/{subjectId}/export": {
       "get": {
         "tags": [
-          "Undocumented"
+          "Knowledge"
         ],
+        "summary": "Everything held about a subject.",
+        "description": "A subject access request answered from one place.",
         "parameters": [
           {
             "name": "scope",
@@ -5069,7 +5149,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -5096,8 +5175,9 @@
     "/api/v1/knowledge/memory/{scope}/{subjectId}/history/{key}": {
       "get": {
         "tags": [
-          "Undocumented"
+          "Knowledge"
         ],
+        "summary": "How one fact changed over time.",
         "parameters": [
           {
             "name": "scope",
@@ -5132,7 +5212,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -5159,8 +5238,9 @@
     "/api/v1/knowledge/organization-memory/{organizationId}": {
       "get": {
         "tags": [
-          "Undocumented"
+          "Knowledge"
         ],
+        "summary": "What the organisation knows about itself.",
         "parameters": [
           {
             "name": "organizationId",
@@ -5179,7 +5259,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -5204,8 +5283,9 @@
       },
       "post": {
         "tags": [
-          "Undocumented"
+          "Knowledge"
         ],
+        "summary": "Record an organisational fact.",
         "parameters": [
           {
             "name": "organizationId",
@@ -5224,7 +5304,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -5251,8 +5330,10 @@
     "/api/v1/knowledge/parse": {
       "post": {
         "tags": [
-          "Undocumented"
+          "Knowledge"
         ],
+        "summary": "Turn a document into a draft article.",
+        "x-permission": "knowledge.write",
         "security": [
           {
             "cookieAuth": []
@@ -5261,7 +5342,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -5288,8 +5368,9 @@
     "/api/v1/knowledge/permissions/{id}": {
       "delete": {
         "tags": [
-          "Undocumented"
+          "Knowledge"
         ],
+        "summary": "Revoke a grant.",
         "parameters": [
           {
             "name": "id",
@@ -5300,6 +5381,7 @@
             }
           }
         ],
+        "x-permission": "knowledge.write",
         "security": [
           {
             "cookieAuth": []
@@ -5308,7 +5390,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -5335,8 +5416,9 @@
     "/api/v1/knowledge/route": {
       "post": {
         "tags": [
-          "Undocumented"
+          "Knowledge"
         ],
+        "summary": "Find the guidance that answers a question.",
         "security": [
           {
             "cookieAuth": []
@@ -5345,7 +5427,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -5372,8 +5453,10 @@
     "/api/v1/knowledge/search": {
       "get": {
         "tags": [
-          "Undocumented"
+          "Knowledge"
         ],
+        "summary": "Search approved guidance.",
+        "description": "Lexical, over an inverted index — deterministic and explainable, so a result can be justified.",
         "security": [
           {
             "cookieAuth": []
@@ -5382,7 +5465,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -5409,8 +5491,9 @@
     "/api/v1/knowledge/tags": {
       "get": {
         "tags": [
-          "Undocumented"
+          "Knowledge"
         ],
+        "summary": "Tags in use.",
         "security": [
           {
             "cookieAuth": []
@@ -5419,7 +5502,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -5682,8 +5764,12 @@
     "/api/v1/platform/ai-governance": {
       "get": {
         "tags": [
-          "Undocumented"
+          "Platform"
         ],
+        "summary": "How the AI estate is behaving.",
+        "description": "Observability only. Nothing here changes a model, a prompt or a routing rule.",
+        "x-permission": "platform.configure",
+        "x-realm": "PLATFORM",
         "security": [
           {
             "cookieAuth": []
@@ -5692,7 +5778,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -5719,8 +5804,11 @@
     "/api/v1/platform/backup": {
       "get": {
         "tags": [
-          "Undocumented"
+          "Platform"
         ],
+        "summary": "Backup state.",
+        "x-permission": "platform.configure",
+        "x-realm": "PLATFORM",
         "security": [
           {
             "cookieAuth": []
@@ -5729,7 +5817,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -5756,8 +5843,11 @@
     "/api/v1/platform/identities": {
       "get": {
         "tags": [
-          "Undocumented"
+          "Platform"
         ],
+        "summary": "Configured identity providers.",
+        "x-permission": "platform.configure",
+        "x-realm": "PLATFORM",
         "security": [
           {
             "cookieAuth": []
@@ -5766,7 +5856,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -5793,8 +5882,11 @@
     "/api/v1/platform/integrations": {
       "get": {
         "tags": [
-          "Undocumented"
+          "Platform"
         ],
+        "summary": "Which external services are configured.",
+        "x-permission": "platform.configure",
+        "x-realm": "PLATFORM",
         "security": [
           {
             "cookieAuth": []
@@ -5803,7 +5895,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -5830,8 +5921,11 @@
     "/api/v1/platform/licences": {
       "get": {
         "tags": [
-          "Undocumented"
+          "Platform"
         ],
+        "summary": "Licences across tenants.",
+        "x-permission": "platform.configure",
+        "x-realm": "PLATFORM",
         "security": [
           {
             "cookieAuth": []
@@ -5840,7 +5934,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -5867,8 +5960,11 @@
     "/api/v1/platform/organizations": {
       "get": {
         "tags": [
-          "Undocumented"
+          "Platform"
         ],
+        "summary": "Every tenant.",
+        "x-permission": "platform.configure",
+        "x-realm": "PLATFORM",
         "security": [
           {
             "cookieAuth": []
@@ -5877,7 +5973,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -5902,8 +5997,12 @@
       },
       "post": {
         "tags": [
-          "Undocumented"
+          "Platform"
         ],
+        "summary": "Create a tenant.",
+        "description": "Requires fresh authentication.",
+        "x-permission": "platform.configure",
+        "x-realm": "PLATFORM",
         "security": [
           {
             "cookieAuth": []
@@ -5912,7 +6011,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -5939,8 +6037,10 @@
     "/api/v1/platform/organizations/{id}/licence": {
       "patch": {
         "tags": [
-          "Undocumented"
+          "Platform"
         ],
+        "summary": "Change a tenant's licence.",
+        "description": "Seats cannot be cut below the accounts that already exist. Requires fresh authentication.",
         "parameters": [
           {
             "name": "id",
@@ -5951,6 +6051,8 @@
             }
           }
         ],
+        "x-permission": "platform.configure",
+        "x-realm": "PLATFORM",
         "security": [
           {
             "cookieAuth": []
@@ -5959,7 +6061,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -5986,8 +6087,10 @@
     "/api/v1/platform/organizations/{id}/members": {
       "post": {
         "tags": [
-          "Undocumented"
+          "Platform"
         ],
+        "summary": "Add a member to a tenant.",
+        "description": "Requires fresh authentication.",
         "parameters": [
           {
             "name": "id",
@@ -5998,6 +6101,8 @@
             }
           }
         ],
+        "x-permission": "platform.configure",
+        "x-realm": "PLATFORM",
         "security": [
           {
             "cookieAuth": []
@@ -6006,7 +6111,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -6033,8 +6137,10 @@
     "/api/v1/platform/organizations/{id}/status": {
       "patch": {
         "tags": [
-          "Undocumented"
+          "Platform"
         ],
+        "summary": "Suspend, restore or archive a tenant.",
+        "description": "Requires fresh authentication.",
         "parameters": [
           {
             "name": "id",
@@ -6045,6 +6151,8 @@
             }
           }
         ],
+        "x-permission": "platform.configure",
+        "x-realm": "PLATFORM",
         "security": [
           {
             "cookieAuth": []
@@ -6053,7 +6161,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -6080,8 +6187,11 @@
     "/api/v1/platform/overview": {
       "get": {
         "tags": [
-          "Undocumented"
+          "Platform"
         ],
+        "summary": "The platform at a glance.",
+        "x-permission": "platform.configure",
+        "x-realm": "PLATFORM",
         "security": [
           {
             "cookieAuth": []
@@ -6090,7 +6200,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -6117,8 +6226,12 @@
     "/api/v1/platform/roles": {
       "get": {
         "tags": [
-          "Undocumented"
+          "Platform"
         ],
+        "summary": "The role model, as code defines it.",
+        "description": "Read from the same table the middleware enforces, so it cannot describe a model the platform is not applying.",
+        "x-permission": "platform.configure",
+        "x-realm": "PLATFORM",
         "security": [
           {
             "cookieAuth": []
@@ -6127,7 +6240,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -6154,8 +6266,11 @@
     "/api/v1/platform/security": {
       "get": {
         "tags": [
-          "Undocumented"
+          "Platform"
         ],
+        "summary": "Security posture across the platform.",
+        "x-permission": "platform.configure",
+        "x-realm": "PLATFORM",
         "security": [
           {
             "cookieAuth": []
@@ -6164,7 +6279,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -6191,8 +6305,11 @@
     "/api/v1/platform/sessions": {
       "get": {
         "tags": [
-          "Undocumented"
+          "Platform"
         ],
+        "summary": "Sessions held across the platform.",
+        "x-permission": "platform.configure",
+        "x-realm": "PLATFORM",
         "security": [
           {
             "cookieAuth": []
@@ -6201,7 +6318,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -6228,8 +6344,10 @@
     "/api/v1/platform/sessions/{id}": {
       "delete": {
         "tags": [
-          "Undocumented"
+          "Platform"
         ],
+        "summary": "Revoke a session.",
+        "description": "Requires fresh authentication.",
         "parameters": [
           {
             "name": "id",
@@ -6240,6 +6358,8 @@
             }
           }
         ],
+        "x-permission": "platform.configure",
+        "x-realm": "PLATFORM",
         "security": [
           {
             "cookieAuth": []
@@ -6248,7 +6368,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -6275,8 +6394,11 @@
     "/api/v1/platform/settings": {
       "get": {
         "tags": [
-          "Undocumented"
+          "Platform"
         ],
+        "summary": "Platform settings.",
+        "x-permission": "platform.configure",
+        "x-realm": "PLATFORM",
         "security": [
           {
             "cookieAuth": []
@@ -6285,7 +6407,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",
@@ -6312,8 +6433,10 @@
     "/api/v1/platform/settings/{key}": {
       "patch": {
         "tags": [
-          "Undocumented"
+          "Platform"
         ],
+        "summary": "Change a setting.",
+        "description": "Requires fresh authentication.",
         "parameters": [
           {
             "name": "key",
@@ -6324,6 +6447,8 @@
             }
           }
         ],
+        "x-permission": "platform.configure",
+        "x-realm": "PLATFORM",
         "security": [
           {
             "cookieAuth": []
@@ -6332,7 +6457,6 @@
             "bearerAuth": []
           }
         ],
-        "x-documented": false,
         "responses": {
           "200": {
             "description": "Success envelope.",

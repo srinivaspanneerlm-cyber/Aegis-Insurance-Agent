@@ -135,12 +135,12 @@ All routes listed below are relative to that base; the `/api` prefix is always
 present (mounted in `backend/src/app.ts`). `/api/v1` is canonical and `/api` is
 kept as a backward-compatible alias.
 
-**Coverage, stated honestly.** This section documents auth, leads, policies,
-chat, upload, company, admin, ui-action and the enterprise console. The
-`communication`, `documents`, `employee`, `intelligence`, `knowledge` and
-`platform` routers are live but **not yet documented here** — read the route
-files until they are. A reference that quietly omits half the API is worse than
-one that says which half.
+**Coverage.** This section now documents every router the API serves — all
+**160 routes**. §5.1–5.9 describe each endpoint in full; §5.10–5.15 cover the
+six routers added later as route tables with their authority, which is the
+question those endpoints are most often asked. §5.16 points at the
+machine-readable specification, which is generated from the router itself and
+therefore cannot fall behind this prose without a test failing.
 
 ---
 
@@ -891,6 +891,212 @@ because they qualify figures that *are* present:
 Counts on shared reference data are scoped to the caller. `/products` returns
 insurers platform-wide (they are shared), but each insurer's `_count.policies`
 counts **only the caller's own** products from that insurer.
+
+---
+
+### 5.10 Employee Workspace — `/api/v1/employee`
+
+Realm-walled as a whole: `requireRealm("EMPLOYEE")` on the router, then a
+capability per route. The wall asks whether somebody belongs on this side of the
+platform; the permission asks what they may do once here. Either alone leaves a
+hole — a customer holds no capabilities, but an employee holds `analytics.read`
+and must still not reach the enterprise console.
+
+| Method | Path | Permission |
+|---|---|---|
+| GET | `/me` | — |
+| GET | `/work` | `work.read` |
+| POST | `/work` | `work.write` |
+| GET | `/work/:id` | `work.read` |
+| POST | `/work/:id/advance` | `workflow.advance` |
+| GET | `/escalations` | `work.read.all` |
+| GET | `/analytics` | `analytics.read` |
+| GET | `/knowledge` | `knowledge.read` |
+| GET | `/workflows` | — |
+
+`work.read` is deliberately narrower than `work.read.all`: an employee sees the
+queue assigned to them, a team lead sees everybody's. Collapsing the two would
+let every employee read every customer's claim.
+
+A workflow step marked as requiring a decision cannot be completed by anything
+other than a person. `POST /work/:id/advance` enforces it; the compliance check
+`decision-without-person` reports any breach as CRITICAL.
+
+---
+
+### 5.11 Documents — `/api/v1/documents`
+
+Authenticated but **not** realm-walled, because a customer legitimately manages
+their own documents. Customer routes are scoped to the caller; staff routes
+carry a capability instead.
+
+| Method | Path | Permission |
+|---|---|---|
+| GET | `/` | — (caller's own) |
+| GET | `/requirements` | — (caller's own) |
+| GET | `/:id` | — (caller's own) |
+| DELETE | `/:id` | — (caller's own) |
+| POST | `/:id/process` | `work.write` |
+| GET | `/queue/pending` | `work.read` |
+| POST | `/:id/decision` | `work.write` |
+| POST | `/requests` | `work.write` |
+| GET | `/stats/overview` | `analytics.read` |
+
+`POST /:id/decision` is the only path to `VERIFIED` or `REJECTED`, and it always
+records who decided. `/stats/overview` returns counts only — no contents and no
+filenames, because monitoring throughput needs no sight of what was uploaded.
+
+---
+
+### 5.12 Intelligence — `/api/v1/intelligence`
+
+A customer's profile and the advice derived from it, plus aggregate views for
+staff. The first six routes are the caller's own record; the rest carry a
+capability.
+
+| Method | Path | Permission |
+|---|---|---|
+| GET · PUT | `/profile` | — (caller's own) |
+| POST | `/policies` | — (caller's own) |
+| DELETE | `/policies/:id` | — (caller's own) |
+| GET | `/report` | — (caller's own) |
+| GET | `/history` | — (caller's own) |
+| GET | `/customers` | `customer.read` |
+| GET | `/customer/:userId/brief` | `customer.read` |
+| GET | `/analytics/overview` | `analytics.read` |
+| GET | `/analytics/risk-distribution` | `analytics.read` |
+| GET | `/analytics/coverage-gaps` | `analytics.read` |
+| GET | `/analytics/renewals` | `analytics.read` |
+
+Advice is cached against a hash of the profile it was built from, so
+`PUT /profile` invalidates it. `/history` exists so advice can be traced to the
+circumstances it was given under.
+
+---
+
+### 5.13 Communication — `/api/v1/communication`
+
+Authenticated as a whole. Most routes are scoped to the caller, so authority
+comes from who they are rather than a capability; the three analytics/activity
+routes are the exceptions.
+
+| Method | Path | Permission |
+|---|---|---|
+| GET | `/notifications` · `/notifications/unread-count` | — |
+| POST | `/notifications/read` · `/notifications/archive` | — |
+| GET · PUT | `/preferences` | — |
+| GET | `/inbox` | — |
+| POST | `/conversations` | — |
+| GET | `/conversations/:id` · `/summary` · `/triage` | — |
+| POST | `/conversations/:id/messages` · `/participants` · `/read` · `/draft` | — |
+| GET | `/timeline` · `/timeline/:subjectKind/:subjectId` | — |
+| GET · POST | `/announcements` · `/announcements/:id/read` | — |
+| GET | `/activity` | `work.read` |
+| GET | `/analytics/overview` | `analytics.read` |
+| GET | `/analytics/health` | `platform.configure` |
+
+`/conversations/:id/draft` produces a draft and never sends: the assistant
+proposes and a person decides. `/analytics/health` needs a platform capability
+because channel health is infrastructure, not a tenant's business.
+
+Announcements carry no organisation of their own — see the
+`announcementScope` note on the console's `/notifications`.
+
+> ⚠️ **`POST /announcements` carries no capability.** The audience realm comes
+> from the request body (default `EMPLOYEE`, validated only against the set of
+> known realms), not from the caller. Combined with the absence of a permission
+> on the route, any authenticated account — including a customer — may publish
+> an announcement addressed to any realm. Documented here as it behaves today;
+> this is a gap, not a design.
+
+---
+
+### 5.14 Knowledge — `/api/v1/knowledge`
+
+Reading is open to any signed-in account; writing needs `knowledge.write`. The
+organising rule is provenance: guidance nobody approved and a fact traced to
+nothing are the same failure — something the platform cannot defend when
+challenged. The write path therefore runs draft → submit → review rather than
+straight to live.
+
+| Method | Path | Permission |
+|---|---|---|
+| GET | `/categories` · `/tags` · `/search` | — |
+| POST | `/route` | — |
+| POST | `/categories/seed` | `knowledge.write` |
+| GET | `/articles` · `/articles/:idOrSlug` · `/articles/:id/history` | — |
+| POST | `/articles` | `knowledge.write` |
+| PATCH | `/articles/:id` | `knowledge.write` |
+| POST | `/articles/:id/submit` · `/review` · `/archive` | `knowledge.write` |
+| GET · POST | `/articles/:id/permissions` | `knowledge.write` |
+| DELETE | `/permissions/:id` | `knowledge.write` |
+| POST | `/parse` | `knowledge.write` |
+| GET | `/analytics` | `knowledge.write` |
+| POST | `/memory` | — |
+| GET | `/memory/:scope/:subjectId` · `/history/:key` · `/export` | — |
+| DELETE | `/memory/:scope/:subjectId/:key` | — |
+| POST | `/conversation-memory` · `/:id/pin` · `/:id/promote` | — |
+| GET | `/conversation-memory/:sessionRef` | — |
+| GET · POST | `/organization-memory/:organizationId` | — |
+
+Search is lexical over an inverted index rather than semantic — deterministic
+and explainable, so a result can be justified. Every article edit writes a
+version, so what changed and who approved it survives the edit.
+`/memory/:scope/:subjectId/export` answers a subject access request from one
+place.
+
+---
+
+### 5.15 Platform — `/api/v1/platform`
+
+The narrowest door on the API: `requireRealm("PLATFORM")` **and**
+`platform.configure`, both applied to the router as a whole. Anything that
+changes a tenant's standing additionally requires **fresh authentication** — a
+stolen cookie must not be enough to suspend an organisation.
+
+| Method | Path | Fresh auth |
+|---|---|:--:|
+| GET | `/overview` · `/backup` · `/integrations` | — |
+| GET | `/organizations` | — |
+| POST | `/organizations` | ✅ |
+| POST | `/organizations/:id/members` | ✅ |
+| PATCH | `/organizations/:id/status` | ✅ |
+| PATCH | `/organizations/:id/licence` | ✅ |
+| GET | `/licences` · `/identities` · `/roles` | — |
+| GET | `/sessions` | — |
+| DELETE | `/sessions/:id` | ✅ |
+| GET | `/settings` | — |
+| PATCH | `/settings/:key` | ✅ |
+| GET | `/security` · `/ai-governance` | — |
+
+Every route here requires `platform.configure`, which only `PLATFORM_ADMIN`
+holds. `/roles` reads the same table the middleware enforces, so it cannot
+describe a model the platform is not applying. `/ai-governance` is observability
+only — nothing on this API changes a model, a prompt or a routing rule.
+
+Seats cannot be cut below the accounts that already exist; the licence route
+refuses rather than silently orphaning members.
+
+---
+
+### 5.16 Machine-readable specification
+
+`backend/openapi.json` describes all **160 routes** in OpenAPI 3.1. The route
+inventory is generated from the running Express router, so it cannot drift from
+what is served:
+
+```bash
+npm run openapi         # regenerate
+npm run openapi:check   # fail if stale, or if a description names a dead route
+```
+
+`tests/openapi.spec.test.js` runs the check, so all three drifts — an
+undocumented route, a described route that no longer exists, and a stale
+committed file — fail the suite rather than accumulate.
+
+The document is generated to a file and **served nowhere**. A complete route
+inventory is a map of the attack surface, and unlike the AI engine's dev-only
+Swagger UI this API has no equivalent gate to hide one behind.
 
 ---
 

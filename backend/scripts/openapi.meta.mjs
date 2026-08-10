@@ -10,10 +10,7 @@
  * inferred from what an endpoint seems like it ought to need. Where they
  * disagree, the route file is right and this is a bug.
  *
- * Covers §5.1–5.9 of API_REFERENCE.md. The six routers documented in neither
- * place — communication, documents, employee, intelligence, knowledge,
- * platform — are the next task; until then they are listed as undocumented
- * rather than described from a guess.
+ * Covers §5.1–5.15 of API_REFERENCE.md — the whole served surface.
  */
 
 export const TAGS = [
@@ -27,6 +24,12 @@ export const TAGS = [
   { name: "Admin", description: "Aggregate figures for administrators." },
   { name: "UI Action", description: "Structured actions the AI asks the interface to take." },
   { name: "Enterprise Console", description: "Tenant administration. Read-heavy by design: it watches and reports, and decides nothing a person is answerable for." },
+  { name: "Employee Workspace", description: "The queue an employee works, realm-walled as a whole. A customer's session reaches none of it." },
+  { name: "Documents", description: "The document platform. Scoped by caller rather than realm-walled — a customer legitimately manages their own documents." },
+  { name: "Intelligence", description: "A customer's insurance profile, the advice derived from it, and aggregate views for staff." },
+  { name: "Communication", description: "Notifications, conversations, timelines and announcements." },
+  { name: "Knowledge", description: "Approved guidance and institutional memory. Provenance is the point: advice traced to nothing is advice the business cannot defend." },
+  { name: "Platform", description: "Platform operation — tenants, licences, settings and sessions. The narrowest door on the API." },
   { name: "Undocumented", description: "Served, but not yet described. A gap, shown rather than hidden." },
 ];
 
@@ -138,4 +141,128 @@ export const ROUTE_META = {
   "GET /api/v1/enterprise/audit": { tag: "Enterprise Console", realm: "ENTERPRISE", permission: "audit.read", summary: "The audit trail, filterable.", description: "Never cached — it is read during an incident.", query: [...take, { name: "action", description: "Substring match on the action name." }, { name: "actorId", description: "UUID of one actor." }] },
   "GET /api/v1/enterprise/security-events": { tag: "Enterprise Console", realm: "ENTERPRISE", permission: "audit.read", summary: "Sign-in security for this tenant.", description: "Undercounts by the attempts it cannot attribute; the payload says so. Never cached.", query: take },
   "GET /api/v1/enterprise/reports/{kind}": { tag: "Enterprise Console", realm: "ENTERPRISE", permission: "analytics.read", summary: "A report, as rows or CSV.", description: "`kind` is one of operations, compliance, branches. Every generation is written to the audit trail.", query: [{ name: "format", description: "`csv` for a download." }] },
+  // ── Employee workspace ─────────────────────────────────────────────────────
+  // `requireRealm("EMPLOYEE")` is the wall; the per-route capability is the
+  // second question. A customer's session reaches none of this.
+  "GET /api/v1/employee/me": { tag: "Employee Workspace", realm: "EMPLOYEE", summary: "The signed-in employee and how their queue is doing." },
+  "GET /api/v1/employee/work": { tag: "Employee Workspace", realm: "EMPLOYEE", permission: "work.read", summary: "The queue assigned to this employee." },
+  "POST /api/v1/employee/work": { tag: "Employee Workspace", realm: "EMPLOYEE", permission: "work.write", summary: "Raise a work item." },
+  "GET /api/v1/employee/work/{id}": { tag: "Employee Workspace", realm: "EMPLOYEE", permission: "work.read", summary: "One work item, with its workflow run." },
+  "POST /api/v1/employee/work/{id}/advance": { tag: "Employee Workspace", realm: "EMPLOYEE", permission: "workflow.advance", summary: "Advance a workflow step.", description: "A step marked as requiring a decision can only be completed by a person — the engine will not complete one on an employee's behalf." },
+  "GET /api/v1/employee/escalations": { tag: "Employee Workspace", realm: "EMPLOYEE", permission: "work.read.all", summary: "Escalations across the operation.", description: "Needs the wider read by definition: `work.read` is one person's queue, this is everybody's." },
+  "GET /api/v1/employee/analytics": { tag: "Employee Workspace", realm: "EMPLOYEE", permission: "analytics.read", summary: "Operational figures for the team." },
+  "GET /api/v1/employee/knowledge": { tag: "Employee Workspace", realm: "EMPLOYEE", permission: "knowledge.read", summary: "Guidance relevant to the work in hand." },
+  "GET /api/v1/employee/workflows": { tag: "Employee Workspace", realm: "EMPLOYEE", summary: "The workflow definitions the platform runs." },
+
+  // ── Documents ──────────────────────────────────────────────────────────────
+  // Scoped by caller rather than realm-walled: a customer manages their own
+  // documents, and staff routes carry a capability instead.
+  "GET /api/v1/documents": { tag: "Documents", summary: "Documents the caller may see.", description: "Always the caller's own. An employee reaching a customer's documents goes through the work item, which is already scoped." },
+  "GET /api/v1/documents/requirements": { tag: "Documents", summary: "What this caller still owes." },
+  "GET /api/v1/documents/{id}": { tag: "Documents", summary: "One document." },
+  "DELETE /api/v1/documents/{id}": { tag: "Documents", summary: "Delete a document the caller owns." },
+  "POST /api/v1/documents/{id}/process": { tag: "Documents", permission: "work.write", summary: "Re-run the extraction pipeline.", description: "The only way a document that failed processing gets another attempt." },
+  "GET /api/v1/documents/queue/pending": { tag: "Documents", permission: "work.read", summary: "Documents awaiting verification." },
+  "POST /api/v1/documents/{id}/decision": { tag: "Documents", permission: "work.write", summary: "Verify or reject a document.", description: "The only path to VERIFIED or REJECTED, and it always records who decided." },
+  "POST /api/v1/documents/requests": { tag: "Documents", permission: "work.write", summary: "Ask a customer for documents.", description: "A person decides the facts; the resolver decides what those facts require." },
+  "GET /api/v1/documents/stats/overview": { tag: "Documents", permission: "analytics.read", summary: "Throughput counts.", description: "Counts only — no contents, no filenames. Monitoring throughput needs no sight of what a customer uploaded." },
+
+  // ── Intelligence ───────────────────────────────────────────────────────────
+  "GET /api/v1/intelligence/profile": { tag: "Intelligence", summary: "The caller's insurance profile." },
+  "PUT /api/v1/intelligence/profile": { tag: "Intelligence", summary: "Update the caller's profile.", description: "Changing the profile invalidates advice derived from it — a recommendation is cached against a hash of the profile it was built from." },
+  "POST /api/v1/intelligence/policies": { tag: "Intelligence", summary: "Declare a policy the caller holds." },
+  "DELETE /api/v1/intelligence/policies/{id}": { tag: "Intelligence", summary: "Remove a declared policy." },
+  "GET /api/v1/intelligence/report": { tag: "Intelligence", summary: "The full analysis for the caller.", description: "Needs, gaps, risk and recommendations, each carrying its own explanation." },
+  "GET /api/v1/intelligence/history": { tag: "Intelligence", summary: "Previous analyses, so advice can be traced to when it was given." },
+  "GET /api/v1/intelligence/customers": { tag: "Intelligence", permission: "customer.read", summary: "Customers an employee may advise." },
+  "GET /api/v1/intelligence/customer/{userId}/brief": { tag: "Intelligence", permission: "customer.read", summary: "One customer's position, for the person advising them." },
+  "GET /api/v1/intelligence/analytics/overview": { tag: "Intelligence", permission: "analytics.read", summary: "Aggregate intelligence figures." },
+  "GET /api/v1/intelligence/analytics/risk-distribution": { tag: "Intelligence", permission: "analytics.read", summary: "How risk is spread across profiles." },
+  "GET /api/v1/intelligence/analytics/coverage-gaps": { tag: "Intelligence", permission: "analytics.read", summary: "Where customers are underinsured." },
+  "GET /api/v1/intelligence/analytics/renewals": { tag: "Intelligence", permission: "analytics.read", summary: "Renewal exposure across the book." },
+
+  // ── Communication ──────────────────────────────────────────────────────────
+  // Authenticated as a whole; each route is scoped to the caller, so authority
+  // comes from who they are rather than a capability. The three at the end are
+  // the exceptions and say so.
+  "GET /api/v1/communication/notifications": { tag: "Communication", summary: "The caller's notifications." },
+  "GET /api/v1/communication/notifications/unread-count": { tag: "Communication", summary: "How many are unread." },
+  "POST /api/v1/communication/notifications/read": { tag: "Communication", summary: "Mark notifications read." },
+  "POST /api/v1/communication/notifications/archive": { tag: "Communication", summary: "Archive notifications." },
+  "GET /api/v1/communication/preferences": { tag: "Communication", summary: "How the caller wants to be contacted." },
+  "PUT /api/v1/communication/preferences": { tag: "Communication", summary: "Change contact preferences." },
+  "GET /api/v1/communication/inbox": { tag: "Communication", summary: "Conversations the caller is part of." },
+  "POST /api/v1/communication/conversations": { tag: "Communication", summary: "Start a conversation." },
+  "GET /api/v1/communication/conversations/{id}": { tag: "Communication", summary: "One conversation and its messages." },
+  "POST /api/v1/communication/conversations/{id}/messages": { tag: "Communication", summary: "Send a message." },
+  "POST /api/v1/communication/conversations/{id}/participants": { tag: "Communication", summary: "Add a participant." },
+  "POST /api/v1/communication/conversations/{id}/read": { tag: "Communication", summary: "Mark a conversation read." },
+  "GET /api/v1/communication/conversations/{id}/summary": { tag: "Communication", summary: "A summary of the exchange." },
+  "GET /api/v1/communication/conversations/{id}/triage": { tag: "Communication", summary: "What the conversation appears to need." },
+  "POST /api/v1/communication/conversations/{id}/draft": { tag: "Communication", summary: "Draft a reply for a person to send.", description: "A draft, never a send — the assistant proposes and a person decides." },
+  "GET /api/v1/communication/timeline": { tag: "Communication", summary: "What has happened, for the caller." },
+  "GET /api/v1/communication/timeline/{subjectKind}/{subjectId}": { tag: "Communication", summary: "The timeline of one subject." },
+  "GET /api/v1/communication/announcements": { tag: "Communication", summary: "Announcements addressed to the caller." },
+  "POST /api/v1/communication/announcements": { tag: "Communication", summary: "Publish an announcement.", description: "The audience realm is taken from the request body, defaulting to EMPLOYEE, and validated against the known realms — it is not derived from the caller. This route carries no capability beyond being signed in, so any authenticated account may publish to any realm. Announcements also carry no organisation, so they are platform-wide." },
+  "POST /api/v1/communication/announcements/{id}/read": { tag: "Communication", summary: "Mark an announcement read." },
+  "GET /api/v1/communication/activity": { tag: "Communication", permission: "work.read", summary: "Recent activity across the operation." },
+  "GET /api/v1/communication/analytics/overview": { tag: "Communication", permission: "analytics.read", summary: "Delivery and engagement figures." },
+  "GET /api/v1/communication/analytics/health": { tag: "Communication", permission: "platform.configure", summary: "Whether the delivery channels are working.", description: "A platform capability: channel health is infrastructure, not a tenant's business." },
+
+  // ── Knowledge ──────────────────────────────────────────────────────────────
+  // Reading is open to any signed-in account; writing needs `knowledge.write`.
+  // Guidance nobody approved is the failure this section exists to prevent, so
+  // the write path runs through submit → review rather than straight to live.
+  "GET /api/v1/knowledge/categories": { tag: "Knowledge", summary: "The category tree." },
+  "POST /api/v1/knowledge/categories/seed": { tag: "Knowledge", permission: "knowledge.write", summary: "Create the default categories." },
+  "GET /api/v1/knowledge/tags": { tag: "Knowledge", summary: "Tags in use." },
+  "GET /api/v1/knowledge/search": { tag: "Knowledge", summary: "Search approved guidance.", description: "Lexical, over an inverted index — deterministic and explainable, so a result can be justified." },
+  "POST /api/v1/knowledge/route": { tag: "Knowledge", summary: "Find the guidance that answers a question." },
+  "GET /api/v1/knowledge/articles": { tag: "Knowledge", summary: "Articles the caller may read." },
+  "POST /api/v1/knowledge/articles": { tag: "Knowledge", permission: "knowledge.write", summary: "Draft an article." },
+  "GET /api/v1/knowledge/articles/{idOrSlug}": { tag: "Knowledge", summary: "One article, by id or slug." },
+  "PATCH /api/v1/knowledge/articles/{id}": { tag: "Knowledge", permission: "knowledge.write", summary: "Edit a draft.", description: "Every edit writes a version, so what changed and who changed it survives the edit." },
+  "POST /api/v1/knowledge/articles/{id}/submit": { tag: "Knowledge", permission: "knowledge.write", summary: "Submit for review." },
+  "POST /api/v1/knowledge/articles/{id}/review": { tag: "Knowledge", permission: "knowledge.write", summary: "Approve or reject a submission.", description: "The gate that makes the difference between guidance and opinion." },
+  "POST /api/v1/knowledge/articles/{id}/archive": { tag: "Knowledge", permission: "knowledge.write", summary: "Withdraw an article from use." },
+  "GET /api/v1/knowledge/articles/{id}/history": { tag: "Knowledge", summary: "Every version, and who approved which." },
+  "GET /api/v1/knowledge/articles/{id}/permissions": { tag: "Knowledge", permission: "knowledge.write", summary: "Who may read this article." },
+  "POST /api/v1/knowledge/articles/{id}/permissions": { tag: "Knowledge", permission: "knowledge.write", summary: "Grant read access." },
+  "DELETE /api/v1/knowledge/permissions/{id}": { tag: "Knowledge", permission: "knowledge.write", summary: "Revoke a grant." },
+  "POST /api/v1/knowledge/parse": { tag: "Knowledge", permission: "knowledge.write", summary: "Turn a document into a draft article." },
+  "GET /api/v1/knowledge/analytics": { tag: "Knowledge", permission: "knowledge.write", summary: "What is read, and what is going stale." },
+  "POST /api/v1/knowledge/memory": { tag: "Knowledge", summary: "Record a fact, with its source.", description: "A fact about a customer with no recorded source is one the business cannot defend when challenged, so provenance is required rather than optional." },
+  "GET /api/v1/knowledge/memory/{scope}/{subjectId}": { tag: "Knowledge", summary: "What is known about a subject." },
+  "GET /api/v1/knowledge/memory/{scope}/{subjectId}/history/{key}": { tag: "Knowledge", summary: "How one fact changed over time." },
+  "GET /api/v1/knowledge/memory/{scope}/{subjectId}/export": { tag: "Knowledge", summary: "Everything held about a subject.", description: "A subject access request answered from one place." },
+  "DELETE /api/v1/knowledge/memory/{scope}/{subjectId}/{key}": { tag: "Knowledge", summary: "Forget one fact." },
+  "POST /api/v1/knowledge/conversation-memory": { tag: "Knowledge", summary: "Record something worth keeping from a conversation." },
+  "GET /api/v1/knowledge/conversation-memory/{sessionRef}": { tag: "Knowledge", summary: "What was kept from a session." },
+  "POST /api/v1/knowledge/conversation-memory/{id}/pin": { tag: "Knowledge", summary: "Keep an item in view." },
+  "POST /api/v1/knowledge/conversation-memory/{id}/promote": { tag: "Knowledge", summary: "Promote a conversation note into institutional memory." },
+  "GET /api/v1/knowledge/organization-memory/{organizationId}": { tag: "Knowledge", summary: "What the organisation knows about itself." },
+  "POST /api/v1/knowledge/organization-memory/{organizationId}": { tag: "Knowledge", summary: "Record an organisational fact." },
+
+  // ── Platform ───────────────────────────────────────────────────────────────
+  // The narrowest door on the API: PLATFORM realm *and* `platform.configure`,
+  // applied to the router as a whole. Anything that changes a tenant's standing
+  // additionally requires fresh authentication — a stolen cookie must not be
+  // enough to suspend an organisation.
+  "GET /api/v1/platform/overview": { tag: "Platform", realm: "PLATFORM", permission: "platform.configure", summary: "The platform at a glance." },
+  "GET /api/v1/platform/backup": { tag: "Platform", realm: "PLATFORM", permission: "platform.configure", summary: "Backup state." },
+  "GET /api/v1/platform/integrations": { tag: "Platform", realm: "PLATFORM", permission: "platform.configure", summary: "Which external services are configured." },
+  "GET /api/v1/platform/organizations": { tag: "Platform", realm: "PLATFORM", permission: "platform.configure", summary: "Every tenant." },
+  "POST /api/v1/platform/organizations": { tag: "Platform", realm: "PLATFORM", permission: "platform.configure", summary: "Create a tenant.", description: "Requires fresh authentication." },
+  "POST /api/v1/platform/organizations/{id}/members": { tag: "Platform", realm: "PLATFORM", permission: "platform.configure", summary: "Add a member to a tenant.", description: "Requires fresh authentication." },
+  "PATCH /api/v1/platform/organizations/{id}/status": { tag: "Platform", realm: "PLATFORM", permission: "platform.configure", summary: "Suspend, restore or archive a tenant.", description: "Requires fresh authentication." },
+  "PATCH /api/v1/platform/organizations/{id}/licence": { tag: "Platform", realm: "PLATFORM", permission: "platform.configure", summary: "Change a tenant's licence.", description: "Seats cannot be cut below the accounts that already exist. Requires fresh authentication." },
+  "GET /api/v1/platform/licences": { tag: "Platform", realm: "PLATFORM", permission: "platform.configure", summary: "Licences across tenants." },
+  "GET /api/v1/platform/identities": { tag: "Platform", realm: "PLATFORM", permission: "platform.configure", summary: "Configured identity providers." },
+  "GET /api/v1/platform/roles": { tag: "Platform", realm: "PLATFORM", permission: "platform.configure", summary: "The role model, as code defines it.", description: "Read from the same table the middleware enforces, so it cannot describe a model the platform is not applying." },
+  "GET /api/v1/platform/sessions": { tag: "Platform", realm: "PLATFORM", permission: "platform.configure", summary: "Sessions held across the platform." },
+  "DELETE /api/v1/platform/sessions/{id}": { tag: "Platform", realm: "PLATFORM", permission: "platform.configure", summary: "Revoke a session.", description: "Requires fresh authentication." },
+  "GET /api/v1/platform/settings": { tag: "Platform", realm: "PLATFORM", permission: "platform.configure", summary: "Platform settings." },
+  "PATCH /api/v1/platform/settings/{key}": { tag: "Platform", realm: "PLATFORM", permission: "platform.configure", summary: "Change a setting.", description: "Requires fresh authentication." },
+  "GET /api/v1/platform/security": { tag: "Platform", realm: "PLATFORM", permission: "platform.configure", summary: "Security posture across the platform." },
+  "GET /api/v1/platform/ai-governance": { tag: "Platform", realm: "PLATFORM", permission: "platform.configure", summary: "How the AI estate is behaving.", description: "Observability only. Nothing here changes a model, a prompt or a routing rule." },
 };
