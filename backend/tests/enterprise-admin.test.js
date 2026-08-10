@@ -87,6 +87,19 @@ const api = (cookie) => ({
   get: (p) => request(app).get(`/api/v1/enterprise${p}`).set("Cookie", cookie),
 });
 
+/**
+ * Every console route, so the wall is checked on all of them.
+ *
+ * The eight below `/security-events` were built across this phase and were
+ * covered only at the service layer, where tenant scoping is proven but the
+ * route is not. A misnamed `requirePermission`, middleware in the wrong order,
+ * or a validation schema that rejects a legitimate call would 403 or 500 in
+ * production with every test still green — the failure being silent and in the
+ * wrong direction is the whole reason to sweep the list rather than a sample.
+ *
+ * `/ai-systems` is deliberately absent: it needs `platform.configure`, which no
+ * ENTERPRISE role holds, and it has its own test below.
+ */
 const ADMIN_ENDPOINTS = [
   "/dashboard",
   "/analytics",
@@ -98,6 +111,14 @@ const ADMIN_ENDPOINTS = [
   "/compliance",
   "/audit",
   "/security-events",
+  "/organization",
+  "/policies",
+  "/renewals",
+  "/documents",
+  "/intelligence",
+  "/support",
+  "/notifications",
+  "/roles",
 ];
 
 // ── The wall ─────────────────────────────────────────────────────────────────
