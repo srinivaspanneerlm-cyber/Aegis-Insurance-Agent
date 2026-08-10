@@ -115,6 +115,34 @@ describe("Employee routes — who may reach them at all", () => {
     assert.equal(res.status, 401);
   });
 
+  // Task 9.3. The wall above only ever exercised a customer against it. Every
+  // other realm needs the same proof — the realm check is a plain allowlist,
+  // but an allowlist that has never been tried against ENTERPRISE or PLATFORM
+  // is an allowlist nobody has actually seen refuse them.
+  test("an enterprise administrator is refused everywhere", async () => {
+    const account = await signUp("enterprise-admin");
+    await prisma.user.update({
+      where: { id: account.userId },
+      data: { realm: "ENTERPRISE", role: "ENTERPRISE_ADMIN", emailVerifiedAt: new Date() },
+    });
+    for (const p of ["/me", "/work", "/analytics", "/knowledge", "/escalations", "/workflows"]) {
+      const res = await api(account.cookie).get(p);
+      assert.equal(res.status, 403, `GET ${p}`);
+    }
+  });
+
+  test("a platform operator is refused everywhere", async () => {
+    const account = await signUp("platform-operator");
+    await prisma.user.update({
+      where: { id: account.userId },
+      data: { realm: "PLATFORM", role: "PLATFORM_ADMIN", emailVerifiedAt: new Date() },
+    });
+    for (const p of ["/me", "/work", "/analytics", "/knowledge", "/escalations", "/workflows"]) {
+      const res = await api(account.cookie).get(p);
+      assert.equal(res.status, 403, `GET ${p}`);
+    }
+  });
+
   test("the refusal does not say which check stopped them", async () => {
     // Whether it was the realm or the permission is not information a prober
     // needs; it maps the platform's shape.

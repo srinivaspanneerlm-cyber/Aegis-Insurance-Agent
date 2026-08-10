@@ -144,6 +144,46 @@ describe("Enterprise admin — who may reach it", () => {
     assert.equal((await request(app).get("/api/v1/enterprise/dashboard")).status, 401);
   });
 
+  // Task 9.3. Customer and employee were both tried against this wall; a
+  // genuine PLATFORM-realm account never was. `/ai-systems` tests a
+  // PLATFORM_ADMIN *role* placed in the ENTERPRISE realm (to isolate the
+  // permission check) — this is the missing case, the actual realm.
+  test("a platform operator is refused everywhere", async () => {
+    const operator = await account("platform-operator", "PLATFORM", "PLATFORM_ADMIN");
+    for (const p of [...ADMIN_ENDPOINTS, "/ai-systems"]) {
+      assert.equal((await api(operator.cookie).get(p)).status, 403, `GET ${p}`);
+    }
+  });
+
+  // Task 9.3 — the other shape "wrong organisation" takes: not a mismatch
+  // between two real tenants, but an ENTERPRISE account attached to none at
+  // all. Failing open here — administering nothing as if it meant everything
+  // — is exactly the defect organisation isolation was built to prevent.
+  //
+  // Built by hand rather than via account(): that helper always provisions a
+  // fresh organisation for an ENTERPRISE realm, precisely because a bare
+  // ENTERPRISE_ADMIN with no tenant is not a state the fixture is meant to
+  // produce by accident — this test needs exactly that state on purpose.
+  test("an enterprise admin with no organisation administers nothing", async () => {
+    const email = `ent-orphan-${Date.now()}@test.com`;
+    const reg = await request(app)
+      .post("/api/v1/auth/register")
+      .set("Origin", ORIGIN)
+      .send({ name: "Orphan Admin", email, password: PASSWORD });
+    assert.equal(reg.status, 201);
+    await prisma.user.update({
+      where: { id: reg.body.data.user.id },
+      data: { realm: "ENTERPRISE", role: "ENTERPRISE_ADMIN", emailVerifiedAt: new Date() },
+    });
+    const orphanCookie = cookieHeader(reg);
+
+    for (const p of ADMIN_ENDPOINTS) {
+      const res = await api(orphanCookie).get(p);
+      assert.equal(res.status, 403, `GET ${p}`);
+      assert.equal(res.body.code, "NO_ORGANIZATION");
+    }
+  });
+
   test("an enterprise admin gets in", async () => {
     const boss = await admin();
     for (const p of ADMIN_ENDPOINTS) {
