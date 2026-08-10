@@ -1002,12 +1002,21 @@ because channel health is infrastructure, not a tenant's business.
 Announcements carry no organisation of their own — see the
 `announcementScope` note on the console's `/notifications`.
 
-> ⚠️ **`POST /announcements` carries no capability.** The audience realm comes
-> from the request body (default `EMPLOYEE`, validated only against the set of
-> known realms), not from the caller. Combined with the absence of a permission
-> on the route, any authenticated account — including a customer — may publish
-> an announcement addressed to any realm. Documented here as it behaves today;
-> this is a gap, not a design.
+**`POST /announcements` is authorised in the service, not by route middleware.**
+The route table above shows no capability because none is declared on the route
+— but `collaboration.service.announce` enforces two, and reading only the router
+gives the wrong answer:
+
+| Attempt | Requires | Refused with |
+|---|---|---|
+| Publishing at all | `staff.manage` **or** `platform.configure` | `403 FORBIDDEN` |
+| Audience `ALL` or `CUSTOMER` | `platform.configure` | `403 AUDIENCE_TOO_BROAD` |
+
+The second is the boundary that matters: an enterprise administrator may address
+their own staff, and only an Aegis operator may reach beyond one organisation.
+That is what keeps a customer *of* Aegis from messaging everyone *on* it. The
+audience realm is taken from the request body and validated against the known
+realms; the caller's authority decides which of those they are allowed to name.
 
 ---
 

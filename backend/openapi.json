@@ -1134,7 +1134,8 @@
           "Communication"
         ],
         "summary": "Publish an announcement.",
-        "description": "The audience realm is taken from the request body, defaulting to EMPLOYEE, and validated against the known realms — it is not derived from the caller. This route carries no capability beyond being signed in, so any authenticated account may publish to any realm. Announcements also carry no organisation, so they are platform-wide.",
+        "description": "Publishing requires `staff.manage` or `platform.configure`; an audience of ALL or CUSTOMER requires `platform.configure`, so an enterprise administrator can address their own staff and only an Aegis operator can reach beyond one organisation. The audience realm comes from the request body and is validated against the known realms — the caller's authority decides which they may name. Announcements carry no organisation of their own, so they are platform-wide records.",
+        "x-permission": "staff.manage | platform.configure (enforced in the service, not by route middleware)",
         "security": [
           {
             "cookieAuth": []
