@@ -41,6 +41,25 @@ async function call<T>(path: string): Promise<T> {
   return body.data as T;
 }
 
+/**
+ * A query string from the parts that are actually set.
+ *
+ * `take` is the row cap. Every list endpoint has always accepted one and the
+ * console never sent it, so each list stopped at the server's default with no
+ * way to ask for the rest. The server clamps it — asking for more than it
+ * allows is answered with its maximum, not an error.
+ */
+function query(parts: Record<string, string | number | undefined>): string {
+  const q = new URLSearchParams();
+  for (const [key, value] of Object.entries(parts)) {
+    if (value !== undefined && value !== "") q.set(key, String(value));
+  }
+  return q.toString() ? `?${q}` : "";
+}
+
+/** The most rows any list endpoint will return. Matches `MAX_PAGE` on the server. */
+export const MAX_ROWS = 100;
+
 export const consoleApi = {
   dashboard: () => call<DashboardPayload>("/enterprise/dashboard"),
 
@@ -52,20 +71,20 @@ export const consoleApi = {
       trend: DashboardPayload["trend"];
       branches: DashboardPayload["branches"];
     }>("/enterprise/analytics"),
-  customers: (search: string) =>
+  customers: (search: string, take?: number) =>
     call<{ total: number; customers: CustomerRow[] }>(
-      `/enterprise/customers${search ? `?search=${encodeURIComponent(search)}` : ""}`
+      `/enterprise/customers${query({ search, take })}`
     ),
   /** One customer's operational record. No conversation content, by design. */
   customer: (id: string) => call<CustomerDetail>(`/enterprise/customers/${encodeURIComponent(id)}`),
 
   /** The workforce. `department` is filtered by the server, not here. */
-  employees: (department?: string) =>
+  employees: (department?: string, take?: number) =>
     call<{
       employees: EmployeeRow[];
       departments: { department: string; count: number }[];
       capacity: WorkforceCapacity;
-    }>(`/enterprise/employees${department ? `?department=${encodeURIComponent(department)}` : ""}`),
+    }>(`/enterprise/employees${query({ department, take })}`),
   products: () => call<ProductsPayload>("/enterprise/products"),
 
   renewals: () => call<RenewalsPayload>("/enterprise/renewals"),
@@ -77,26 +96,20 @@ export const consoleApi = {
   documents: () => call<DocumentsPayload>("/enterprise/documents"),
 
   /** The book of policies customers hold. Distinct from the catalogue above. */
-  policies: (status?: string) =>
-    call<PoliciesPayload>(
-      `/enterprise/policies${status ? `?status=${encodeURIComponent(status)}` : ""}`
-    ),
+  policies: (status?: string, take?: number) =>
+    call<PoliciesPayload>(`/enterprise/policies${query({ status, take })}`),
   claims: () => call<ClaimsPayload>("/enterprise/claims"),
   aiSystems: () => call<{ systems: AiSystem[] }>("/enterprise/ai-systems"),
   workflows: () => call<WorkflowsPayload>("/enterprise/workflows"),
   compliance: () =>
     call<{ summary: ComplianceSummary; findings: ComplianceFinding[] }>("/enterprise/compliance"),
-  audit: (action: string, actorId?: string) => {
-    const q = new URLSearchParams();
-    if (action) q.set("action", action);
-    if (actorId) q.set("actorId", actorId);
-    return call<{
+  audit: (action: string, actorId?: string, take?: number) =>
+    call<{
       total: number;
       entries: AuditEntry[];
       actions: { action: string; count: number }[];
       actors: { id: string; name: string; count: number }[];
-    }>(`/enterprise/audit${q.toString() ? `?${q}` : ""}`);
-  },
+    }>(`/enterprise/audit${query({ action, actorId, take })}`),
 
   /**
    * A report as rows, for the screen.

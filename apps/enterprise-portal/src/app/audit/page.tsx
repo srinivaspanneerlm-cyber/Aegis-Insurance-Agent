@@ -1,9 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Badge, Empty, Panel, Skeleton } from "@/components/Cards";
+import { Badge, Empty, Panel, ShowMore, Skeleton } from "@/components/Cards";
 import { Icon } from "@/components/Icon";
-import { consoleApi, type AuditEntry } from "@/lib/api";
+import { consoleApi, MAX_ROWS, type AuditEntry } from "@/lib/api";
 
 /**
  * The audit centre.
@@ -26,11 +26,19 @@ export default function AuditPage() {
   // actorId and nothing sent one.
   const [actorId, setActorId] = useState<string | null>(null);
 
-  const run = useCallback(async (action: string, actor?: string | null) => {
-    setData(null);
+  const [expanding, setExpanding] = useState(false);
+  // The action the table is showing, which is not necessarily what is in the
+  // box — asking for more rows must not silently run a half-typed query.
+  const [applied, setApplied] = useState("");
+
+  const run = useCallback(async (action: string, actor?: string | null, take?: number) => {
+    if (take === undefined) {
+      setData(null);
+      setApplied(action);
+    }
     setError(null);
     try {
-      setData(await consoleApi.audit(action, actor ?? undefined));
+      setData(await consoleApi.audit(action, actor ?? undefined, take));
     } catch (e) {
       setError(e instanceof Error ? e.message : "Search failed.");
     }
@@ -54,7 +62,10 @@ export default function AuditPage() {
       <form
         onSubmit={(e) => {
           e.preventDefault();
-          void run(term);
+          // Carry the selected person through the search. Dropping them here
+          // unfiltered the results while their chip stayed lit and the note
+          // still read "showing one person's actions".
+          void run(term, actorId);
         }}
         className="flex flex-col gap-3 sm:flex-row"
       >
@@ -206,6 +217,18 @@ export default function AuditPage() {
                 ))}
               </ul>
             )}
+
+            <ShowMore
+              shown={data.entries.length}
+              total={data.total}
+              max={MAX_ROWS}
+              busy={expanding}
+              noun="events"
+              onMore={() => {
+                setExpanding(true);
+                void run(applied, actorId, MAX_ROWS).finally(() => setExpanding(false));
+              }}
+            />
           </Panel>
         </>
       ) : error ? null : (

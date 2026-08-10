@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Badge, Empty, Panel, Skeleton, Stat } from "@/components/Cards";
-import { consoleApi, type PoliciesPayload } from "@/lib/api";
+import { Badge, Empty, Panel, ShowMore, Skeleton, Stat } from "@/components/Cards";
+import { consoleApi, MAX_ROWS, type PoliciesPayload } from "@/lib/api";
 
 const STATUSES = ["ACTIVE", "LAPSED", "EXPIRED", "CANCELLED"];
 
@@ -32,11 +32,13 @@ export default function PoliciesPage() {
   const [status, setStatus] = useState<string | null>(null);
   const ticket = useRef(0);
 
-  const load = useCallback(async (which: string | null) => {
+  const [expanding, setExpanding] = useState(false);
+
+  const load = useCallback(async (which: string | null, take?: number) => {
     const mine = ++ticket.current;
     setError(null);
     try {
-      const d = await consoleApi.policies(which ?? undefined);
+      const d = await consoleApi.policies(which ?? undefined, take);
       if (mine === ticket.current) setData(d);
     } catch (e) {
       if (mine === ticket.current)
@@ -47,6 +49,12 @@ export default function PoliciesPage() {
   useEffect(() => {
     void load(status);
   }, [load, status]);
+
+  // `total` counts the whole book regardless of the filter; the per-status
+  // counts are what a filtered view is a subset of. Comparing the rows on
+  // screen against the wrong one of those would report truncation that is not
+  // there, or miss the truncation that is.
+  const total = data ? (status ? (data.byStatus[status] ?? 0) : data.total) : 0;
 
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-6">
@@ -117,7 +125,15 @@ export default function PoliciesPage() {
         </>
       ) : null}
 
-      <Panel title={data ? `${data.policies.length} shown` : "Loading"}>
+      {/* "N shown" was the whole title while `total` sat unread in the same
+          payload, so a capped list read as the entire book. */}
+      <Panel
+        title={
+          data
+            ? `${data.policies.length} of ${total} policy record(s)${status ? ` · ${status.toLowerCase()}` : ""}`
+            : "Loading"
+        }
+      >
         {!data ? (
           <div className="flex flex-col gap-3">
             {[0, 1, 2].map((i) => (
@@ -208,6 +224,20 @@ export default function PoliciesPage() {
             </table>
           </div>
         )}
+
+        {data ? (
+          <ShowMore
+            shown={data.policies.length}
+            total={total}
+            max={MAX_ROWS}
+            busy={expanding}
+            noun="policy records"
+            onMore={() => {
+              setExpanding(true);
+              void load(status, MAX_ROWS).finally(() => setExpanding(false));
+            }}
+          />
+        ) : null}
       </Panel>
     </div>
   );

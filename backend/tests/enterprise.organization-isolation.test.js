@@ -162,6 +162,59 @@ describe("audit trail", () => {
   });
 });
 
+describe("filtering and row caps", () => {
+  // The console filters on the server. These cover the two ways that used to
+  // go wrong: a filter that matches nothing returning a broken shape, and a
+  // cap the caller could not raise.
+  test("an organisation with no staff still gets a capacity and its departments", async () => {
+    const empty = await prisma.organization.create({
+      data: { slug: `${TAG}-empty`, name: "Empty Ltd" },
+    });
+    made.orgs.push(empty.id);
+
+    const result = await enterpriseAdminService.employees(empty.id, {});
+    assert.deepEqual(result.employees, []);
+    // The console reads capacity.activeStaff behind a truthy-payload guard, so
+    // omitting it here blanked the page for every tenant that had not hired yet.
+    assert.ok(result.capacity, "an empty workforce is still a workforce shape");
+    assert.equal(result.capacity.activeStaff, 0);
+    assert.equal(result.capacity.utilisation, null, "no staff means no utilisation, not 0%");
+  });
+
+  test("a department filter that matches nothing keeps the controls that undo it", async () => {
+    const result = await enterpriseAdminService.employees(A.org.id, { department: "no-such-team" });
+    assert.deepEqual(result.employees, []);
+    assert.ok(
+      result.departments.some((d) => d.department === "claims"),
+      "the department chips must survive an empty result, or there is no way back"
+    );
+    assert.ok(result.capacity);
+  });
+
+  test("the department counts are the tenant's own, not the filter's", async () => {
+    const filtered = await enterpriseAdminService.employees(A.org.id, { department: "claims" });
+    const all = await enterpriseAdminService.employees(A.org.id, {});
+    assert.deepEqual(
+      filtered.departments,
+      all.departments,
+      "counts are org-wide so the chips read the same either way"
+    );
+  });
+
+  test("take is honoured and clamped rather than refused", async () => {
+    const one = await enterpriseAdminService.customers(A.org.id, { take: 1 });
+    assert.equal(one.customers.length, 1);
+    assert.equal(one.total, 1, "the total counts the matches, not the page");
+
+    // Above the maximum the server answers with its maximum. A console that
+    // asks for more must get rows, not an error.
+    const huge = await enterpriseAdminService.customers(A.org.id, { take: 10_000 });
+    assert.ok(huge.customers.length <= 100);
+    const nonsense = await enterpriseAdminService.customers(A.org.id, { take: "abc" });
+    assert.ok(nonsense.customers.length >= 0, "a junk take falls back rather than throwing");
+  });
+});
+
 describe("reports", () => {
   // Reports were the one console surface with no isolation test. They are also
   // the surface that leaves the building as a file, so a leak here walks out of

@@ -234,7 +234,35 @@ export const enterpriseAdminService = {
       take,
     });
 
-    if (profiles.length === 0) return { employees: [], departments: [] };
+    // The department counts are org-wide on purpose: they are the filter's own
+    // controls, so they must survive a filter that matches nothing. Without
+    // them the chips unmount and an administrator who filtered into an empty
+    // department has no way back to everyone but reloading the page.
+    const departments = await prisma.employeeProfile.groupBy({
+      by: ["department"],
+      where: { organizationId },
+      _count: { _all: true },
+    });
+    const departmentCounts = departments.map((d) => ({ department: d.department, count: d._count._all }));
+
+    // An empty result is still a shape. Returning early without `capacity` left
+    // the console reading `capacity.activeStaff` off undefined, which is a blank
+    // screen for every tenant that has not hired anybody yet.
+    if (profiles.length === 0) {
+      return {
+        employees: [],
+        departments: departmentCounts,
+        capacity: {
+          activeStaff: 0,
+          totalCapacity: 0,
+          openWork: 0,
+          // Null, not 0% — an operation with no staff has no utilisation, and
+          // 0% reads as plenty of room.
+          utilisation: null,
+          stretched: 0,
+        },
+      };
+    }
 
     // One grouped count rather than a query per person.
     const ids = profiles.map((p) => p.id);
@@ -252,12 +280,6 @@ export const enterpriseAdminService = {
     ]);
     const openBy = new Map(open.map((r) => [r.assigneeId, r._count._all]));
     const overdueBy = new Map(overdue.map((r) => [r.assigneeId, r._count._all]));
-
-    const departments = await prisma.employeeProfile.groupBy({
-      by: ["department"],
-      where: { organizationId },
-      _count: { _all: true },
-    });
 
     const employees = profiles.map((profile) => {
       const openWork = openBy.get(profile.id) ?? 0;
@@ -289,7 +311,7 @@ export const enterpriseAdminService = {
 
     return {
       employees,
-      departments: departments.map((d) => ({ department: d.department, count: d._count._all })),
+      departments: departmentCounts,
       capacity: {
         activeStaff: active.length,
         totalCapacity: capacity,

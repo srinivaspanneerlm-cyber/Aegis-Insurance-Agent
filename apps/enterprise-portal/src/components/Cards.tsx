@@ -129,6 +129,54 @@ export function Empty({
   );
 }
 
+/**
+ * What a truncated list says about itself.
+ *
+ * Every list endpoint caps its rows, and the console used to render the cap as
+ * though it were the whole set — which is how somebody concludes a policy does
+ * not exist when it is simply row 51. This states the shown count against the
+ * real one, offers the rest where the server can still supply it, and where it
+ * cannot says so plainly instead of offering a button that would change
+ * nothing.
+ */
+export function ShowMore({
+  shown,
+  total,
+  max,
+  busy,
+  noun,
+  onMore,
+}: {
+  shown: number;
+  total: number;
+  max: number;
+  busy?: boolean;
+  noun: string;
+  onMore: () => void;
+}) {
+  if (shown >= total) return null;
+
+  const exhausted = shown >= max;
+  return (
+    <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-line/30 pt-4">
+      <p className="text-caption text-content-muted">
+        Showing {shown} of {total} {noun}.
+        {exhausted ? ` The list stops at ${max} — narrow the filter to reach the rest.` : ""}
+      </p>
+      {exhausted ? null : (
+        <button
+          type="button"
+          onClick={onMore}
+          disabled={busy}
+          className="focus-ring rounded-control border border-line px-3 py-1.5 text-caption font-medium text-content transition-colors hover:border-line-strong disabled:opacity-50"
+        >
+          {busy ? "Loading…" : `Show up to ${max}`}
+        </button>
+      )}
+    </div>
+  );
+}
+
 export function Skeleton({ className }: { className?: string }) {
   return <div aria-hidden="true" className={cn("rounded-pill bg-surface-raised/50", className)} />;
 }

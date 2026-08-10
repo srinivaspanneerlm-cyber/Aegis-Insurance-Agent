@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Badge, Empty, Panel, Skeleton, Stat } from "@/components/Cards";
-import { consoleApi, type EmployeeRow, type WorkforceCapacity } from "@/lib/api";
+import { Badge, Empty, Panel, ShowMore, Skeleton, Stat } from "@/components/Cards";
+import { consoleApi, MAX_ROWS, type EmployeeRow, type WorkforceCapacity } from "@/lib/api";
 
 /**
  * Employee management.
@@ -62,11 +62,13 @@ export default function EmployeesPage() {
   // up disagreeing with the selected department.
   const ticket = useRef(0);
 
-  const load = useCallback(async (dept: string | null) => {
+  const [expanding, setExpanding] = useState(false);
+
+  const load = useCallback(async (dept: string | null, take?: number) => {
     const mine = ++ticket.current;
     setError(null);
     try {
-      const d = await consoleApi.employees(dept ?? undefined);
+      const d = await consoleApi.employees(dept ?? undefined, take);
       if (mine === ticket.current) setData(d);
     } catch (e) {
       if (mine === ticket.current) setError(e instanceof Error ? e.message : "Failed.");
@@ -76,6 +78,14 @@ export default function EmployeesPage() {
   useEffect(() => {
     void load(department);
   }, [load, department]);
+
+  // How many there are, as opposed to how many fitted. The department counts are
+  // org-wide, so they answer both the filtered and the unfiltered question.
+  const total = data
+    ? department
+      ? (data.departments.find((d) => d.department === department)?.count ?? data.employees.length)
+      : data.departments.reduce((sum, d) => sum + d.count, 0)
+    : 0;
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
@@ -123,8 +133,11 @@ export default function EmployeesPage() {
       {/* The endpoint has always taken ?department= and nothing sent it, so
           these counts were decoration. Filtering happens on the server, which
           is what keeps the 50-row cap meaningful. */}
-      {data && data.departments.length > 0 ? (
+      {data && (data.departments.length > 0 || department !== null) ? (
         <div className="flex flex-wrap gap-2">
+          {/* The reset stays even when the chips do not. Filtering into an empty
+              department used to unmount this row, leaving no way back to
+              everyone short of reloading the page. */}
           <button
             type="button"
             onClick={() => setDepartment(null)}
@@ -155,7 +168,7 @@ export default function EmployeesPage() {
         </div>
       ) : null}
 
-      <Panel title={data ? `${data.employees.length} employee(s)` : "Loading"}>
+      <Panel title={data ? `${data.employees.length} of ${total} employee(s)` : "Loading"}>
         {data === null ? (
           <div className="flex flex-col gap-3">
             {[0, 1, 2].map((i) => (
@@ -163,7 +176,11 @@ export default function EmployeesPage() {
             ))}
           </div>
         ) : data.employees.length === 0 ? (
-          <Empty icon="briefcase">No employee profiles have been created yet.</Empty>
+          <Empty icon="briefcase">
+            {department
+              ? `Nobody is currently in ${department}.`
+              : "No employee profiles have been created yet."}
+          </Empty>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left">
@@ -247,15 +264,23 @@ export default function EmployeesPage() {
             </table>
           </div>
         )}
-      </Panel>
 
-      {/* The endpoint caps at 50. Above that the list is short and says so
-          rather than reading as the whole workforce. */}
-      {data && data.employees.length >= 50 ? (
-        <p role="status" className="text-pretty text-caption text-content-muted">
-          Showing the 50 most recently joined. Filter by department to see the rest.
-        </p>
-      ) : null}
+        {/* The endpoint caps its rows, and it also accepts a higher cap — which
+            nothing ever sent, so the list simply ended at 50 with a note. */}
+        {data ? (
+          <ShowMore
+            shown={data.employees.length}
+            total={total}
+            max={MAX_ROWS}
+            busy={expanding}
+            noun="employees"
+            onMore={() => {
+              setExpanding(true);
+              void load(department, MAX_ROWS).finally(() => setExpanding(false));
+            }}
+          />
+        ) : null}
+      </Panel>
 
       <p className="text-pretty text-caption text-content-muted">
         Training status is not shown because the platform does not record it. Capturing it would

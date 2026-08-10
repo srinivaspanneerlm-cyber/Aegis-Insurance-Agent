@@ -313,6 +313,27 @@ describe("AI orchestration centre", () => {
   });
 });
 
+// ── Row caps ─────────────────────────────────────────────────────────────────
+
+describe("Row caps over HTTP", () => {
+  // The service honours `take`; these prove the route actually hands it over,
+  // which is the half the console depends on and nothing covered.
+  test("take reaches the service through the route", async () => {
+    const boss = await admin();
+    const res = await api(boss.cookie).get("/customers?take=1");
+    assert.equal(res.status, 200);
+    assert.ok(res.body.data.customers.length <= 1);
+  });
+
+  test("an absurd take is answered with the maximum, not an error", async () => {
+    const boss = await admin();
+    const res = await api(boss.cookie).get("/employees?take=99999");
+    assert.equal(res.status, 200, "a caller asking for too much gets rows, not a 400");
+    assert.ok(res.body.data.employees.length <= 100);
+    assert.ok(res.body.data.capacity, "the workforce shape survives an empty tenant");
+  });
+});
+
 // ── Reports ──────────────────────────────────────────────────────────────────
 
 describe("Reports", () => {

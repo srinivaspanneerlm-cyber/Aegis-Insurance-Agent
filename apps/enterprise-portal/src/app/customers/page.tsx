@@ -3,9 +3,9 @@
 import Link from "next/link";
 
 import { useCallback, useEffect, useState } from "react";
-import { Badge, Empty, Panel, Skeleton } from "@/components/Cards";
+import { Badge, Empty, Panel, ShowMore, Skeleton } from "@/components/Cards";
 import { Icon } from "@/components/Icon";
-import { consoleApi, type CustomerRow } from "@/lib/api";
+import { consoleApi, MAX_ROWS, type CustomerRow } from "@/lib/api";
 
 /**
  * Customer management.
@@ -21,11 +21,22 @@ export default function CustomersPage() {
   const [data, setData] = useState<{ total: number; customers: CustomerRow[] } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const run = useCallback(async (search: string) => {
-    setData(null);
+  const [expanding, setExpanding] = useState(false);
+  // What the table is actually showing, which is not what is in the box: a
+  // half-typed term must not become the query when somebody asks for more rows.
+  const [applied, setApplied] = useState("");
+
+  const run = useCallback(async (search: string, take?: number) => {
+    // Only a fresh search blanks the table. Asking for more rows keeps what is
+    // already on screen, so the list grows rather than flickering back to
+    // skeletons and losing the reader's place.
+    if (take === undefined) {
+      setData(null);
+      setApplied(search);
+    }
     setError(null);
     try {
-      setData(await consoleApi.customers(search));
+      setData(await consoleApi.customers(search, take));
     } catch (e) {
       setError(e instanceof Error ? e.message : "Search failed.");
     }
@@ -152,6 +163,20 @@ export default function CustomersPage() {
             </table>
           </div>
         )}
+
+        {data ? (
+          <ShowMore
+            shown={data.customers.length}
+            total={data.total}
+            max={MAX_ROWS}
+            busy={expanding}
+            noun="customers"
+            onMore={() => {
+              setExpanding(true);
+              void run(applied, MAX_ROWS).finally(() => setExpanding(false));
+            }}
+          />
+        ) : null}
       </Panel>
     </div>
   );
