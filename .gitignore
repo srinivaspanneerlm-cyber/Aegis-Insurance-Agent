@@ -109,3 +109,9 @@ backups/
 apps/*/.next/
 apps/*/next-env.d.ts
 *.tsbuildinfo
+
+# End-to-end runs build here so they cannot disturb a dev server
+.next-e2e/
+e2e/.e2e-db
+test-results/
+playwright-report/
