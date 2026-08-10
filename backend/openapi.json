@@ -1134,8 +1134,8 @@
           "Communication"
         ],
         "summary": "Publish an announcement.",
-        "description": "Publishing requires `staff.manage` or `platform.configure`; an audience of ALL or CUSTOMER requires `platform.configure`, so an enterprise administrator can address their own staff and only an Aegis operator can reach beyond one organisation. The audience realm comes from the request body and is validated against the known realms — the caller's authority decides which they may name. Announcements carry no organisation of their own, so they are platform-wide records.",
-        "x-permission": "staff.manage | platform.configure (enforced in the service, not by route middleware)",
+        "description": "An audience of ALL or CUSTOMER additionally requires `platform.configure`, enforced in the service: an enterprise administrator may address their own staff, and only an Aegis operator may reach beyond one organisation. The audience realm comes from the request body and is validated against the known realms — the caller's authority decides which of them they may name. Announcements carry no organisation of their own, so they are platform-wide records.",
+        "x-permission": "staff.manage",
         "security": [
           {
             "cookieAuth": []

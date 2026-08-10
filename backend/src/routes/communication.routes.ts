@@ -232,9 +232,29 @@ router.post(
   })
 );
 
+/**
+ * Publishing an announcement.
+ *
+ * The capability is named here as well as checked in the service. Not because
+ * the service check is insufficient — it is the stricter of the two, and it
+ * stays — but because a reader auditing this router could previously see no
+ * capability on the route and reasonably conclude any signed-in account could
+ * broadcast to staff. That reading was wrong, and a security boundary nobody
+ * can find by reading the routes is one somebody will eventually remove.
+ *
+ * `staff.manage` rather than the service's `staff.manage || platform.configure`
+ * because every role holding the latter also holds the former, so the two admit
+ * the same callers today — and `requirePermission` takes one capability. The
+ * test below pins that equivalence, so if a future role ever holds
+ * `platform.configure` alone, it fails here rather than silently being refused
+ * a broadcast the service would have allowed.
+ */
 router.post(
   "/announcements",
+  requirePermission("staff.manage"),
   catchAsync(async (req, res) => {
+    // Still the authority on audience: reaching beyond one organisation needs
+    // `platform.configure`, which this route-level check does not ask about.
     sendSuccess(res, 201, await collaborationService.announce(actor(req), req.body ?? {}));
   })
 );

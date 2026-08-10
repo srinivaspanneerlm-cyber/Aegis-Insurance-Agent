@@ -842,6 +842,26 @@ describe("the API and its permissions", () => {
     assert.equal((await api(customer.cookie).get("/analytics/health")).status, 403);
   });
 
+  /**
+   * The route declares `staff.manage`; the service accepts `staff.manage` OR
+   * `platform.configure`. They admit the same callers only while every role
+   * holding the second also holds the first. That is true today and nothing
+   * enforces it, so a role added later could be refused at the route a
+   * broadcast the service would have allowed — a denial nobody would think to
+   * look for, because both layers would appear correct in isolation.
+   */
+  test("no role can hold platform.configure without staff.manage", () => {
+    const { ROLE_PERMISSIONS } = require("../src/auth/permissions");
+    const broken = Object.entries(ROLE_PERMISSIONS)
+      .filter(([, perms]) => perms.includes("platform.configure") && !perms.includes("staff.manage"))
+      .map(([role]) => role);
+    assert.deepEqual(
+      broken,
+      [],
+      "such a role would be blocked by the route guard on POST /announcements even though the service would permit it — give it staff.manage, or widen the route guard"
+    );
+  });
+
   test("an enterprise admin cannot broadcast to every customer", async () => {
     // Reaching beyond your own organisation is a platform operator's authority.
     const admin = await account("api-eadmin", "ENTERPRISE", "ENTERPRISE_ADMIN");
