@@ -18,7 +18,9 @@
     "db:migrate:deploy": "npx prisma migrate deploy",
     "db:migrate:status": "npx prisma migrate status",
     "db:studio": "npx prisma studio",
-    "db:seed": "node prisma/seed.js"
+    "db:seed": "node prisma/seed.js",
+    "openapi": "node --import tsx scripts/openapi.mjs",
+    "openapi:check": "node --import tsx scripts/openapi.mjs --check"
   },
   "dependencies": {
     "@prisma/client": "^5.14.0",
