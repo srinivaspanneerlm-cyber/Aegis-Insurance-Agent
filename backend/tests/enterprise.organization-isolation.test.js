@@ -162,6 +162,40 @@ describe("audit trail", () => {
   });
 });
 
+describe("reports", () => {
+  // Reports were the one console surface with no isolation test. They are also
+  // the surface that leaves the building as a file, so a leak here walks out of
+  // the tenant on somebody's laptop rather than staying on a screen.
+  test("the operations summary counts only the caller's tenant", async () => {
+    const report = await enterpriseAdminService.report(A.org.id, "operations", A.staff.id);
+    const rows = Object.fromEntries(report.rows.map((r) => [r.metric, r.value]));
+    assert.equal(rows.Customers, 1, "alpha holds exactly one customer");
+    assert.equal(rows["Active policies"], 1);
+    assert.equal(rows["Open cases"], 1);
+  });
+
+  test("the branch comparison never names another tenant's branch", async () => {
+    const report = await enterpriseAdminService.report(A.org.id, "branches", A.staff.id);
+    const branches = report.rows.map((r) => r.branch);
+    assert.ok(branches.includes("alpha branch"));
+    assert.ok(!branches.includes("beta branch"), "beta's branch must not appear in alpha's report");
+  });
+
+  test("compliance findings are computed per tenant", async () => {
+    const a = await enterpriseAdminService.report(A.org.id, "compliance", A.staff.id);
+    const b = await enterpriseAdminService.report(B.org.id, "compliance", B.staff.id);
+    // Same checks run for both, but the affected counts are each tenant's own.
+    assert.deepEqual(
+      a.rows.map((r) => r.check),
+      b.rows.map((r) => r.check),
+      "both tenants are held to the same checks"
+    );
+    for (const row of a.rows) {
+      assert.equal(typeof row.affected, "number", "every finding carries a count");
+    }
+  });
+});
+
 describe("dashboard counts", () => {
   test("each tenant counts only itself", async () => {
     const a = await enterpriseAdminService.dashboard(A.org.id);

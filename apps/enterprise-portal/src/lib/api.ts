@@ -4,6 +4,7 @@ import type {
   ComplianceFinding,
   ComplianceSummary,
   DashboardPayload,
+  ReportPayload,
 } from "@/lib/console";
 
 /** The only place this console talks to the API. */
@@ -96,6 +97,14 @@ export const consoleApi = {
       actors: { id: string; name: string; count: number }[];
     }>(`/enterprise/audit${q.toString() ? `?${q}` : ""}`);
   },
+
+  /**
+   * A report as rows, for the screen.
+   *
+   * The same endpoint the CSV link points at, without `format=csv` — so a
+   * preview and its download can never disagree about the figures.
+   */
+  report: (kind: string) => call<ReportPayload>(`/enterprise/reports/${encodeURIComponent(kind)}`),
 };
 
 /** Where a CSV download points. A plain link, so the browser handles it. */

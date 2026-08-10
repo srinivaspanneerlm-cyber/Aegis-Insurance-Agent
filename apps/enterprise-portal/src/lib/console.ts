@@ -233,6 +233,22 @@ export interface DashboardPayload {
   }[];
 }
 
+/**
+ * A generated report.
+ *
+ * `rows` is deliberately untyped beyond "records with string keys": each report
+ * kind has its own columns, and the screen derives its headers from the keys it
+ * is actually given. A typed column list here would have to be kept in step
+ * with the server's generators, and the day they disagreed the screen would
+ * silently drop a column rather than show one it did not expect.
+ */
+export interface ReportPayload {
+  kind: string;
+  title: string;
+  rows: Record<string, unknown>[];
+  generatedAt: string;
+}
+
 export const SEVERITY_TONE = {
   CRITICAL: "danger",
   HIGH: "danger",
