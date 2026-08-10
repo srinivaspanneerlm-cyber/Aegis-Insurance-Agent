@@ -121,8 +121,17 @@ export function Empty({
   icon?: IconName;
   children: React.ReactNode;
 }) {
+  // Every caller in this app that renders a failed request uses icon="close" —
+  // it is otherwise never used for an ordinary empty state. `role="alert"`
+  // there means a screen-reader user is told a fetch failed the moment it
+  // happens; without it the message appears in the DOM but nothing announces
+  // it, which is silence exactly when something has gone wrong.
+  const isError = icon === "close";
   return (
-    <div className="flex flex-col items-center gap-2 py-8 text-center">
+    <div
+      className="flex flex-col items-center gap-2 py-8 text-center"
+      role={isError ? "alert" : undefined}
+    >
       <Icon name={icon} size={22} className="text-content-muted" />
       <p className="max-w-xs text-pretty text-body-sm text-content-secondary">{children}</p>
     </div>

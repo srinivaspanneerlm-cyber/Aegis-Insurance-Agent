@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { signIn } from "../fixtures/auth";
+import { visit } from "../fixtures/nav";
 import { TENANT } from "../fixtures/seed.mjs";
 
 /**
@@ -11,23 +12,6 @@ import { TENANT } from "../fixtures/seed.mjs";
  * and only the second one is the product.
  */
 const BACKEND = "http://localhost:5900";
-
-/**
- * Navigate, tolerating the dev server compiling the route.
- *
- * `next dev` builds a route the first time anybody asks for it, and a
- * navigation that arrives mid-compile is aborted rather than served. That is a
- * property of the development server, not of the product, so retrying once is
- * honest — it is not papering over a flaky page, it is waiting for a compiler.
- */
-async function visit(page: import("@playwright/test").Page, path: string) {
-  try {
-    await page.goto(path, { waitUntil: "domcontentloaded" });
-  } catch (error) {
-    if (!String(error).includes("ERR_ABORTED")) throw error;
-    await page.goto(path, { waitUntil: "domcontentloaded" });
-  }
-}
 
 test.beforeEach(async ({ page, request }) => {
   await page.goto("/");
