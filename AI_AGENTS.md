@@ -292,3 +292,64 @@ The Layer-3 file stores were made crash-safe and cross-process-safe:
 
 The `memory_engine` (Layer-3, `Aegis-AI/` tree) path is the remaining follow-up
 before `WEB_CONCURRENCY` can be raised above 1.
+
+---
+
+## 12. Tool Calling & MCP — current state
+
+Written from an audit, not a design: this section describes what the code
+actually does today, so the gap between "a tool exists" and "an agent can use
+it" is on the record rather than discovered later.
+
+### 12.1 MCP is not implemented
+
+There is no MCP server, client, or reference anywhere in this repository —
+confirmed by an exhaustive search across every `.py`, `.ts` and `.md` file, not
+inferred from absence of a folder. `PROGRESS_REPORT.md` lists MCP Integration as
+Phase 12, **not started, 0%**, which matches. If a future phase adds MCP, it
+belongs here, documented against what it actually does, not against what this
+section speculates it might.
+
+### 12.2 The one tool that exists, and why it never runs
+
+`app/services/llm_service.py` defines OpenAI/Gemini-style function-calling
+support and one function, `calculate_premium` (`app/utils/premium_calculator.py`)
+— a pure, stateless age/coverage → monthly-premium calculation with no I/O, no
+customer identity, and no database access.
+
+**It is unreachable in production.** Every real call into
+`LLMService.generate_response()` — from `base_agent.py`'s `generate_response()`
+and `executive_ai.py` — passes `tools=[]`. Nothing in this codebase ever
+constructs a non-empty tools list. Additionally, **Ollama — the active,
+default provider — has no tool-calling wiring at all**: `_call_ollama` accepts
+a `tools` parameter for signature symmetry with the other two providers but
+never reads it. Only the Gemini and OpenAI code paths would attempt to invoke
+a tool, and neither is the configured provider in this deployment.
+
+This is stated plainly because dead code that looks live is worse than no code:
+a future engineer skimming `llm_service.py` could reasonably assume tool-calling
+is an active feature. It is not, today.
+
+### 12.3 Checklist, as it stands
+
+| Item | State |
+|---|---|
+| Tool definitions | One (`calculate_premium`), inline in `llm_service.py`, built from the Python function's name/docstring. No registry — a second tool would need its own hand-written schema at each provider call site. |
+| Tool permissions | None. No mechanism restricts which agent, domain, or conversation state may invoke a tool — if `tools` were ever passed non-empty, every agent would expose the same set identically. |
+| Input validation | The model's function-call arguments are parsed defensively as of this task: malformed JSON, a non-numeric `age`, or a non-string `coverage`/`plan_name` all fall back to sane defaults rather than raising. Still no bounds checking (e.g. a negative or absurd age is accepted, not rejected) — low-risk only because the function is pure arithmetic with no downstream effect beyond the number returned. |
+| Authorization | None, and none of the usual kind applies: the tool touches no customer record, no tenant-scoped resource, and no protected system — there is nothing to authorize *against*. This reasoning does **not** generalise to a future tool that reads or writes real data; that tool would need real authorization, checked server-side, before this table's "None" becomes acceptable again. |
+| Tenant context | Not passed, not needed — the function takes no customer or organisation identifier. No cross-tenant risk exists structurally, because no tenant-scoped data is involved. |
+| Tool output boundaries | The returned dict is fed straight back to the model as the next message and, from there, into the final reply. Every field is derived from the pure calculation; nothing internal (paths, keys, other customers' data) is reachable through it. |
+| Failure handling | Bounded — a malformed argument degrades to a default value rather than raising past the caller; a genuinely unrecoverable failure still surfaces through the existing chat_service/stream_service safe-fallback path (Task 8.3). |
+| Auditability | None. No record is written when the tool fires — no actor, no arguments, no result. Acceptable only while the tool is unreachable; the day it goes live, this is the first gap to close, ahead of adding a second tool. |
+
+### 12.4 If a tool is ever wired up for real
+
+Do not extend `calculate_premium`'s pattern (inline schema, no registry, no
+audit trail) to a tool that touches real data. At minimum, a live tool needs:
+authorization checked server-side against the caller's actual identity (never
+trusted from the model's own text), the tenant/customer id threaded the same
+way `app/utils/customer_identity.py` now threads it for memory isolation, and
+an audit record — `auditService`-style, matching the pattern the Node backend
+already uses for the enterprise console — written on every invocation, not just
+on write operations.

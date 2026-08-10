@@ -331,10 +331,23 @@ class LLMService:
                         # argument string.
                         logger.warning(f"Malformed tool-call arguments from model: {e}")
                         args = {}
+                    try:
+                        age = int(args.get("age", 35))
+                    except (TypeError, ValueError):
+                        # Same reasoning as the JSON guard above: `age` is
+                        # whatever the model put in the argument string, and
+                        # int() on "unknown" or a list raises. One bad field
+                        # should not lose the whole tool call.
+                        age = 35
+                    coverage = args.get("coverage", "₹1 Crore Cover")
+                    plan_name = args.get("plan_name", "Aegis Supreme Health Shield")
                     result = calculate_premium(
-                        age=int(args.get("age", 35)),
-                        coverage=args.get("coverage", "₹1 Crore Cover"),
-                        plan_name=args.get("plan_name", "Aegis Supreme Health Shield"),
+                        age=age,
+                        # calculate_premium calls .lower() on this; a model
+                        # that returns a number or a list here (both valid
+                        # JSON) would raise AttributeError otherwise.
+                        coverage=coverage if isinstance(coverage, str) else "₹1 Crore Cover",
+                        plan_name=plan_name if isinstance(plan_name, str) else "Aegis Supreme Health Shield",
                     )
                     messages.append({
                         "role": "tool",
