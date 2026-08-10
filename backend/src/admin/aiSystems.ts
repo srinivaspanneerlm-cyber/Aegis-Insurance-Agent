@@ -115,8 +115,14 @@ export async function aiSystemStatuses(
         createdAt: { gte: since },
       },
     }),
-    prisma.recommendationHistory.count({ where: { user: { organizationId }, createdAt: { gte: since } } }),
+    // Both go through `byUser`. Spelling the relation out inline here meant the
+    // platform-wide call — which passes null — asked for users whose
+    // organisation *is* null instead of every user, and the timestamp below
+    // carried no scope at all, so one tenant's console reported the moment
+    // another tenant last received advice.
+    prisma.recommendationHistory.count({ where: { ...byUser, createdAt: { gte: since } } }),
     prisma.recommendationHistory.findFirst({
+      where: byUser,
       orderBy: { createdAt: "desc" },
       select: { createdAt: true },
     }),

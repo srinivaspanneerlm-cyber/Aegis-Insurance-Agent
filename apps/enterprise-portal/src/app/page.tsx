@@ -136,7 +136,13 @@ export default function DashboardPage() {
           icon="chart"
           render={(v) => ({
             value: v.averageResolutionHours === null ? "—" : `${v.averageResolutionHours}h`,
-            hint: "Resolved work, last 30 days",
+            // Says what the mean is over. "Last 30 days" alone reads as every
+            // case in the month, which is only true until a tenant is busy
+            // enough to reach the sample cap.
+            hint:
+              v.averageResolutionHours === null
+                ? "Nothing resolved in the last 30 days"
+                : `Over ${v.averageResolutionBasis} resolved case(s), last 30 days`,
           })}
         />
         <MetricCard

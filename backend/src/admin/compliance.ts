@@ -225,9 +225,14 @@ function decisionStepKeys() {
   return { in: [...new Set(keys)] };
 }
 
-/** A single headline for the dashboard: are we audit-ready right now? */
-export async function complianceSummary(organizationId: string) {
-  const findings = await complianceFindings(organizationId);
+/**
+ * The headline, from findings already in hand.
+ *
+ * Separated from the query so a caller that needs both — the compliance page
+ * shows the verdict above the list it summarises — runs the eleven checks once
+ * instead of twice. Pure, so the two can never disagree about the same set.
+ */
+export function summariseFindings(findings: readonly ComplianceFinding[]) {
   const failing = findings.filter((f) => f.count > 0);
   const critical = failing.filter((f) => f.severity === "CRITICAL");
   const high = failing.filter((f) => f.severity === "HIGH");
@@ -248,4 +253,9 @@ export async function complianceSummary(organizationId: string) {
     disclaimer:
       "These are the platform's own checks against its own records. They are not a statement of IRDAI compliance, which is a matter of audit and licensing.",
   };
+}
+
+/** A single headline for the dashboard: are we audit-ready right now? */
+export async function complianceSummary(organizationId: string) {
+  return summariseFindings(await complianceFindings(organizationId));
 }

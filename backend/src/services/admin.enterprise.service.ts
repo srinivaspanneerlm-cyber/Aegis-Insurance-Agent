@@ -14,7 +14,7 @@ import { branchComparison, enterpriseOverview, resolutionTrend } from "../admin/
 import { assessWorkload } from "../employee/operationsManager";
 import { aiSystemStatuses, workflowActivity, workflowCatalogue } from "../admin/aiSystems";
 import { PERMISSIONS, permissionsForRole } from "../auth/permissions";
-import { complianceFindings, complianceSummary } from "../admin/compliance";
+import { complianceFindings, complianceSummary, summariseFindings } from "../admin/compliance";
 
 /** Bound every list. An unbounded admin query is a production incident. */
 const MAX_PAGE = 100;
@@ -1007,15 +1007,27 @@ export const enterpriseAdminService = {
     catalogue: workflowCatalogue(),
     activity: await workflowActivity(organizationId),
   }),
-  compliance: async (organizationId: string) => ({
-    summary: await complianceSummary(organizationId),
-    findings: await complianceFindings(organizationId),
-  }),
-  analytics: async (organizationId: string) => ({
-    overview: await enterpriseOverview(organizationId),
-    trend: await resolutionTrend(organizationId, 30),
-    branches: await branchComparison(organizationId),
-  }),
+  /**
+   * The verdict and the findings behind it.
+   *
+   * One run of the checks, summarised in memory. Asking for the summary and the
+   * findings separately ran all eleven queries twice — and serially, because the
+   * second await could not start until the first had finished — to answer a
+   * question the first run had already answered.
+   */
+  compliance: async (organizationId: string) => {
+    const findings = await complianceFindings(organizationId);
+    return { summary: summariseFindings(findings), findings };
+  },
+  // Three independent reads, so they wait together rather than in turn.
+  analytics: async (organizationId: string) => {
+    const [overview, trend, branches] = await Promise.all([
+      enterpriseOverview(organizationId),
+      resolutionTrend(organizationId, 30),
+      branchComparison(organizationId),
+    ]);
+    return { overview, trend, branches };
+  },
 
   /**
    * A report, as rows.

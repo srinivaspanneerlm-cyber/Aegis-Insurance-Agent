@@ -163,6 +163,8 @@ export interface Overview {
     closed: number;
     overdue: number;
     averageResolutionHours: number | null;
+    /** How many resolved cases the average is over — it is a sample, not the month. */
+    averageResolutionBasis: number;
   }>;
   renewals: Metric<{ total: number }>;
   kyc: Metric<{ total: number }>;

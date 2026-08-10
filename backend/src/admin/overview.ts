@@ -44,6 +44,20 @@ const startOfDay = (d = new Date()) => new Date(d.getFullYear(), d.getMonth(), d
 const daysAgo = (n: number) => new Date(Date.now() - n * 24 * 60 * 60_000);
 
 /**
+ * Bounds on the two reads here that return rows rather than counts.
+ *
+ * An unbounded admin query is a production incident waiting for the tenant that
+ * grows large enough to trigger it — the dashboard would stay fast for every
+ * customer until the day it did not, on the account that mattered most.
+ *
+ * Both are far above any real tenant on this platform, so they cost nothing
+ * today; they exist so the failure mode is a slightly narrower figure rather
+ * than a page that never loads.
+ */
+const MAX_RESOLVED_SAMPLE = 5_000;
+const MAX_STAFF = 5_000;
+
+/**
  * Everything the dashboard needs, in one round trip.
  *
  * Assembled with `Promise.all` rather than sequentially — this is the first
@@ -88,9 +102,13 @@ export async function enterpriseOverview(organizationId: string) {
     prisma.company.count({ where: { isActive: true, deletedAt: null } }),
     prisma.workItem.groupBy({ by: ["status"], where: { organizationId }, _count: { _all: true } }),
     prisma.workItem.groupBy({ by: ["kind"], where: { organizationId }, _count: { _all: true } }),
+    // Newest first, so a tenant large enough to reach the cap gets the most
+    // recent work rather than an arbitrary slice of the month.
     prisma.workItem.findMany({
       where: { organizationId, resolvedAt: { gte: monthAgo } },
       select: { openedAt: true, resolvedAt: true, kind: true },
+      orderBy: { resolvedAt: "desc" },
+      take: MAX_RESOLVED_SAMPLE,
     }),
     prisma.workItem.count({ where: { organizationId, closedAt: null, dueAt: { lt: new Date() } } }),
     prisma.uploadedDocument.count({ where: { organizationId, deletedAt: null } }),
@@ -129,6 +147,10 @@ export async function enterpriseOverview(organizationId: string) {
       closed: byStatus.CLOSED ?? 0,
       overdue: overdueWork,
       averageResolutionHours,
+      // How many cases the average is over. A mean with no denominator invites
+      // being read as the whole month's, and once the sample is capped that
+      // reading is wrong — so the figure carries its own basis.
+      averageResolutionBasis: durations.length,
     }),
 
     renewals: measured({ total: byKind.RENEWAL ?? 0 }),
@@ -205,19 +227,24 @@ export async function branchComparison(organizationId: string) {
   const profiles = await prisma.employeeProfile.findMany({
     where: { organizationId },
     select: { id: true, branch: true, department: true, status: true },
+    take: MAX_STAFF,
   });
   if (profiles.length === 0) return [];
 
-  const open = await prisma.workItem.groupBy({
-    by: ["assigneeId"],
-    where: { organizationId, closedAt: null },
-    _count: { _all: true },
-  });
-  const overdue = await prisma.workItem.groupBy({
-    by: ["assigneeId"],
-    where: { organizationId, closedAt: null, dueAt: { lt: new Date() } },
-    _count: { _all: true },
-  });
+  // Neither count depends on the other, so they wait together. Awaiting them in
+  // turn made a three-query function take three round trips.
+  const [open, overdue] = await Promise.all([
+    prisma.workItem.groupBy({
+      by: ["assigneeId"],
+      where: { organizationId, closedAt: null },
+      _count: { _all: true },
+    }),
+    prisma.workItem.groupBy({
+      by: ["assigneeId"],
+      where: { organizationId, closedAt: null, dueAt: { lt: new Date() } },
+      _count: { _all: true },
+    }),
+  ]);
 
   const openBy = new Map(open.map((r) => [r.assigneeId, r._count._all]));
   const overdueBy = new Map(overdue.map((r) => [r.assigneeId, r._count._all]));
