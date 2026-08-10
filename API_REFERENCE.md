@@ -132,7 +132,15 @@ Exceeding a limit returns HTTP `429 Too Many Requests`.
 
 Base URL: `http://localhost:5000` (dev) or your production hostname.
 All routes listed below are relative to that base; the `/api` prefix is always
-present (mounted in `backend/src/app.js`).
+present (mounted in `backend/src/app.ts`). `/api/v1` is canonical and `/api` is
+kept as a backward-compatible alias.
+
+**Coverage, stated honestly.** This section documents auth, leads, policies,
+chat, upload, company, admin, ui-action and the enterprise console. The
+`communication`, `documents`, `employee`, `intelligence`, `knowledge` and
+`platform` routers are live but **not yet documented here** — read the route
+files until they are. A reference that quietly omits half the API is worse than
+one that says which half.
 
 ---
 
@@ -734,6 +742,124 @@ Supported `action` values: `view_details`, `compare_plans`, `select_plan`,
   "message": null
 }
 ```
+
+---
+
+### 5.9 Enterprise Console — `/api/v1/enterprise`
+
+The tenant administration API behind the enterprise portal. Every route is
+read-only: there is deliberately no endpoint here that approves a claim,
+verifies an identity or edits a customer record. Those decisions stay with the
+people answerable for them, and an admin console that could quietly approve a
+claim would make the human gate in the workflow engine decorative.
+
+**Auth required:** Yes · **Realm:** `ENTERPRISE` (`requireRealm`) · plus a
+per-route permission. Both are enforced: the realm asks whether the caller
+belongs on this side of the platform, the permission asks what they may do
+once here, and either alone leaves a hole.
+
+**Tenant scope.** The organisation is read from the session and nowhere else —
+never from a query parameter, a body or a header. An administrator whose
+account carries no organisation receives `403 NO_ORGANIZATION`, not everything.
+
+**Rate limit:** `apiLimiter` only, inherited from `/api`. The router
+deliberately adds no second limiter — counting these requests twice would halve
+the budget for an administrator legitimately loading several panels at once.
+
+#### Endpoints
+
+| Method | Path | Permission | Query |
+|---|---|---|---|
+| GET | `/dashboard` | `analytics.read` | — |
+| GET | `/analytics` | `analytics.read` | — |
+| GET | `/organization` | `analytics.read` | — |
+| GET | `/customers` | `customer.read` | `search`, `take` |
+| GET | `/customers/:id` | `customer.read` | — |
+| GET | `/employees` | `staff.manage` | `department`, `take` |
+| GET | `/products` | `policy.read` | `take` |
+| GET | `/claims` | `claim.read` | — |
+| GET | `/policies` | `policy.read` | `status`, `take` |
+| GET | `/renewals` | `policy.read` | — |
+| GET | `/documents` | `customer.read` | — |
+| GET | `/intelligence` | `customer.read` | — |
+| GET | `/support` | `work.read` | — |
+| GET | `/notifications` | `analytics.read` | — |
+| GET | `/roles` | `staff.manage` | — |
+| GET | `/ai-systems` | `platform.configure` | — |
+| GET | `/workflows` | `analytics.read` | — |
+| GET | `/compliance` | `audit.read` | — |
+| GET | `/audit` | `audit.read` | `action`, `actorId`, `take` |
+| GET | `/security-events` | `audit.read` | `take` |
+| GET | `/reports/:kind` | `analytics.read` | `format=csv` |
+
+> `/ai-systems` requires `platform.configure`, which no ENTERPRISE role
+> currently holds. The route is live but unreachable for tenant administrators
+> by design; the portal's navigation is permission-gated so nobody is shown a
+> link they cannot follow.
+
+#### Paging: `take`, not `page`
+
+These routes page with `?take=` rather than the `?page=`/`?limit=` used by
+§5.2–5.6. `take` is the number of rows to return; it is clamped server-side to
+**100**. Asking for more is not an error — the server answers with its maximum,
+because asking for more rows than exist is a reasonable thing for a client to
+do. Defaults are 25 for `/customers` and 50 elsewhere.
+
+Where a payload carries a `total`, a client can tell a complete list from a
+capped one — but check which question the total answers before comparing:
+
+| Endpoint | `total` counts |
+|---|---|
+| `/customers` | rows matching the current `search` |
+| `/audit` | entries matching the current `action` / `actorId` |
+| `/policies` | the whole book regardless of `status`; the per-status counts are in `byStatus` |
+| `/employees` | no `total`; `departments[]` carries org-wide counts per department |
+
+#### Query validation
+
+Invalid query parameters return `400 VALIDATION_ERROR` with the offending
+parameter named — they are never silently ignored, because a caller cannot tell
+an applied filter from a discarded one:
+
+| Parameter | Rule |
+|---|---|
+| `take` | positive integer |
+| `search`, `department`, `status`, `action` | single value, ≤ 200 characters |
+| `actorId` | UUID |
+| `format` | `csv` when present |
+| `:id` route params | UUID |
+
+#### `results` in the envelope
+
+`results` accompanies the four genuine list responses — `/customers`,
+`/employees`, `/policies`, `/audit`. The remaining endpoints return aggregate
+payloads (counts, cohorts, clusters and a `recent` sample together), where a
+single headline count would be arbitrary; those carry their own totals inside
+`data`.
+
+#### `GET /api/v1/enterprise/reports/:kind`
+
+`kind` is one of `operations`, `compliance`, `branches`. Anything else is
+`400 UNKNOWN_REPORT`. Every generation is written to the audit trail as
+`admin.report.generated`.
+
+**Response `200`:**
+```json
+{
+  "status": "success",
+  "data": {
+    "kind": "operations",
+    "title": "Operations summary",
+    "rows": [{ "metric": "Customers", "value": 231 }],
+    "generatedAt": "2026-08-10T02:14:00.000Z"
+  }
+}
+```
+
+With `?format=csv` the same rows are returned as `text/csv` with a
+`Content-Disposition` attachment filename built from the report id and the
+date — never from user input, which is how a download header becomes a
+header-injection vector.
 
 ---
 

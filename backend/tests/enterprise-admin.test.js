@@ -325,6 +325,46 @@ describe("Row caps over HTTP", () => {
     assert.ok(res.body.data.customers.length <= 1);
   });
 
+  test("a junk take is refused rather than silently ignored", async () => {
+    const boss = await admin();
+    const res = await api(boss.cookie).get("/customers?take=abc");
+    // Silently defaulting answered 200 with the default page, so a caller could
+    // not tell a working filter from an ignored one.
+    assert.equal(res.status, 400);
+    assert.equal(res.body.code, "VALIDATION_ERROR");
+    assert.match(res.body.message, /take/);
+  });
+
+  test("a filter nobody could type is refused", async () => {
+    const boss = await admin();
+    const res = await api(boss.cookie).get(`/customers?search=${"x".repeat(500)}`);
+    assert.equal(res.status, 400);
+    assert.equal(res.body.code, "VALIDATION_ERROR");
+  });
+
+  test("a malformed customer id is a 400, not a driver error", async () => {
+    const boss = await admin();
+    const res = await api(boss.cookie).get("/customers/not-a-uuid");
+    assert.equal(res.status, 400);
+    assert.equal(res.body.code, "VALIDATION_ERROR");
+  });
+
+  test("an unserved report format is named rather than quietly ignored", async () => {
+    const boss = await admin();
+    const res = await api(boss.cookie).get("/reports/operations?format=pdf");
+    // Anything but csv used to fall through to JSON, so a client asking for PDF
+    // got JSON and no indication that PDF does not exist.
+    assert.equal(res.status, 400);
+    assert.match(res.body.message, /format/);
+  });
+
+  test("a valid filter still passes straight through", async () => {
+    const boss = await admin();
+    for (const path of ["/customers?search=ada&take=5", "/audit?action=auth.login", "/policies?status=ACTIVE"]) {
+      assert.equal((await api(boss.cookie).get(path)).status, 200, `${path} must still work`);
+    }
+  });
+
   test("an absurd take is answered with the maximum, not an error", async () => {
     const boss = await admin();
     const res = await api(boss.cookie).get("/employees?take=99999");

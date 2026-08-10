@@ -315,3 +315,55 @@ export const paginationQuerySchema = (data: RequestData): ValidationErrors => {
   }
   return errors.length > 0 ? errors : null;
 };
+
+/**
+ * The enterprise console's list query.
+ *
+ * The console reads with `?take=` rather than `?page=`/`?limit=`, so it needs
+ * its own schema — but the same contract: garbage gets a 400 that names the
+ * parameter, not a silent default that leaves a caller believing their filter
+ * was applied.
+ *
+ * The service still clamps `take`; this is about the answer a caller gets, not
+ * about protecting the database. Above the cap is not an error — asking for
+ * more rows than exist is a reasonable thing to do, and the server replies with
+ * its maximum.
+ */
+const FILTER_MAX = 200;
+
+export const enterpriseListQuerySchema = (data: RequestData): ValidationErrors => {
+  const errors: string[] = [];
+
+  const take = data.take;
+  if (take !== undefined) {
+    const value = Array.isArray(take) ? take[0] : take;
+    if (!/^\d+$/.test(String(value)) || parseInt(String(value), 10) < 1) {
+      errors.push("Query parameter 'take' must be a positive integer.");
+    }
+  }
+
+  // Bounded because they reach a LIKE scan. A filter nobody could type is a
+  // filter nobody meant.
+  for (const key of ["search", "department", "status", "action"] as const) {
+    const raw = data[key];
+    if (raw === undefined) continue;
+    if (typeof raw !== "string") {
+      errors.push(`Query parameter '${key}' must be given once.`);
+    } else if (raw.length > FILTER_MAX) {
+      errors.push(`Query parameter '${key}' must be ${FILTER_MAX} characters or fewer.`);
+    }
+  }
+
+  if (data.actorId !== undefined && (typeof data.actorId !== "string" || !UUID_RE.test(data.actorId))) {
+    errors.push("Query parameter 'actorId' is not a valid identifier.");
+  }
+
+  // The only alternative representation the reports route serves. Anything else
+  // silently returned JSON, so a client asking for `format=pdf` got JSON and no
+  // indication that PDF does not exist.
+  if (data.format !== undefined && data.format !== "csv") {
+    errors.push("Query parameter 'format' must be 'csv' when given.");
+  }
+
+  return errors.length > 0 ? errors : null;
+};

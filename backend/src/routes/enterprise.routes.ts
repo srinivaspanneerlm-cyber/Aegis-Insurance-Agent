@@ -4,6 +4,8 @@ import catchAsync from "../utils/catchAsync";
 import { sendSuccess } from "../utils/apiResponse";
 import AppError from "../utils/appError";
 import { protect, requirePermission, requireRealm } from "../middleware/auth.middleware";
+import { validateParams, validateQuery } from "../middleware/validate.middleware";
+import { enterpriseListQuerySchema, idParamSchema } from "../validations/schemas";
 import { enterpriseAdminService, toCsv } from "../services/admin.enterprise.service";
 
 const router = express.Router();
@@ -29,6 +31,17 @@ router.use(protect, requireRealm("ENTERPRISE"));
 
 const q = (req: Request, key: string): string | undefined =>
   typeof req.query[key] === "string" ? (req.query[key] as string) : undefined;
+
+/**
+ * The list-query gate.
+ *
+ * These routes read with `?take=` rather than `?page=`/`?limit=`, and until now
+ * they validated nothing at all — `?take=abc` silently fell back to the default
+ * and answered 200, so a caller could not tell a working filter from an ignored
+ * one. Every other list endpoint on this API already returns a 400 that names
+ * the bad parameter; these now do the same.
+ */
+const listQuery = validateQuery(enterpriseListQuerySchema);
 
 /**
  * The tenant this request may see, taken from the session and nowhere else.
@@ -90,6 +103,7 @@ router.get(
 router.get(
   "/customers",
   requirePermission("customer.read"),
+  listQuery,
   catchAsync(async (req, res) => {
     const result = await enterpriseAdminService.customers(orgScope(req), {
       ...(q(req, "search") ? { search: q(req, "search") as string } : {}),
@@ -99,9 +113,12 @@ router.get(
   })
 );
 
+// The id shape is checked before Prisma sees it: on the Postgres path a
+// malformed uuid is a 500 from the driver rather than a 404 from us.
 router.get(
   "/customers/:id",
   requirePermission("customer.read"),
+  validateParams(idParamSchema),
   catchAsync(async (req, res) => {
     const id = typeof req.params.id === "string" ? req.params.id : "";
     sendSuccess(res, 200, await enterpriseAdminService.customer(orgScope(req), id));
@@ -111,6 +128,7 @@ router.get(
 router.get(
   "/employees",
   requirePermission("staff.manage"),
+  listQuery,
   catchAsync(async (req, res) => {
     const result = await enterpriseAdminService.employees(orgScope(req), {
       ...(q(req, "department") ? { department: q(req, "department") as string } : {}),
@@ -125,6 +143,7 @@ router.get(
 router.get(
   "/products",
   requirePermission("policy.read"),
+  listQuery,
   catchAsync(async (req, res) => {
     sendSuccess(res, 200, await enterpriseAdminService.products(orgScope(req), { take: req.query.take }));
   })
@@ -141,6 +160,7 @@ router.get(
 router.get(
   "/policies",
   requirePermission("policy.read"),
+  listQuery,
   catchAsync(async (req, res) => {
     const result = await enterpriseAdminService.policies(orgScope(req), {
       ...(q(req, "status") ? { status: q(req, "status") as string } : {}),
@@ -232,6 +252,7 @@ router.get(
 router.get(
   "/audit",
   requirePermission("audit.read"),
+  listQuery,
   catchAsync(async (req, res) => {
     const result = await enterpriseAdminService.auditLog(orgScope(req), {
       ...(q(req, "action") ? { action: q(req, "action") as string } : {}),
@@ -245,6 +266,7 @@ router.get(
 router.get(
   "/security-events",
   requirePermission("audit.read"),
+  listQuery,
   catchAsync(async (req, res) => {
     sendSuccess(res, 200, await enterpriseAdminService.securityEvents(orgScope(req), { take: req.query.take }));
   })
@@ -262,6 +284,7 @@ router.get(
 router.get(
   "/reports/:kind",
   requirePermission("analytics.read"),
+  listQuery,
   catchAsync(async (req: Request, res: Response) => {
     const kind = typeof req.params.kind === "string" ? req.params.kind : "";
     const report = await enterpriseAdminService.report(orgScope(req), kind, req.user!.id);
