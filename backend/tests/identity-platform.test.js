@@ -390,6 +390,43 @@ describe("Email verification", () => {
       .send({ token: "n".repeat(43) });
     assert.equal(res.status, 400);
   });
+
+  test("a link mailed to an address the account has since moved on from no longer confirms it", async () => {
+    // Task 9.2. Same reasoning as password reset: the token proves control of
+    // the address it was issued for, not of whatever address the account
+    // holds now.
+    const email = uniqueEmail("verify-moved-from");
+    const reg = await register(email);
+
+    const crypto = require("crypto");
+    const raw = crypto.randomBytes(32).toString("base64url");
+    await prisma.verificationToken.create({
+      data: {
+        tokenHash: crypto.createHash("sha256").update(raw).digest("hex"),
+        userId: reg.body.data.user.id,
+        email,
+        purpose: "EMAIL_VERIFICATION",
+        expiresAt: new Date(Date.now() + 600_000),
+      },
+    });
+
+    await prisma.user.update({
+      where: { id: reg.body.data.user.id },
+      data: { email: uniqueEmail("verify-moved-to") },
+    });
+
+    const res = await request(app)
+      .post("/api/v1/auth/verify-email")
+      .set("Origin", ORIGIN)
+      .send({ token: raw });
+    assert.equal(res.status, 400);
+    assert.equal(res.body.code, "INVALID_TOKEN");
+
+    const stillUnverified = await prisma.user.findUnique({
+      where: { id: reg.body.data.user.id },
+    });
+    assert.equal(stillUnverified.emailVerifiedAt, null, "the new address must not be confirmed by an old link");
+  });
 });
 
 // ── Password reset ───────────────────────────────────────────────────────────
@@ -515,6 +552,37 @@ describe("Password reset", () => {
     });
 
     assert.equal((await submitReset(raw, "short")).status, 400);
+  });
+
+  test("a link mailed to an address the account has since moved on from no longer works", async () => {
+    // Task 9.2. The token is bound to the address it was issued for — if the
+    // account's email changed in between, a link to the old mailbox must not
+    // still control the account. A forwarded or intercepted old email is
+    // exactly the scenario this closes.
+    const email = uniqueEmail("reset-moved-from");
+    const reg = await register(email);
+
+    const crypto = require("crypto");
+    const raw = crypto.randomBytes(32).toString("base64url");
+    await prisma.verificationToken.create({
+      data: {
+        tokenHash: crypto.createHash("sha256").update(raw).digest("hex"),
+        userId: reg.body.data.user.id,
+        email, // bound to the address at issue time
+        purpose: "PASSWORD_RESET",
+        expiresAt: new Date(Date.now() + 600_000),
+      },
+    });
+
+    // The account's address changes before the link is ever used.
+    await prisma.user.update({
+      where: { id: reg.body.data.user.id },
+      data: { email: uniqueEmail("reset-moved-to") },
+    });
+
+    const res = await submitReset(raw, "a perfectly fine passphrase");
+    assert.equal(res.status, 400);
+    assert.equal(res.body.code, "INVALID_TOKEN");
   });
 });
 

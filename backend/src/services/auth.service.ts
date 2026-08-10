@@ -771,6 +771,28 @@ export const authService = {
       throw new AppError(EXPIRED_SESSION_MESSAGE, 401);
     }
 
+    // The refresh token proves nothing about the account's *current* standing —
+    // only that this credential was issued once. A 15-minute access token means
+    // a session naturally dies quickly, but refresh is exactly the path that
+    // renews it, so it is where a deactivated or deleted account must actually
+    // be stopped rather than 30 days later when the refresh token itself
+    // expires. Not checked here on purpose: `lockedUntil`. That lock is a
+    // transient anti-guessing measure at the *login* gate — it says nothing
+    // about a session that was already legitimately established, and ending it
+    // would let anyone who knows an address lock a stranger out of a session
+    // they are actively using, just by failing that stranger's password
+    // elsewhere.
+    const user = await userRepository.findById(record.userId);
+    if (!user || !user.isActive || user.deletedAt) {
+      await refreshTokenRepository.revokeById(record.id);
+      auditService.record({
+        actorId: record.userId,
+        action: "auth.refresh.rejected",
+        metadata: { reason: !user ? "account_missing" : user.deletedAt ? "account_deleted" : "account_inactive" },
+      });
+      throw new AppError(EXPIRED_SESSION_MESSAGE, 401);
+    }
+
     await refreshTokenRepository.revokeById(record.id); // rotate: single-use
 
     // The sitting outlives the credential — rotation replaces the token many
@@ -984,6 +1006,28 @@ export const authService = {
       );
     }
 
+    // The token is bound to the address it was issued for. `consumeToken`
+    // offers this check as a caller-supplied `currentEmail`, but neither this
+    // call nor resetPassword's can supply it *before* the lookup — the token
+    // is the only thing that says whose account this is, which is exactly
+    // what consuming it just resolved. So the same check runs here instead,
+    // now that the account is known: if the stored address has since moved on
+    // — corrected, or changed in settings — a link mailed to the old one must
+    // not still confirm the new one on its behalf.
+    const current = await userRepository.findById(result.userId);
+    if (!current || current.email !== result.email) {
+      auditService.record({
+        actorId: result.userId,
+        action: "auth.token.email_changed",
+        metadata: { purpose: "EMAIL_VERIFICATION" },
+      });
+      throw new AppError(
+        "That confirmation link is no longer valid. Please request a new one.",
+        400,
+        "INVALID_TOKEN"
+      );
+    }
+
     const user = await userRepository.update(result.userId, { emailVerifiedAt: new Date() });
     auditService.record({ actorId: result.userId, action: "auth.email.verified" });
 
@@ -1049,6 +1093,18 @@ export const authService = {
 
     const user = await userRepository.findById(result.userId);
     if (!user) throw new AppError("That reset link is no longer valid.", 400, "INVALID_TOKEN");
+
+    // Same reasoning as verifyEmail: bound to the address it was sent to, and
+    // must stop working the moment that is no longer the account's — an
+    // abandoned mailbox should not keep the power to control this account.
+    if (user.email !== result.email) {
+      auditService.record({
+        actorId: user.id,
+        action: "auth.token.email_changed",
+        metadata: { purpose: "PASSWORD_RESET" },
+      });
+      throw new AppError("That reset link is no longer valid. Please request a new one.", 400, "INVALID_TOKEN");
+    }
 
     const realm: PasswordRealm = isRealm(user.realm) ? user.realm : "CUSTOMER";
     assertPasswordAcceptable(newPassword, realm, { email: user.email, name: user.name });

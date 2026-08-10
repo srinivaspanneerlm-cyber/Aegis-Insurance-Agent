@@ -221,3 +221,73 @@ describe("Refresh reuse — what is not an attack", () => {
     assert.equal(res.status, 401);
   });
 });
+
+/**
+ * Task 9.2 — a refresh token proves the credential was issued once. It proves
+ * nothing about the account's *current* standing. The 15-minute access token
+ * means a session dies quickly on its own, but refresh is exactly the path
+ * that renews it — so it is where a deactivated or deleted account has to
+ * actually be stopped, not 30 days later when the refresh token itself
+ * expires.
+ */
+describe("Refresh — an account that is no longer in good standing", () => {
+  test("a deactivated account cannot renew its session", async () => {
+    const { cookie, userId } = await signIn("deactivated");
+    await prisma.user.update({ where: { id: userId }, data: { isActive: false } });
+
+    const res = await renew(cookie);
+    assert.equal(res.status, 401);
+  });
+
+  test("the presented token is burned, not left live for a later retry", async () => {
+    const { cookie, userId } = await signIn("deactivated-burn");
+    await prisma.user.update({ where: { id: userId }, data: { isActive: false } });
+
+    await renew(cookie);
+    assert.equal(await liveTokens(userId), 0, "no live token should remain after the refusal");
+  });
+
+  test("a soft-deleted account cannot renew its session either", async () => {
+    const { cookie, userId } = await signIn("deleted");
+    await prisma.user.update({ where: { id: userId }, data: { deletedAt: new Date() } });
+
+    const res = await renew(cookie);
+    assert.equal(res.status, 401);
+  });
+
+  test("an ordinary active account is unaffected", async () => {
+    // The fix must not become a second, accidental gate on everybody.
+    const { cookie } = await signIn("still-active");
+    const res = await renew(cookie);
+    assert.equal(res.status, 200);
+  });
+
+  test("a temporary login lockout does not end an already-live session", async () => {
+    // Deliberately not checked by refresh — see the comment in auth.service.ts.
+    // lockedUntil is a transient anti-guessing measure at the *login* gate; it
+    // must not let anyone who knows an address end a stranger's active session
+    // just by failing that stranger's password from another device.
+    const { cookie, userId } = await signIn("locked-but-live");
+    await prisma.user.update({
+      where: { id: userId },
+      data: { lockedUntil: new Date(Date.now() + 600_000) },
+    });
+
+    const res = await renew(cookie);
+    assert.equal(res.status, 200);
+  });
+
+  test("the rejection is recorded with why, not just that it happened", async () => {
+    const { cookie, userId } = await signIn("deactivated-audited");
+    await prisma.user.update({ where: { id: userId }, data: { isActive: false } });
+    await renew(cookie);
+
+    const entry = await prisma.auditLog.findFirst({
+      where: { actorId: userId, action: "auth.refresh.rejected" },
+      orderBy: { createdAt: "desc" },
+    });
+    assert.ok(entry, "the rejection must be audited");
+    const metadata = JSON.parse(entry.metadata);
+    assert.equal(metadata.reason, "account_inactive");
+  });
+});
