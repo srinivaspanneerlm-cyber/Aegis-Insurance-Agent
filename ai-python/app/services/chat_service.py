@@ -44,12 +44,15 @@ class ChatService:
         session_id: Optional[str] = None,
         force_transfer_to: Optional[str] = None,
         declined_domains: Optional[List[str]] = None,
+        user_id: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Full dispatch — returns a dict with reply, agent_name, agent_domain,
         transferred, suggest_transfer, transfer_from, transfer_to, session_id, etc.
 
         force_transfer_to: domain key to route directly to (user already approved transfer).
+        user_id: the backend's stable customer id, preferred over user_name for
+        memory isolation (see app.utils.customer_identity).
         """
         history_list = self._normalize_history(history)
 
@@ -70,6 +73,7 @@ class ChatService:
                     force_transfer_to=force_transfer_to,
                     initial_domain=product_type,
                     declined_domains=declined_domains,
+                    user_id=user_id,
                 )
                 logger.info(
                     f"[ChatService] Response from {result.get('agent_name','?')} "

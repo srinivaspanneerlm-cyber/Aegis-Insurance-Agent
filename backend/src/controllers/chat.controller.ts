@@ -55,6 +55,7 @@ const streamChatMessage = async (req: Request, res: Response): Promise<void> => 
       // Identity comes from the verified session. Anything the body claims
       // about who this is gets dropped here.
       userName: req.user!.name,
+      userId: req.user!.id,
       productType: product_type,
       sessionId: session_id,
       forceTransferTo: force_transfer_to,

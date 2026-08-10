@@ -14,6 +14,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 
 from app.utils.logger import logger as root_logger
+from app.utils.customer_identity import derive_customer_id
 
 
 # ── Dataclasses ────────────────────────────────────────────────────────────────
@@ -144,6 +145,7 @@ class AgentEnvironment:
         session_id: str,
         user_name: str,
         history: Optional[List[Dict]] = None,
+        user_id: Optional[str] = None,
     ) -> EnvironmentResult:
         """
         Full isolated request pipeline:
@@ -159,11 +161,10 @@ class AgentEnvironment:
         self.diagnostics.total_requests += 1
         self.diagnostics.last_request_at = datetime.utcnow().isoformat()
 
-        # ── Derive customer_id (same formula agents use internally) ─────────────
-        customer_id = (
-            f"cust_{user_name.lower().replace(' ', '_').replace('.', '_')}"
-            if user_name else f"anon_{session_id[:8]}"
-        )
+        # ── Derive customer_id — same helper agent.generate_response() uses,
+        # so the persistent-history key and the profile/recommendation key
+        # can never drift apart. Prefers user_id when the caller has one.
+        customer_id = derive_customer_id(user_name, user_id, session_id)
 
         # ── Ensure session meta and workflow ────────────────────────────────────
         if session_id not in self._session_meta:
@@ -209,7 +210,7 @@ class AgentEnvironment:
         # ── Call agent ───────────────────────────────────────────────────────────
         try:
             agent_response = await self.agent.respond(
-                message, merged_history, user_name, session_id
+                message, merged_history, user_name, session_id, user_id=user_id
             )
         except Exception as exc:
             self.diagnostics.total_errors += 1
@@ -490,6 +491,7 @@ class AgentEnvironment:
         session_id: str,
         user_name: str,
         history: Optional[List[Dict]] = None,
+        user_id: Optional[str] = None,
     ) -> "EnvironmentResult":
         """
         Forced entry point — bypasses check_domain_violation entirely.
@@ -519,7 +521,7 @@ class AgentEnvironment:
         try:
             # Bypass check_domain_violation — call generate_response directly
             raw_reply = await self.agent.generate_response(
-                message, merged_history, user_name, session_id
+                message, merged_history, user_name, session_id, user_id=user_id
             )
             reply = self.agent._clean_response(raw_reply)
         except Exception as exc:

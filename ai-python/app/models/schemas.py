@@ -34,6 +34,15 @@ class ChatRequest(BaseModel):
         None, max_length=100, description="Chronological previous chat messages"
     )
     user_name: Optional[str] = Field("Sri", max_length=200, description="Authenticated customer name")
+    user_id: Optional[str] = Field(
+        None,
+        max_length=200,
+        description=(
+            "The backend's stable, authenticated customer id. Preferred over "
+            "user_name for memory/profile isolation — two customers can share "
+            "a display name, never a user_id."
+        ),
+    )
     product_type: Optional[str] = Field(
         None, max_length=64, description="Explicit category: motor | health | travel | home-property | miscellaneous"
     )

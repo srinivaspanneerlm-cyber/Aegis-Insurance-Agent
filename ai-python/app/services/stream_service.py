@@ -94,10 +94,14 @@ async def stream_chat(
     session_id: str,
     force_transfer_to: Optional[str] = None,
     declined_domains: Optional[List[str]] = None,
+    user_id: Optional[str] = None,
 ) -> AsyncGenerator[str, None]:
     """
     Main SSE generator — yields thinking steps while the orchestrator processes,
     then streams the reply token-by-token.
+
+    user_id: the backend's stable customer id, preferred over user_name for
+    memory isolation on this path too — the streaming route is not exempt.
     """
     domain = _quick_domain(message, product_type)
     steps = THINKING_STEPS.get(domain, DEFAULT_THINKING)
@@ -112,6 +116,7 @@ async def stream_chat(
             force_transfer_to=force_transfer_to,
             initial_domain=product_type,
             declined_domains=declined_domains,
+            user_id=user_id,
         )
     )
 

@@ -36,6 +36,7 @@ async def stream_chat_endpoint(request: ChatRequest):
         session_id=request.session_id or "",
         force_transfer_to=request.force_transfer_to,
         declined_domains=request.declined_domains,
+        user_id=request.user_id,
     )
 
     return StreamingResponse(

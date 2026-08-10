@@ -81,6 +81,11 @@ const getResponseFromAIService = async (
       message: userMessage,
       history,
       user_name: userName,
+      // The AI engine keys conversation memory, profile answers and cached
+      // recommendations on this. Without it, two customers who share a
+      // display name share those too — user_id is what actually tells them
+      // apart.
+      user_id: userId || undefined,
       product_type: productType || undefined,
       session_id: sessionId || undefined,
     };
@@ -335,6 +340,7 @@ interface OpenAIStreamParams {
   message: string;
   history?: unknown[];
   userName: string;
+  userId?: string | null;
   productType?: string | null;
   sessionId?: string;
   forceTransferTo?: string | null;
@@ -361,6 +367,7 @@ const openAIStream = ({
   message,
   history = [],
   userName,
+  userId = null,
   productType = null,
   sessionId = "",
   forceTransferTo = null,
@@ -375,6 +382,7 @@ const openAIStream = ({
         message,
         history,
         user_name: userName,
+        user_id: userId,
         product_type: productType,
         session_id: sessionId,
         force_transfer_to: forceTransferTo,

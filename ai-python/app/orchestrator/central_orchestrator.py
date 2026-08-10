@@ -140,6 +140,7 @@ class CentralOrchestrator:
         force_transfer_to: Optional[str] = None,
         initial_domain: Optional[str] = None,
         declined_domains: Optional[List[str]] = None,
+        user_id: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Message routing pipeline:
@@ -176,6 +177,7 @@ class CentralOrchestrator:
                 history=history_list,
                 user_name=user_name,
                 session_id=session_id,
+                user_id=user_id,
             )
 
         # ── 2. READ SESSION STATE ─────────────────────────────────────────────
@@ -258,6 +260,7 @@ class CentralOrchestrator:
                 initial_domain=initial_domain,
                 workflow_status=workflow_status,
                 workflow_stage=workflow_stage,
+                user_id=user_id,
             )
         else:
             return await self._dispatch_continue(
@@ -267,6 +270,7 @@ class CentralOrchestrator:
                 session_id=session_id,
                 active_agent=active_agent,
                 initial_domain=initial_domain,
+                user_id=user_id,
             )
 
     # ═══════════════════════════════════════════════════════════════════════════
@@ -283,6 +287,7 @@ class CentralOrchestrator:
         initial_domain: Optional[str],
         workflow_status: str,
         workflow_stage: str,
+        user_id: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Runs the 10-step Intent Detection pipeline and routes based on the result.
@@ -326,7 +331,7 @@ class CentralOrchestrator:
                     f"already active on {AGENT_NAMES.get(from_key, from_key)}"
                 )
                 env = self.registry.get(from_key) or self.registry.get(self.DEFAULT_AGENT)
-                env_result = await env.process(message, session_id, user_name, history_list)
+                env_result = await env.process(message, session_id, user_name, history_list, user_id=user_id)
                 self.session_manager.set_active_agent(session_id, from_key)
                 self.session_manager.set_workflow_status(session_id, "active")
                 self._sync_workflow_stage(session_id, env_result)
@@ -348,7 +353,7 @@ class CentralOrchestrator:
         if not self.registry.get(target_key):
             target_key = self.DEFAULT_AGENT
 
-        env_result = await env.process(message, session_id, user_name, history_list)
+        env_result = await env.process(message, session_id, user_name, history_list, user_id=user_id)
 
         # Agent-level domain boundary check → Executive AI intercepts
         if env_result.suggest_transfer:
@@ -395,6 +400,7 @@ class CentralOrchestrator:
         session_id: str,
         active_agent: Optional[str],
         initial_domain: Optional[str],
+        user_id: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Intent detection was skipped — continue the current workflow directly.
@@ -409,7 +415,7 @@ class CentralOrchestrator:
         )
 
         env = self.registry.get(target_key) or self.registry.get(self.DEFAULT_AGENT)
-        env_result = await env.process(message, session_id, user_name, history_list)
+        env_result = await env.process(message, session_id, user_name, history_list, user_id=user_id)
 
         # Agent-level domain boundary check still applies (e.g., "I also need car insurance")
         if env_result.suggest_transfer:
@@ -623,6 +629,7 @@ class CentralOrchestrator:
         history: List[Dict],
         user_name: str,
         session_id: str,
+        user_id: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Executes a transfer the user explicitly approved.
@@ -658,6 +665,7 @@ class CentralOrchestrator:
             session_id=session_id,
             user_name=user_name,
             history=history,
+            user_id=user_id,
         )
 
         self.session_manager.set_active_agent(

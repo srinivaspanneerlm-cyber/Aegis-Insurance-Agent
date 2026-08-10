@@ -46,11 +46,16 @@ async def chat_endpoint(request: ChatRequest):
             request.product_type, request.session_id,
             force_transfer_to=request.force_transfer_to,
             declined_domains=request.declined_domains,
+            user_id=request.user_id,
         )
         return _result_to_response(result)
     except Exception as e:
-        logger.error(f"[/api/ai/ai-chat] Error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        # Logged in full server-side; the client gets a generic message. The
+        # exception text can carry a provider error, a file path, or (for a
+        # misconfigured client) the internal key itself — none of that belongs
+        # in an HTTP response body.
+        logger.error(f"[/api/ai/ai-chat] Error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error.")
 
 
 @router.post("", response_model=ChatResponse, summary="Direct backend integration endpoint at /api/ai")
@@ -64,8 +69,9 @@ async def direct_integration_endpoint(request: ChatRequest):
             request.product_type, request.session_id,
             force_transfer_to=request.force_transfer_to,
             declined_domains=request.declined_domains,
+            user_id=request.user_id,
         )
         return _result_to_response(result)
     except Exception as e:
-        logger.error(f"[/api/ai] Error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"[/api/ai] Error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error.")
