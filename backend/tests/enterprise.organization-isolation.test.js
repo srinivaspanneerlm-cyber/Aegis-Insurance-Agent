@@ -24,7 +24,7 @@ const { enterpriseAdminService } = require("../src/services/admin.enterprise.ser
 
 const prisma = new PrismaClient();
 const TAG = `iso-${Date.now()}`;
-const made = { orgs: [], users: [], profiles: [], policies: [], work: [], companies: [] };
+const made = { orgs: [], users: [], profiles: [], policies: [], work: [], companies: [], recommendations: [] };
 
 async function tenant(slug) {
   const org = await prisma.organization.create({ data: { slug: `${TAG}-${slug}`, name: `${slug} Ltd` } });
@@ -76,10 +76,39 @@ async function tenant(slug) {
 }
 
 let A, B;
+/**
+ * One insurer both tenants sell, which is the ordinary case and the one the
+ * per-tenant fixtures above cannot express. Insurers are shared reference data,
+ * so a count hanging off one is the place a tenant boundary is easiest to lose.
+ */
+let sharedInsurer;
 
-before(async () => { A = await tenant("alpha"); B = await tenant("beta"); });
+before(async () => {
+  A = await tenant("alpha");
+  B = await tenant("beta");
+
+  sharedInsurer = await prisma.company.create({ data: { companyName: `${TAG} shared insurer` } });
+  made.companies.push(sharedInsurer.id);
+  for (const [slug, t] of [["alpha", A], ["beta", B]]) {
+    const p = await prisma.policy.create({
+      data: {
+        policyName: `${slug} shared product`, premium: 200, coverage: "test",
+        companyId: sharedInsurer.id, organizationId: t.org.id,
+      },
+    });
+    made.policies.push(p.id);
+  }
+
+  // Only beta has ever produced a recommendation. Alpha's console must show no
+  // trace of it — not the count, and not the timestamp.
+  const rec = await prisma.recommendationHistory.create({
+    data: { userId: B.customer.id, domain: "health", planName: `${TAG} beta plan` },
+  });
+  made.recommendations = [rec.id];
+});
 
 after(async () => {
+  await prisma.recommendationHistory.deleteMany({ where: { id: { in: made.recommendations } } });
   await prisma.auditLog.deleteMany({ where: { action: { startsWith: TAG } } });
   await prisma.workItem.deleteMany({ where: { id: { in: made.work } } });
   await prisma.policy.deleteMany({ where: { id: { in: made.policies } } });
@@ -223,7 +252,9 @@ describe("reports", () => {
     const report = await enterpriseAdminService.report(A.org.id, "operations", A.staff.id);
     const rows = Object.fromEntries(report.rows.map((r) => [r.metric, r.value]));
     assert.equal(rows.Customers, 1, "alpha holds exactly one customer");
-    assert.equal(rows["Active policies"], 1);
+    // Two: alpha's own-insurer product and its product from the shared insurer.
+    // Beta holds the same two, so a report that had lost the tenant would say 4.
+    assert.equal(rows["Active policies"], 2);
     assert.equal(rows["Open cases"], 1);
   });
 
@@ -258,5 +289,97 @@ describe("dashboard counts", () => {
     // The branch table is the clearest cross-tenant tell: beta's branch must
     // not appear in alpha's comparison.
     assert.deepEqual(a.branches.map((b) => b.branch), ["alpha branch"]);
+  });
+});
+
+/**
+ * Counts that hang off shared reference data.
+ *
+ * A relation count inherits no scope from the row it is selected on. Both
+ * tenants sell the same insurer, so an unfiltered count there reported the
+ * platform's products under that insurer's name: subtract your own catalogue
+ * and you have your competitor's, refreshed on every page load.
+ */
+describe("shared insurers", () => {
+  test("an insurer's product count is the caller's own, not the platform's", async () => {
+    const a = await enterpriseAdminService.products(A.org.id, {});
+    const shared = a.companies.find((c) => c.id === sharedInsurer.id);
+    assert.ok(shared, "the shared insurer is on alpha's catalogue");
+    assert.equal(
+      shared._count.policies,
+      1,
+      "alpha sells one product from this insurer; beta's must not be counted"
+    );
+  });
+
+  test("the mirror image holds for the other tenant", async () => {
+    const b = await enterpriseAdminService.products(B.org.id, {});
+    const shared = b.companies.find((c) => c.id === sharedInsurer.id);
+    assert.equal(shared._count.policies, 1);
+  });
+
+  test("both tenants really do sell that insurer, so the count above is not a filter artefact", async () => {
+    const total = await prisma.policy.count({ where: { companyId: sharedInsurer.id } });
+    assert.equal(total, 2, "the leak has something to leak — two tenants, one insurer");
+  });
+});
+
+/**
+ * AI activity.
+ *
+ * The recommendation figures were read without a tenant at all, so one
+ * organisation's console reported when another last advised somebody.
+ */
+describe("AI systems", () => {
+  const engine = (systems) => systems.find((s) => s.id === "recommendation-engine");
+
+  test("a tenant with no recommendations reports none", async () => {
+    const a = engine(await enterpriseAdminService.aiSystems(A.org.id));
+    assert.equal(a.activity, 0, "alpha has produced no recommendations");
+    assert.equal(a.lastActivityAt, null, "and must not learn when beta last produced one");
+  });
+
+  test("the tenant that has them reports its own", async () => {
+    const b = engine(await enterpriseAdminService.aiSystems(B.org.id));
+    assert.equal(b.activity, 1);
+    assert.ok(b.lastActivityAt, "beta sees its own recommendation");
+  });
+});
+
+/**
+ * The response cache.
+ *
+ * A cache key that drops its organisation does not serve a stale page — it
+ * serves another organisation's page to whoever asks next. These calls run
+ * back to back, well inside the TTL, which is exactly the window such a bug
+ * would live in.
+ */
+describe("cached panels stay tenant-scoped", () => {
+  test("two tenants asking in turn each get their own dashboard", async () => {
+    const a1 = await enterpriseAdminService.dashboard(A.org.id);
+    const b1 = await enterpriseAdminService.dashboard(B.org.id);
+    const a2 = await enterpriseAdminService.dashboard(A.org.id);
+
+    assert.deepEqual(a1.branches.map((x) => x.branch), ["alpha branch"]);
+    assert.deepEqual(b1.branches.map((x) => x.branch), ["beta branch"]);
+    assert.deepEqual(
+      a2.branches.map((x) => x.branch),
+      ["alpha branch"],
+      "alpha's second read must not have been overwritten by beta's"
+    );
+  });
+
+  test("the same holds for analytics and compliance", async () => {
+    const [aAnalytics, bAnalytics] = [
+      await enterpriseAdminService.analytics(A.org.id),
+      await enterpriseAdminService.analytics(B.org.id),
+    ];
+    assert.deepEqual(aAnalytics.branches.map((x) => x.branch), ["alpha branch"]);
+    assert.deepEqual(bAnalytics.branches.map((x) => x.branch), ["beta branch"]);
+
+    const aCompliance = await enterpriseAdminService.compliance(A.org.id);
+    const bCompliance = await enterpriseAdminService.compliance(B.org.id);
+    assert.equal(aCompliance.summary.checksRun, bCompliance.summary.checksRun);
+    assert.ok(Array.isArray(aCompliance.findings));
   });
 });

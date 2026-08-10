@@ -115,6 +115,19 @@ export default function SecurityPage() {
             </p>
           ) : null}
 
+          {/* What this page cannot see. A quiet security screen during a
+              stuffing run is worse than no security screen, because it is
+              read as reassurance — so the blind spot is stated beside the
+              figures rather than left to be discovered during an incident. */}
+          <Panel title="What these figures do not include">
+            <p className="text-pretty text-caption text-content-secondary">
+              {data.unattributedFailures.reason}
+            </p>
+            <p className="mt-1 text-pretty text-caption text-content-muted">
+              <span className="font-medium">Needs:</span> {data.unattributedFailures.needs}
+            </p>
+          </Panel>
+
           <Panel
             title={`${data.sessions.length} live session${data.sessions.length === 1 ? "" : "s"}`}
           >

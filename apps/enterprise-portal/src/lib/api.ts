@@ -167,7 +167,13 @@ export interface WorkforceCapacity {
 }
 
 export interface ProductsPayload {
-  companies: { id: string; companyName: string; isActive: boolean; _count: { policies: number } }[];
+  companies: {
+    id: string;
+    companyName: string;
+    isActive: boolean;
+    /** This tenant's products from that insurer — never the platform's. */
+    _count: { policies: number };
+  }[];
   policies: {
     id: string;
     policyName: string;
@@ -457,6 +463,13 @@ export interface SecurityPayload {
   /** Repeated failures against one account from one address, last 24 hours. */
   clusters: { email: string; ipAddress: string | null; count: number; latest: string }[];
   failuresLastDay: number;
+  /**
+   * The margin by which every figure here undercounts.
+   *
+   * Attempts on addresses matching no account belong to no organisation, so
+   * they are absent — which is exactly the traffic a stuffing run produces.
+   */
+  unattributedFailures: Unavailable;
   sessions: {
     id: string;
     realm: string;

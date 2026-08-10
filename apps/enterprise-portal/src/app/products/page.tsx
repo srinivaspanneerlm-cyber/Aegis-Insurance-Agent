@@ -49,15 +49,23 @@ export default function ProductsPage() {
             {data.companies.length === 0 ? (
               <Empty icon="building">No insurers on the catalogue yet.</Empty>
             ) : (
-              <ul className="flex flex-wrap gap-2">
-                {data.companies.map((c) => (
-                  <li key={c.id}>
-                    <Badge tone={c.isActive ? "success" : "neutral"}>
-                      {c.companyName} · {c._count.policies}
-                    </Badge>
-                  </li>
-                ))}
-              </ul>
+              <>
+                <ul className="flex flex-wrap gap-2">
+                  {data.companies.map((c) => (
+                    <li key={c.id}>
+                      <Badge tone={c.isActive ? "success" : "neutral"}>
+                        {c.companyName} · {c._count.policies}
+                      </Badge>
+                    </li>
+                  ))}
+                </ul>
+                {/* Says whose products the number counts. A bare figure beside a
+                    shared insurer name reads as that insurer's whole book. */}
+                <p className="mt-3 text-caption text-content-muted">
+                  Each figure is your own products from that insurer. Insurers are shared across the
+                  platform; your catalogue is not.
+                </p>
+              </>
             )}
           </Panel>
 
