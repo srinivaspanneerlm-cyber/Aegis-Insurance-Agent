@@ -3,7 +3,13 @@ import json
 import time
 import asyncio
 import google.generativeai as genai
-from openai import AsyncOpenAI
+from openai import (
+    AsyncOpenAI,
+    APITimeoutError,
+    APIConnectionError,
+    RateLimitError,
+    InternalServerError,
+)
 from app.config.config import settings
 from app.utils import metrics
 from app.utils.logger import logger
@@ -27,6 +33,46 @@ def _gemini_usage(response: Any) -> Tuple[int, int]:
     return (getattr(meta, "prompt_token_count", 0) or 0, getattr(meta, "candidates_token_count", 0) or 0)
 
 
+# Transient failures worth one bounded retry: the request timed out, the
+# connection dropped, or the provider is briefly overloaded (5xx) or rate
+# limiting (429 — openai.RateLimitError covers this for Ollama/OpenAI; the
+# Gemini path already has its own dedicated 429 handling below). Deliberately
+# excludes auth failures, bad input and unknown models — retrying those wastes
+# the attempt budget on something that will fail identically every time and
+# only delays the safe fallback the caller is going to reach anyway.
+_TRANSIENT_OPENAI_ERRORS: Tuple[type, ...] = (
+    APITimeoutError,
+    APIConnectionError,
+    RateLimitError,
+    InternalServerError,
+)
+
+
+async def _create_chat_completion(client: AsyncOpenAI, **kwargs: Any) -> Any:
+    """
+    `client.chat.completions.create(**kwargs)`, with a small, bounded retry.
+
+    Used for both Ollama and OpenAI — both speak the OpenAI-compatible API, so
+    one retry policy covers both. Never infinite: `LLM_CALL_MAX_ATTEMPTS` is a
+    hard ceiling, and a non-transient error (bad request, auth, unknown model)
+    is re-raised on the first attempt rather than retried.
+    """
+    attempts = max(1, settings.LLM_CALL_MAX_ATTEMPTS)
+    delay = 1.5
+    for attempt in range(attempts):
+        try:
+            return await client.chat.completions.create(**kwargs)
+        except _TRANSIENT_OPENAI_ERRORS as e:
+            if attempt >= attempts - 1:
+                raise
+            logger.warning(
+                f"LLM call transient failure ({type(e).__name__}: {e}), "
+                f"retrying — attempt {attempt + 2} of {attempts}..."
+            )
+            await asyncio.sleep(delay)
+            delay *= 2
+
+
 class LLMService:
     """
     LLM provider abstraction — supports Ollama (local), Gemini, and OpenAI.
@@ -45,6 +91,7 @@ class LLMService:
                 self.openai_client = AsyncOpenAI(
                     base_url=f"{settings.OLLAMA_BASE_URL}/v1",
                     api_key=settings.OLLAMA_API_KEY,
+                    timeout=settings.LLM_CALL_TIMEOUT_SECONDS,
                 )
                 self.ollama_configured = True
                 logger.info(
@@ -61,7 +108,10 @@ class LLMService:
 
             elif self.provider == "openai":
                 if settings.OPENAI_API_KEY:
-                    self.openai_client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
+                    self.openai_client = AsyncOpenAI(
+                        api_key=settings.OPENAI_API_KEY,
+                        timeout=settings.LLM_CALL_TIMEOUT_SECONDS,
+                    )
                     self.openai_configured = True
                     logger.info("OpenAI API client configured successfully.")
                 else:
@@ -126,7 +176,8 @@ class LLMService:
                 messages.append({"role": role, "content": content})
         messages.append({"role": "user", "content": user_message})
 
-        response = await self.openai_client.chat.completions.create(
+        response = await _create_chat_completion(
+            self.openai_client,
             model=settings.OLLAMA_MODEL,
             messages=messages,
             temperature=0.3,
@@ -176,12 +227,21 @@ class LLMService:
                 if tools:
                     chat     = model.start_chat(enable_automatic_function_calling=True)
                     loop     = asyncio.get_event_loop()
-                    response = await loop.run_in_executor(None, lambda: chat.send_message(final_prompt))
+                    response = await loop.run_in_executor(
+                        None,
+                        lambda: chat.send_message(
+                            final_prompt,
+                            request_options={"timeout": settings.LLM_CALL_TIMEOUT_SECONDS},
+                        ),
+                    )
                     logger.info("Gemini tool call response resolved.")
                     metrics.record_llm_tokens("gemini", *_gemini_usage(response))
                     return response.text
                 else:
-                    response = await model.generate_content_async(final_prompt)
+                    response = await model.generate_content_async(
+                        final_prompt,
+                        request_options={"timeout": settings.LLM_CALL_TIMEOUT_SECONDS},
+                    )
                     logger.info("Gemini response resolved.")
                     metrics.record_llm_tokens("gemini", *_gemini_usage(response))
                     return response.text
@@ -245,7 +305,8 @@ class LLMService:
                 for tool in tools
             ]
 
-        response = await self.openai_client.chat.completions.create(
+        response = await _create_chat_completion(
+            self.openai_client,
             model="gpt-4o",
             messages=messages,
             tools=openai_tools,
@@ -259,7 +320,17 @@ class LLMService:
             messages.append(response.choices[0].message)
             for tc in tool_calls:
                 if tc.function.name == "calculate_premium":
-                    args = json.loads(tc.function.arguments)
+                    try:
+                        args = json.loads(tc.function.arguments)
+                    except (json.JSONDecodeError, TypeError) as e:
+                        # The model's own function-call arguments, not a
+                        # value this codebase controls — malformed output is
+                        # a real possibility, not a hypothetical. Falls back
+                        # to calculate_premium's own defaults rather than
+                        # raising and losing the whole reply over one bad
+                        # argument string.
+                        logger.warning(f"Malformed tool-call arguments from model: {e}")
+                        args = {}
                     result = calculate_premium(
                         age=int(args.get("age", 35)),
                         coverage=args.get("coverage", "₹1 Crore Cover"),
@@ -270,7 +341,8 @@ class LLMService:
                         "tool_call_id": tc.id,
                         "content": json.dumps(result),
                     })
-            second = await self.openai_client.chat.completions.create(
+            second = await _create_chat_completion(
+                self.openai_client,
                 model="gpt-4o",
                 messages=messages,
                 temperature=0.3,

@@ -33,6 +33,17 @@ class Settings:
     # When empty, internal-key enforcement is disabled (backward compatible).
     AI_INTERNAL_API_KEY: str = os.getenv("AI_INTERNAL_API_KEY", "")
 
+    # Per-attempt LLM call timeout, in seconds. Every provider had no explicit
+    # timeout before this — an SDK default (often minutes) or, for the
+    # streaming path, nothing at all, since the Node backend deliberately runs
+    # its stream client with no timeout of its own. Kept below the backend's
+    # own 45s non-streaming timeout (AI_TIMEOUT_MS) so a bounded retry here
+    # still finishes inside that envelope rather than racing it.
+    LLM_CALL_TIMEOUT_SECONDS: float = float(os.getenv("LLM_CALL_TIMEOUT_SECONDS", "20"))
+    # Total attempts for a transient failure (timeout, connection drop, 5xx).
+    # Never for input/auth errors, where a retry only delays the safe fallback.
+    LLM_CALL_MAX_ATTEMPTS: int = int(os.getenv("LLM_CALL_MAX_ATTEMPTS", "2"))
+
     @property
     def is_production(self) -> bool:
         return self.ENVIRONMENT == "production"
