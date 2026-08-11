@@ -570,7 +570,13 @@ export const authService = {
       );
     }
 
-    if (!user.isActive) {
+    // A soft-deleted account gets the same refusal as a deactivated one.
+    // Without this, correct credentials still produced a fresh session and a
+    // profile in the response body — one that couldn't do anything else,
+    // since refresh() (Task 9.2) and protect() (Task 9.8) both already close
+    // that account out everywhere else, but the login response itself had
+    // never been told to stop confirming the account still works.
+    if (!user.isActive || user.deletedAt) {
       fail("INACTIVE", user.id);
       throw new AppError("This account has been deactivated.", 403);
     }
@@ -667,7 +673,7 @@ export const authService = {
 
     const { user, isNewAccount } = await resolveUserForIdentity(identity);
 
-    if (!user.isActive) {
+    if (!user.isActive || user.deletedAt) {
       recordLogin({
         userId: user.id,
         email: identity.email,

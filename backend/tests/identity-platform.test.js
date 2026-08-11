@@ -189,6 +189,29 @@ describe("Realms — which door admits whom", () => {
     const res = await login(email, GOOD_PASSWORD);
     assert.equal(res.status, 200);
   });
+
+  test("a deactivated account cannot sign in with the right password", async () => {
+    const email = uniqueEmail("realm-deactivated");
+    const reg = await register(email);
+    await prisma.user.update({ where: { id: reg.body.data.user.id }, data: { isActive: false } });
+
+    const res = await login(email, GOOD_PASSWORD);
+    assert.equal(res.status, 403);
+  });
+
+  test("a soft-deleted account cannot sign in with the right password either", async () => {
+    // Task 9.8. Correct credentials used to still produce a fresh session and
+    // a profile in the response here — one that could not do anything else,
+    // since refresh() (Task 9.2) and protect() (Task 9.8) already close a
+    // deleted account out everywhere else. The login response itself had
+    // never been told to stop.
+    const email = uniqueEmail("realm-deleted");
+    const reg = await register(email);
+    await prisma.user.update({ where: { id: reg.body.data.user.id }, data: { deletedAt: new Date() } });
+
+    const res = await login(email, GOOD_PASSWORD);
+    assert.equal(res.status, 403);
+  });
 });
 
 // ── Lockout ──────────────────────────────────────────────────────────────────

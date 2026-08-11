@@ -206,6 +206,20 @@ describe("Identity registry — which account the customer lands on", () => {
     assert.equal(again.status, 403);
   });
 
+  test("a soft-deleted account is refused even with a valid identity", async () => {
+    // Task 9.8. The password path already closed this; the provider path had
+    // its own, separate isActive check and needed the same addition.
+    const email = uniqueEmail("deleted");
+    const created = await signInWith({ subject: "deleted-subject", email });
+    await prisma.user.update({
+      where: { id: created.body.data.user.id },
+      data: { deletedAt: new Date() },
+    });
+
+    const again = await signInWith({ subject: "deleted-subject", email });
+    assert.equal(again.status, 403);
+  });
+
   test("a provider-created account cannot be signed into with a password", async () => {
     // The password it was given is random and never disclosed, so this account
     // is provider-only by construction rather than by a flag.

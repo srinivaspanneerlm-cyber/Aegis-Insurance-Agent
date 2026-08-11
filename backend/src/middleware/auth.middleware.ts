@@ -43,6 +43,23 @@ const protect = catchAsync(async (req: Request, res: Response, next: NextFunctio
     );
   }
 
+  // 4) An access token survives up to its own TTL after an admin deactivates
+  //    or deletes the account — refresh() already refuses to renew one
+  //    (Task 9.2), but that leaves the token that's already out there free to
+  //    keep working for the rest of its life unless this checks it too. Same
+  //    message as the row-missing case above: which of the two it is isn't
+  //    this response's business to disclose.
+  if (!user.isActive || user.deletedAt) {
+    auditService.record({
+      actorId: user.id,
+      action: "authz.access_revoked",
+      metadata: { reason: user.deletedAt ? "account_deleted" : "account_inactive", path: req.originalUrl },
+    });
+    return next(
+      new AppError("The user belonging to this token no longer exists.", 401)
+    );
+  }
+
   // Grant Access
   req.user = user;
   next();

@@ -272,11 +272,15 @@ describe("Gateway — doors that are not theirs", () => {
   });
 
   test("a deactivated account cannot enter its own workspace", async () => {
+    // Task 9.8: protect() now refuses a deactivated account's still-valid
+    // token before the request reaches this route at all, so the refusal is
+    // the same generic 401 every other protected route gives — the request
+    // never gets far enough to hear the portal gateway's own opinion.
     const session = await signedInAs("CUSTOMER", "CUSTOMER", "deactivated");
     await prisma.user.update({ where: { id: session.userId }, data: { isActive: false } });
 
     const res = await enter(session.cookie, "customer");
-    assert.equal(res.status, 403);
+    assert.equal(res.status, 401);
   });
 });
 

@@ -26,8 +26,8 @@ const {
   permissionsForRole,
 } = require("../src/auth/permissions");
 
-const CUSTOMER = { id: "u-1", email: "a@b.com", role: "CUSTOMER" };
-const ADMIN = { id: "u-2", email: "c@d.com", role: "EMPLOYEE" };
+const CUSTOMER = { id: "u-1", email: "a@b.com", role: "CUSTOMER", isActive: true, deletedAt: null };
+const ADMIN = { id: "u-2", email: "c@d.com", role: "EMPLOYEE", isActive: true, deletedAt: null };
 
 const sign = (payload, secret = env.JWT_SECRET) =>
   jwt.sign(payload, secret, { expiresIn: "1h" });
@@ -224,6 +224,37 @@ describe("protect", () => {
     const next = capture();
     await run(protect, makeReq({ token: sign({ id: "gone" }) }), next);
     assert.equal(next.errors()[0].statusCode, 401);
+  });
+
+  test("rejects a valid token whose account has since been deactivated", async () => {
+    // Task 9.8. refresh() already refuses to renew a deactivated account's
+    // session (Task 9.2) — but the access token issued before deactivation
+    // still had up to its own TTL left to run, and protect() gates every
+    // other route, so that token kept working everywhere else until it
+    // expired on its own. This is the other half of the same fix.
+    mock.method(userRepository, "findById", async () => ({ ...CUSTOMER, isActive: false }));
+    const next = capture();
+    await run(protect, makeReq({ token: sign({ id: CUSTOMER.id }) }), next);
+    assert.equal(next.errors()[0].statusCode, 401);
+  });
+
+  test("rejects a valid token whose account has since been soft-deleted", async () => {
+    mock.method(userRepository, "findById", async () => ({ ...CUSTOMER, deletedAt: new Date() }));
+    const next = capture();
+    await run(protect, makeReq({ token: sign({ id: CUSTOMER.id }) }), next);
+    assert.equal(next.errors()[0].statusCode, 401);
+  });
+
+  test("the deactivated case is told nothing that distinguishes it from a deleted user", async () => {
+    // Same message as the row-missing branch above — which of the two applies
+    // is not this response's business to disclose.
+    mock.method(userRepository, "findById", async () => ({ ...CUSTOMER, isActive: false }));
+    const next = capture();
+    await run(protect, makeReq({ token: sign({ id: CUSTOMER.id }) }), next);
+    assert.equal(
+      next.errors()[0].message,
+      "The user belonging to this token no longer exists."
+    );
   });
 
   test("identity comes from the database, never from the token body", async () => {
