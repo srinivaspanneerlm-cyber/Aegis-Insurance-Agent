@@ -39,6 +39,7 @@ const uploadDocument = catchAsync(async (req, res, next) => {
       ownerId: req.user?.id || null,
       mimeType: file.mimetype || null,
       sizeBytes: typeof file.size === "number" ? file.size : null,
+      organizationId: req.user?.organizationId ?? null,
     });
 
   if (files.length === 1) {

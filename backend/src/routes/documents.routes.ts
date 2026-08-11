@@ -22,7 +22,11 @@ const q = (req: Request, key: string): string | undefined =>
   typeof req.query[key] === "string" ? (req.query[key] as string) : undefined;
 const param = (req: Request, key: string): string =>
   typeof req.params[key] === "string" ? (req.params[key] as string) : "";
-const actor = (req: Request) => ({ id: req.user!.id, role: req.user!.role });
+const actor = (req: Request) => ({
+  id: req.user!.id,
+  role: req.user!.role,
+  organizationId: req.user!.organizationId,
+});
 
 // ── The customer's own workspace ─────────────────────────────────────────────
 
@@ -70,7 +74,7 @@ router.post(
   "/:id/process",
   requirePermission("work.write"),
   catchAsync(async (req, res) =>
-    sendSuccess(res, 200, await documentService.process(param(req, "id")))
+    sendSuccess(res, 200, await documentService.process(param(req, "id"), actor(req)))
   )
 );
 

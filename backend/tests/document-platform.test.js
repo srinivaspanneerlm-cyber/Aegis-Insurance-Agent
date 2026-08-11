@@ -21,7 +21,7 @@ process.env.DATABASE_URL = `file:${dbFile}`;
 execSync("npx prisma migrate deploy", { stdio: "ignore" });
 
 const assert = require("node:assert/strict");
-const { test, describe, after } = require("node:test");
+const { test, describe, before, after } = require("node:test");
 const request = require("supertest");
 const app = require("../src/app");
 const { PrismaClient } = require("@prisma/client");
@@ -32,6 +32,21 @@ const { documentService } = require("../src/services/document.service");
 const prisma = new PrismaClient();
 const ORIGIN = "http://localhost:3000";
 const PASSWORD = "correct-horse-battery";
+
+// Task 9.4. Every cross-customer path in document.service.ts now scopes by
+// organisation — it used to be role alone. Most existing tests below want
+// "same organisation, should work" as their baseline, so one real
+// organisation is shared across them; a second exists only for the tests that
+// prove the opposite.
+let PRIMARY_ORG, OTHER_ORG;
+before(async () => {
+  PRIMARY_ORG = await prisma.organization.create({
+    data: { slug: `docs-primary-${Date.now()}`, name: "Primary Org" },
+  });
+  OTHER_ORG = await prisma.organization.create({
+    data: { slug: `docs-other-${Date.now()}`, name: "Other Org" },
+  });
+});
 
 after(async () => {
   resetPipeline();
@@ -45,19 +60,19 @@ const cookieHeader = (res) =>
   (res.headers["set-cookie"] || []).map((c) => c.split(";")[0]).join("; ");
 
 let seq = 0;
-async function account(tag, realm = "CUSTOMER", role = "CUSTOMER") {
+async function account(tag, realm = "CUSTOMER", role = "CUSTOMER", organizationId = null) {
   seq += 1;
   const email = `doc-${tag}-${Date.now()}-${seq}@test.com`;
   const res = await request(app).post("/api/v1/auth/register").set("Origin", ORIGIN)
     .send({ name: `Subject ${tag}`, email, password: PASSWORD });
   assert.equal(res.status, 201);
-  if (realm !== "CUSTOMER") {
+  if (realm !== "CUSTOMER" || organizationId) {
     await prisma.user.update({
       where: { id: res.body.data.user.id },
-      data: { realm, role, emailVerifiedAt: new Date() },
+      data: { realm, role, emailVerifiedAt: new Date(), ...(organizationId ? { organizationId } : {}) },
     });
   }
-  return { userId: res.body.data.user.id, email, cookie: cookieHeader(res) };
+  return { userId: res.body.data.user.id, email, cookie: cookieHeader(res), organizationId };
 }
 
 /** A document row, as the upload route would have produced. */
@@ -178,12 +193,13 @@ describe("Documents — a customer sees only their own", () => {
     // The simulated scanner calls everything clean. Shipping that to production
     // means accepting executables from the public internet and then telling a
     // reviewer they were scanned, so the pipeline refuses to run at all.
-    const owner = await account("scanner-gate");
-    const doc = await upload(owner.userId);
+    const owner = await account("scanner-gate", "CUSTOMER", "CUSTOMER", PRIMARY_ORG.id);
+    const doc = await upload(owner.userId, { organizationId: PRIMARY_ORG.id });
+    const officer = { id: "system-probe", role: "EMPLOYEE", organizationId: PRIMARY_ORG.id };
     const previous = process.env.NODE_ENV;
     process.env.NODE_ENV = "production";
     try {
-      await assert.rejects(() => documentService.process(doc.id), /unavailable/i);
+      await assert.rejects(() => documentService.process(doc.id, officer), /unavailable/i);
     } finally {
       process.env.NODE_ENV = previous;
     }
@@ -198,7 +214,7 @@ describe("Documents — a customer sees only their own", () => {
       },
     });
     try {
-      const result = await documentService.process(doc.id);
+      const result = await documentService.process(doc.id, officer);
       assert.equal(result.status, "PENDING_REVIEW");
     } finally {
       resetPipeline();
@@ -210,22 +226,56 @@ describe("Documents — a customer sees only their own", () => {
     // The queue shows it and the decision endpoint accepts it, so refusing the
     // detail would ask somebody to judge a document they cannot open — which is
     // how a verification queue gets rubber-stamped.
-    const alice = await account("verifier-owner");
-    const officer = await account("verifier", "EMPLOYEE", "EMPLOYEE");
-    const doc = await upload(alice.userId, { status: "PENDING_REVIEW" });
+    const alice = await account("verifier-owner", "CUSTOMER", "CUSTOMER", PRIMARY_ORG.id);
+    const officer = await account("verifier", "EMPLOYEE", "EMPLOYEE", PRIMARY_ORG.id);
+    const doc = await upload(alice.userId, { status: "PENDING_REVIEW", organizationId: PRIMARY_ORG.id });
 
     const res = await api(officer.cookie).get(`/${doc.id}`);
     assert.equal(res.status, 200);
     assert.ok(Array.isArray(res.body.data.events));
   });
 
-  test("an employee with the wider read sees everything", async () => {
-    const alice = await account("scoped");
-    await upload(alice.userId);
-    const lead = await account("lead", "EMPLOYEE", "CLAIMS");
+  // Task 9.4. The role alone used to be enough — work.read.all or work.write
+  // opened every organisation's documents. Same fixture as the test above,
+  // different organisation for the reader, and the answer must flip.
+  test("a verifier in a different organisation cannot read it", async () => {
+    const alice = await account("verifier-owner-2", "CUSTOMER", "CUSTOMER", PRIMARY_ORG.id);
+    const outsider = await account("outside-verifier", "EMPLOYEE", "EMPLOYEE", OTHER_ORG.id);
+    const doc = await upload(alice.userId, { status: "PENDING_REVIEW", organizationId: PRIMARY_ORG.id });
+
+    assert.equal((await api(outsider.cookie).get(`/${doc.id}`)).status, 404);
+  });
+
+  test("an employee with the wider read sees everything in their own organisation", async () => {
+    const alice = await account("scoped", "CUSTOMER", "CUSTOMER", PRIMARY_ORG.id);
+    await upload(alice.userId, { organizationId: PRIMARY_ORG.id });
+    const lead = await account("lead", "EMPLOYEE", "CLAIMS", PRIMARY_ORG.id);
 
     const res = await api(lead.cookie).get("/");
     assert.equal(res.body.data.scope, "ALL");
+    assert.ok(res.body.data.total >= 1);
+  });
+
+  test("the wider read does not cross an organisation boundary", async () => {
+    const alice = await account("other-scoped", "CUSTOMER", "CUSTOMER", OTHER_ORG.id);
+    await upload(alice.userId, { organizationId: OTHER_ORG.id, filename: "other-org-only.pdf" });
+    const lead = await account("primary-lead", "EMPLOYEE", "CLAIMS", PRIMARY_ORG.id);
+
+    const res = await api(lead.cookie).get("/");
+    assert.ok(!JSON.stringify(res.body).includes("other-org-only.pdf"));
+  });
+
+  test("an employee holding the wider read but attached to no organisation sees nothing", async () => {
+    // Not the customer fallback either — a role that promises "everyone" and
+    // cannot safely be given everyone gets an empty result, not somebody
+    // else's organisation and not its own uploads (it has none).
+    const alice = await account("orgless-scoped", "CUSTOMER", "CUSTOMER", PRIMARY_ORG.id);
+    await upload(alice.userId, { organizationId: PRIMARY_ORG.id });
+    const orphanLead = await account("orphan-lead", "EMPLOYEE", "CLAIMS"); // no organisationId
+
+    const res = await api(orphanLead.cookie).get("/");
+    assert.equal(res.body.data.scope, "MINE");
+    assert.equal(res.body.data.total, 0);
   });
 
   test("the file path never reaches a client", async () => {
@@ -252,6 +302,18 @@ describe("Documents — a customer sees only their own", () => {
     assert.equal(still.deletedAt, null);
   });
 
+  // Task 9.4. work.write let an employee delete any organisation's document —
+  // not just a stranger's, a whole different tenant's.
+  test("an employee in a different organisation cannot delete it either", async () => {
+    const alice = await account("del-owner-2", "CUSTOMER", "CUSTOMER", PRIMARY_ORG.id);
+    const outsider = await account("del-outside-officer", "EMPLOYEE", "EMPLOYEE", OTHER_ORG.id);
+    const doc = await upload(alice.userId, { organizationId: PRIMARY_ORG.id });
+
+    assert.equal((await api(outsider.cookie).del(`/${doc.id}`)).status, 404);
+    const still = await prisma.uploadedDocument.findUnique({ where: { id: doc.id } });
+    assert.equal(still.deletedAt, null);
+  });
+
   test("a customer may delete their own, and it is soft", async () => {
     // A verified document is evidence in a claim. Delete removes it from the
     // customer's list, never from the record.
@@ -272,13 +334,25 @@ describe("Documents — a customer sees only their own", () => {
 // ── The pipeline ─────────────────────────────────────────────────────────────
 
 describe("Pipeline", () => {
+  // Task 9.4, through the real route rather than a direct service call: an
+  // employee could re-run the extraction/fraud pipeline — reading the file,
+  // scoring it — on any organisation's document, not just their own.
+  test("re-running the pipeline on another organisation's document is refused", async () => {
+    const alice = await account("process-owner", "CUSTOMER", "CUSTOMER", PRIMARY_ORG.id);
+    const outsider = await account("process-outsider", "EMPLOYEE", "EMPLOYEE", OTHER_ORG.id);
+    const doc = await upload(alice.userId, { organizationId: PRIMARY_ORG.id });
+
+    const res = await api(outsider.cookie).post(`/${doc.id}/process`, {});
+    assert.equal(res.status, 404);
+  });
+
   test("processing leaves a document waiting for a person, never verified", async () => {
     // The core rule. A machine may move a document to review and explain why;
     // only a person decides.
-    const alice = await account("pipe");
-    const doc = await upload(alice.userId);
+    const alice = await account("pipe", "CUSTOMER", "CUSTOMER", PRIMARY_ORG.id);
+    const doc = await upload(alice.userId, { organizationId: PRIMARY_ORG.id });
 
-    const result = await documentService.process(doc.id);
+    const result = await documentService.process(doc.id, { id: "system", role: "EMPLOYEE", organizationId: PRIMARY_ORG.id });
     assert.equal(result.status, "PENDING_REVIEW");
 
     const row = await prisma.uploadedDocument.findUnique({ where: { id: doc.id } });
@@ -289,9 +363,9 @@ describe("Pipeline", () => {
   test("every stage records what it did, including not running", async () => {
     // A timeline that omits the stages that did nothing leaves a reader unable
     // to tell "clean" from "never scanned".
-    const alice = await account("timeline");
-    const doc = await upload(alice.userId);
-    await documentService.process(doc.id);
+    const alice = await account("timeline", "CUSTOMER", "CUSTOMER", PRIMARY_ORG.id);
+    const doc = await upload(alice.userId, { organizationId: PRIMARY_ORG.id });
+    await documentService.process(doc.id, { id: "system", role: "EMPLOYEE", organizationId: PRIMARY_ORG.id });
     // Timeline writes are fire-and-forget so a stage never delays the pipeline.
     // Give them a moment to land before asserting on them.
     await new Promise((resolve) => setTimeout(resolve, 250));
@@ -324,9 +398,9 @@ describe("Pipeline", () => {
       },
     });
 
-    const alice = await account("infected");
-    const doc = await upload(alice.userId);
-    const result = await documentService.process(doc.id);
+    const alice = await account("infected", "CUSTOMER", "CUSTOMER", PRIMARY_ORG.id);
+    const doc = await upload(alice.userId, { organizationId: PRIMARY_ORG.id });
+    const result = await documentService.process(doc.id, { id: "system", role: "EMPLOYEE", organizationId: PRIMARY_ORG.id });
 
     assert.equal(result.status, "REJECTED");
     resetPipeline();
@@ -353,9 +427,9 @@ describe("Verification", () => {
   });
 
   test("an employee can, and their id is recorded", async () => {
-    const alice = await account("verified-owner");
-    const officer = await account("officer", "EMPLOYEE", "EMPLOYEE");
-    const doc = await upload(alice.userId, { status: "PENDING_REVIEW" });
+    const alice = await account("verified-owner", "CUSTOMER", "CUSTOMER", PRIMARY_ORG.id);
+    const officer = await account("officer", "EMPLOYEE", "EMPLOYEE", PRIMARY_ORG.id);
+    const doc = await upload(alice.userId, { status: "PENDING_REVIEW", organizationId: PRIMARY_ORG.id });
 
     const res = await api(officer.cookie).post(`/${doc.id}/decision`, { decision: "VERIFY" });
     assert.equal(res.status, 200);
@@ -365,11 +439,26 @@ describe("Verification", () => {
     assert.equal(row.verifiedById, officer.userId);
   });
 
+  // Task 9.4. Same shape as the read-side proof above: an employee in a
+  // different organisation holds the identical work.write capability and must
+  // still be refused — this is the state-changing half of that same gap.
+  test("an employee in a different organisation cannot decide on it", async () => {
+    const alice = await account("verified-owner-2", "CUSTOMER", "CUSTOMER", PRIMARY_ORG.id);
+    const outsider = await account("outside-officer", "EMPLOYEE", "EMPLOYEE", OTHER_ORG.id);
+    const doc = await upload(alice.userId, { status: "PENDING_REVIEW", organizationId: PRIMARY_ORG.id });
+
+    const res = await api(outsider.cookie).post(`/${doc.id}/decision`, { decision: "VERIFY" });
+    assert.equal(res.status, 404);
+
+    const row = await prisma.uploadedDocument.findUnique({ where: { id: doc.id } });
+    assert.equal(row.status, "PENDING_REVIEW", "the document must be untouched");
+  });
+
   test("a rejection without a reason is refused", async () => {
     // The customer is shown it. Without one they upload the same thing again.
-    const alice = await account("noreason-owner");
-    const officer = await account("noreason-officer", "EMPLOYEE", "EMPLOYEE");
-    const doc = await upload(alice.userId, { status: "PENDING_REVIEW" });
+    const alice = await account("noreason-owner", "CUSTOMER", "CUSTOMER", PRIMARY_ORG.id);
+    const officer = await account("noreason-officer", "EMPLOYEE", "EMPLOYEE", PRIMARY_ORG.id);
+    const doc = await upload(alice.userId, { status: "PENDING_REVIEW", organizationId: PRIMARY_ORG.id });
 
     const res = await api(officer.cookie).post(`/${doc.id}/decision`, { decision: "REJECT" });
     assert.equal(res.status, 400);
@@ -377,13 +466,15 @@ describe("Verification", () => {
   });
 
   test("verifying a document satisfies the request it answered", async () => {
-    const alice = await account("fulfil");
-    const officer = await account("fulfil-officer", "EMPLOYEE", "EMPLOYEE");
+    const alice = await account("fulfil", "CUSTOMER", "CUSTOMER", PRIMARY_ORG.id);
+    const officer = await account("fulfil-officer", "EMPLOYEE", "EMPLOYEE", PRIMARY_ORG.id);
 
     await api(officer.cookie).post("/requests", {
       subjectId: alice.userId, domain: "motor", purpose: "APPLICATION",
     });
-    const doc = await upload(alice.userId, { status: "PENDING_REVIEW", documentKey: "rc_book" });
+    const doc = await upload(alice.userId, {
+      status: "PENDING_REVIEW", documentKey: "rc_book", organizationId: PRIMARY_ORG.id,
+    });
     await api(officer.cookie).post(`/${doc.id}/decision`, { decision: "VERIFY" });
 
     const fulfilled = await prisma.documentRequest.findFirst({
@@ -394,19 +485,34 @@ describe("Verification", () => {
 
   test("the queue is oldest first", async () => {
     // A queue sorted newest-first starves its own bottom.
-    const alice = await account("queue-owner");
-    const officer = await account("queue-officer", "EMPLOYEE", "EMPLOYEE");
+    const alice = await account("queue-owner", "CUSTOMER", "CUSTOMER", PRIMARY_ORG.id);
+    const officer = await account("queue-officer", "EMPLOYEE", "EMPLOYEE", PRIMARY_ORG.id);
 
-    const older = await upload(alice.userId, { status: "PENDING_REVIEW", filename: "older.pdf" });
+    const older = await upload(alice.userId, {
+      status: "PENDING_REVIEW", filename: "older.pdf", organizationId: PRIMARY_ORG.id,
+    });
     await prisma.uploadedDocument.update({
       where: { id: older.id },
       data: { uploadedAt: new Date(Date.now() - 86_400_000) },
     });
-    await upload(alice.userId, { status: "PENDING_REVIEW", filename: "newer.pdf" });
+    await upload(alice.userId, {
+      status: "PENDING_REVIEW", filename: "newer.pdf", organizationId: PRIMARY_ORG.id,
+    });
 
     const res = await api(officer.cookie).get("/queue/pending");
     assert.equal(res.status, 200);
     assert.equal(res.body.data.documents[0].filename, "older.pdf");
+  });
+
+  test("the queue never shows another organisation's documents", async () => {
+    const alice = await account("queue-owner-2", "CUSTOMER", "CUSTOMER", OTHER_ORG.id);
+    const officer = await account("queue-officer-2", "EMPLOYEE", "EMPLOYEE", PRIMARY_ORG.id);
+    await upload(alice.userId, {
+      status: "PENDING_REVIEW", filename: "not-yours.pdf", organizationId: OTHER_ORG.id,
+    });
+
+    const res = await api(officer.cookie).get("/queue/pending");
+    assert.ok(!JSON.stringify(res.body).includes("not-yours.pdf"));
   });
 
   test("a customer cannot see the verification queue", async () => {

@@ -35,6 +35,24 @@ const clampTake = (v: unknown, fallback = 25): number => {
   return Math.min(Math.floor(n), MAX_PAGE);
 };
 
+/**
+ * Every cross-customer path below — the review queue, the verification
+ * decision, re-running the pipeline, deleting on somebody else's behalf —
+ * used to be scoped by role alone: `work.write` or `work.read.all` opened
+ * every organisation's documents, not just the caller's own. This is the one
+ * check that closes it, used the same way at every one of those paths.
+ *
+ * `actor.organizationId` must be truthy for a match — an employee attached to
+ * no organisation matches nothing, never everything, the same fail-closed
+ * reading the enterprise console already applies. A document with no
+ * organisation (every one uploaded before this existed) matches nothing
+ * either, for the same reason.
+ */
+const sameOrg = (
+  actor: { organizationId: string | null },
+  document: { organizationId: string | null }
+): boolean => Boolean(actor.organizationId) && document.organizationId === actor.organizationId;
+
 /** Fields a client may see. `filepath` is never among them. */
 const DOCUMENT_SELECT = {
   id: true,
@@ -91,7 +109,7 @@ export const documentService = {
    * a document that cannot be processed is a document needing a person, not an
    * error for the uploader.
    */
-  async process(documentId: string) {
+  async process(documentId: string, actor: { id: string; role: string; organizationId: string | null }) {
     // Checked here rather than at the route, because this is the only place
     // that reads the bytes. Anything that reaches the pipeline by another path
     // gets the same answer.
@@ -103,6 +121,14 @@ export const documentService = {
 
     const document = await prisma.uploadedDocument.findUnique({ where: { id: documentId } });
     if (!document) throw new AppError("That document does not exist.", 404);
+    if (!sameOrg(actor, document)) {
+      auditService.record({
+        actorId: actor.id,
+        action: "authz.document.denied",
+        metadata: { documentId, attempted: "process" },
+      });
+      throw new AppError("That document does not exist.", 404);
+    }
 
     const ref: DocumentRef = {
       id: document.id,
@@ -218,7 +244,7 @@ export const documentService = {
   async decide(
     documentId: string,
     input: { decision: "VERIFY" | "REJECT"; reason?: string },
-    actor: { id: string; role: string }
+    actor: { id: string; role: string; organizationId: string | null }
   ) {
     if (!roleHasPermission(actor.role, "work.write")) {
       auditService.record({
@@ -231,6 +257,14 @@ export const documentService = {
 
     const document = await prisma.uploadedDocument.findUnique({ where: { id: documentId } });
     if (!document || document.deletedAt) throw new AppError("That document does not exist.", 404);
+    if (!sameOrg(actor, document)) {
+      auditService.record({
+        actorId: actor.id,
+        action: "authz.document.denied",
+        metadata: { documentId, attempted: "decide" },
+      });
+      throw new AppError("That document does not exist.", 404);
+    }
 
     if (input.decision === "REJECT" && !input.reason?.trim()) {
       throw new AppError(
@@ -304,14 +338,20 @@ export const documentService = {
    * query is built from their id rather than from a parameter.
    */
   async list(
-    actor: { id: string; role: string },
+    actor: { id: string; role: string; organizationId: string | null },
     query: { status?: string; domain?: string; search?: string; take?: unknown }
   ) {
-    const seesEveryone = roleHasPermission(actor.role, "work.read.all");
+    // work.read.all is a role, not a tenant — it says this person may see
+    // everyone's documents *within their own organisation*, never across every
+    // organisation on the platform. An employee holding it with no resolved
+    // organisation cannot safely be handed "everyone" at all, so they fall
+    // back to their own uploads, the same as anybody without the capability.
+    const seesEveryone = roleHasPermission(actor.role, "work.read.all") && Boolean(actor.organizationId);
+    const crossCustomerScope = seesEveryone ? { organizationId: actor.organizationId } : { ownerId: actor.id };
 
     const where = {
       deletedAt: null,
-      ...(seesEveryone ? {} : { ownerId: actor.id }),
+      ...crossCustomerScope,
       ...(query.status ? { status: query.status } : {}),
       ...(query.domain ? { domain: query.domain } : {}),
       ...(query.search ? { filename: { contains: query.search } } : {}),
@@ -327,7 +367,7 @@ export const documentService = {
       }),
       prisma.uploadedDocument.groupBy({
         by: ["status"],
-        where: { deletedAt: null, ...(seesEveryone ? {} : { ownerId: actor.id }) },
+        where: { deletedAt: null, ...crossCustomerScope },
         _count: { _all: true },
       }),
     ]);
@@ -341,20 +381,25 @@ export const documentService = {
   },
 
   /** One document with its timeline. Scoped the same way the list is. */
-  async detail(actor: { id: string; role: string }, id: string) {
-    const document = await prisma.uploadedDocument.findFirst({
+  async detail(actor: { id: string; role: string; organizationId: string | null }, id: string) {
+    // organizationId is fetched for the authorisation check below and never
+    // returned to the client — DOCUMENT_SELECT is the public contract, and
+    // this is one field wider than it on purpose, only inside this function.
+    const found = await prisma.uploadedDocument.findFirst({
       where: { id, deletedAt: null },
-      select: DOCUMENT_SELECT,
+      select: { ...DOCUMENT_SELECT, organizationId: true },
     });
-    if (!document) throw new AppError("That document does not exist.", 404);
+    if (!found) throw new AppError("That document does not exist.", 404);
+    const { organizationId: _orgId, ...document } = found;
+    void _orgId;
 
-    // Owner, team lead, or a verifier. The last one matters: an employee who
-    // can see a document in their verification queue and decide on it must be
-    // able to read its history — otherwise they are asked to judge something
-    // they cannot open, which is how a queue gets rubber-stamped.
-    const mine = document.ownerId === actor.id;
+    // Owner, or a reviewer *in the same organisation*. The role alone used to
+    // be enough — work.read.all or work.write opened every organisation's
+    // documents, not just the caller's own.
+    const mine = found.ownerId === actor.id;
     const canReview =
-      roleHasPermission(actor.role, "work.read.all") || roleHasPermission(actor.role, "work.write");
+      (roleHasPermission(actor.role, "work.read.all") || roleHasPermission(actor.role, "work.write")) &&
+      sameOrg(actor, found);
 
     if (!mine && !canReview) {
       auditService.record({
@@ -383,31 +428,45 @@ export const documentService = {
    * that arrived a minute ago, and a queue sorted newest-first quietly starves
    * the bottom of itself.
    */
-  async queue(actor: { role: string }, query: { take?: unknown }) {
+  async queue(actor: { role: string; organizationId: string | null }, query: { take?: unknown }) {
     if (!roleHasPermission(actor.role, "work.read.all") && !roleHasPermission(actor.role, "work.write")) {
       throw new AppError("You do not have permission to review documents.", 403);
     }
 
+    // Exclusively a cross-customer view — there is no "my own" fallback here
+    // the way list() has, so an employee with no resolved organisation gets an
+    // empty queue rather than every organisation's. Passing organizationId:
+    // null straight into the query would have done the opposite of that: it
+    // would match every legacy document that predates this column, handing an
+    // organisation-less employee *more* than a properly scoped one ever sees.
+    if (!actor.organizationId) return { documents: [], waiting: 0 };
+    const where = {
+      deletedAt: null,
+      status: "PENDING_REVIEW",
+      organizationId: actor.organizationId,
+    };
+
     const [documents, waiting] = await Promise.all([
       prisma.uploadedDocument.findMany({
-        where: { deletedAt: null, status: "PENDING_REVIEW" },
+        where,
         select: { ...DOCUMENT_SELECT, owner: { select: { id: true, name: true, email: true } } },
         orderBy: { uploadedAt: "asc" },
         take: clampTake(query.take, 50),
       }),
-      prisma.uploadedDocument.count({ where: { deletedAt: null, status: "PENDING_REVIEW" } }),
+      prisma.uploadedDocument.count({ where }),
     ]);
 
     return { documents, waiting };
   },
 
   /** Soft delete. The owner, or somebody who can write work. */
-  async remove(actor: { id: string; role: string }, id: string) {
+  async remove(actor: { id: string; role: string; organizationId: string | null }, id: string) {
     const document = await prisma.uploadedDocument.findFirst({ where: { id, deletedAt: null } });
     if (!document) throw new AppError("That document does not exist.", 404);
 
     const mine = document.ownerId === actor.id;
-    if (!mine && !roleHasPermission(actor.role, "work.write")) {
+    const staffCanRemove = roleHasPermission(actor.role, "work.write") && sameOrg(actor, document);
+    if (!mine && !staffCanRemove) {
       throw new AppError("That document does not exist.", 404);
     }
 

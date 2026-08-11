@@ -13,6 +13,12 @@ interface DocumentInput {
   ownerId: string | null;
   mimeType: string | null;
   sizeBytes: number | null;
+  // The uploader's own tenant, stamped at write time. Every staff-facing read
+  // in document.service.ts scopes by this — a document created before it
+  // existed carries no organisation and is invisible to those reads, the same
+  // fail-closed behaviour every other tenant-scoped table in this schema
+  // already has for a row nobody has assigned an organisation yet.
+  organizationId: string | null;
 }
 
 interface ListParams extends PageParams {
