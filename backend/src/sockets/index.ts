@@ -38,6 +38,27 @@ const socketAuthMiddleware = async (socket: Socket, next: SocketNext): Promise<v
   }
 };
 
+// Sliding-window throttle for AI-backed socket messages, keyed by the
+// authenticated user id rather than the connection. Scoping it to the socket
+// instead let a client reset its allowance for free by disconnecting and
+// reconnecting — the handshake only costs a JWT it already holds — which
+// defeated the cost-abuse protection this exists for entirely.
+const RATE_WINDOW_MS = 60 * 1000;
+const RATE_MAX = 20;
+const socketMessageTimestamps = new Map<string, number[]>();
+
+const withinSocketRateLimit = (userId: string): boolean => {
+  const now = Date.now();
+  const recent = (socketMessageTimestamps.get(userId) ?? []).filter((t) => now - t < RATE_WINDOW_MS);
+  if (recent.length >= RATE_MAX) {
+    socketMessageTimestamps.set(userId, recent);
+    return false;
+  }
+  recent.push(now);
+  socketMessageTimestamps.set(userId, recent);
+  return true;
+};
+
 const initSockets = (io: Server): void => {
   // Hand the server to the communication platform so notifications raised
   // anywhere in the process can reach a connected portal.
@@ -62,24 +83,16 @@ const initSockets = (io: Server): void => {
       void socket.join(userRoom(identity.id));
     }
 
-    // Simple sliding-window throttle: cap AI-backed socket messages per client.
-    const RATE_WINDOW_MS = 60 * 1000;
-    const RATE_MAX = 20;
-    let msgTimestamps: number[] = [];
-
     // Real-time chat messaging event
     socket.on("send_message", async (data: { message: string; sender?: string }) => {
       const { message, sender } = data;
       const authUser = socket.data.user; // trusted identity from handshake
 
       // Rate limit — drop bursts that would fan out to the paid AI engine.
-      const now = Date.now();
-      msgTimestamps = msgTimestamps.filter((t) => now - t < RATE_WINDOW_MS);
-      if (msgTimestamps.length >= RATE_MAX) {
+      if (!withinSocketRateLimit(authUser.id)) {
         socket.emit("error", { message: "Rate limit exceeded. Please slow down." });
         return;
       }
-      msgTimestamps.push(now);
 
       try {
         // Save message to database — bound to the authenticated user so the
