@@ -27,6 +27,32 @@ from app.memory.profile_manager import EnhancedProfileManager
 from app.utils.logger import logger
 
 
+def trailing_question(text: str) -> str:
+    """
+    The question the customer is actually answering — not the whole turn.
+
+    Context-aware extraction reads the previous agent turn to decide which field
+    a short reply belongs to ("35" after "how old are you?" is an age). Passing
+    the *entire* turn made that guess wildly unsafe once an agent started
+    narrating: a plan table mentioning "Sum Insured", "covers the whole family"
+    or "pre-existing" matches the keyword lists for half a dozen fields, so the
+    customer's next unrelated sentence was filed as their medical history.
+
+    Taking only the final interrogative sentence fixes both directions. A
+    consultation turn ends in its question, which is exactly the context wanted;
+    a narration turn contains no question at all and yields "", so extraction
+    declines to guess rather than guessing from prose. Empty context is safe —
+    the caller simply skips inference — while wrong context silently corrupts a
+    profile that persists for the life of the customer.
+    """
+    if not text or "?" not in text:
+        return ""
+    end = text.rindex("?")
+    prior = text[:end]
+    start = max(prior.rfind("."), prior.rfind("!"), prior.rfind("?"), prior.rfind("\n"))
+    return text[start + 1 : end + 1].strip()
+
+
 class MemoryOrchestrator:
     """
     Unified memory facade for Aegis AI agents.
@@ -140,7 +166,7 @@ class MemoryOrchestrator:
                 # History entries alternate user/assistant; find last assistant turn
                 for turn in reversed(history):
                     if turn.get("role") == "assistant":
-                        last_agent_question = turn.get("content", "")
+                        last_agent_question = trailing_question(turn.get("content", ""))
                         break
         except Exception as e:
             logger.debug(f"[MemoryOrchestrator] Could not load last agent question for context: {e}")

@@ -47,7 +47,7 @@ SHARED_FIELDS: List[str] = [
 ]
 
 DOMAIN_FIELDS: Dict[str, List[str]] = {
-    "health":        ["pre_existing_conditions", "preferred_hospitals",
+    "health":        ["coverage_type", "pre_existing_conditions", "preferred_hospitals",
                       "maternity_required", "critical_illness_history"],
     "motor":         ["vehicle", "registration_number", "vehicle_year",
                       "vehicle_type", "ncb_history", "previous_insurer"],
@@ -309,9 +309,28 @@ class EnhancedProfileManager:
                 elif in_family_range:
                     extracted['family_size'] = int(num)
 
-        # Non-numeric family answers ("just me", "only me", etc.)
         msg_lower = msg.lower().strip()
-        if not extracted.get('family_size'):
+
+        # Who the policy is for — "just myself", "my wife and our child", "also
+        # my parents". Kept as the customer's own words rather than a normalised
+        # code, because the health scorer reads this text directly and looks for
+        # "family"/"child"/"maternity" in it to decide whether maternity cover
+        # matters; a tidy enum would throw away the signal it needs.
+        #
+        # Checked before family size, and excluded from it below, because the
+        # two questions share the words "insure" and "cover". Without the split,
+        # "just myself, my wife and our one child" answered the *who* question
+        # and was recorded as a household of one.
+        # `who` needs a word boundary: as a bare substring it also fires on
+        # "whole", so a narration containing "covers the whole family" was read
+        # as the coverage question and swallowed the customer's next answer.
+        is_coverage_question = bool(re.search(r'\bwhom?\b', q)) and 'insure' in q
+        if not extracted.get('coverage_type') and is_coverage_question:
+            if len(msg_lower) >= 2 and msg_lower not in ('yes', 'yeah', 'yep', 'ok', 'okay', 'no', 'skip', 'na'):
+                extracted['coverage_type'] = msg.strip()
+
+        # Non-numeric family answers ("just me", "only me", etc.)
+        if not extracted.get('family_size') and not is_coverage_question:
             if any(w in q for w in ['family', 'member', 'cover', 'depend', 'household', 'how many', 'insure']):
                 if any(p in msg_lower for p in ['just me', 'only me', 'myself', 'alone', 'just myself', 'me only']):
                     extracted['family_size'] = 1
@@ -562,9 +581,18 @@ class EnhancedProfileManager:
             except ValueError:
                 pass
 
-        # Budget — handles ₹2500, rs 2500, budget 2500
+        # Budget — handles ₹2500, rs 2500, budget 2500, and the hedged phrasing
+        # people actually use: "budget is around 1000", "budget of about 2500".
+        # The filler run repeats because a single optional word only covered
+        # "budget around 1000" — "budget is around 1000" fell through and the
+        # advisor asked for a budget the customer had already given, turn after
+        # turn. The alternatives are listed rather than "any short gap" so the
+        # pattern cannot wander into an unrelated number later in the sentence.
         m = re.search(
-            r'\bbudget\s*(?:is|of|around)?\s*(?:rs\.?|rupees|₹)?\s*(\d+(?:\.\d+)?)\b',
+            r'\bbudget\b'
+            r'(?:\s*(?:is|of|around|about|approx\.?|approximately|roughly|'
+            r'nearly|near|maybe|say|up\s*to))*'
+            r'\s*(?:rs\.?|rupees|₹)?\s*(\d+(?:\.\d+)?)\b',
             msg,
         )
         if not m:

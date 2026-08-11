@@ -91,8 +91,19 @@ class AegisMemoryEngine:
         if age_match:
             extracted["age"] = int(age_match.group(1))
 
-        # 2) Budget extraction
-        budget_match = re.search(r'\bbudget\s*(?:is|of|around)?\s*(?:rs\.?|rupees|₹)?\s*(\d+)\b', message_lower)
+        # 2) Budget extraction — the hedged phrasing people actually use
+        # ("budget is around 1000", "budget of about 2500") needs a repeating
+        # filler run; a single optional word stopped at "budget is around" and
+        # read no number, so the advisor kept asking for a budget it had already
+        # been given. Kept in step with the same pattern in
+        # ai-python/app/memory/profile_manager.py::_fallback_extract.
+        budget_match = re.search(
+            r'\bbudget\b'
+            r'(?:\s*(?:is|of|around|about|approx\.?|approximately|roughly|'
+            r'nearly|near|maybe|say|up\s*to))*'
+            r'\s*(?:rs\.?|rupees|₹)?\s*(\d+)\b',
+            message_lower,
+        )
         if budget_match:
             extracted["budget"] = float(budget_match.group(1))
 
