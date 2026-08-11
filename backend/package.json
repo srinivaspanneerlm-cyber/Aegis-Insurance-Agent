@@ -6,7 +6,7 @@
   "scripts": {
     "start": "tsx src/server.ts",
     "dev": "tsx watch src/server.ts",
-    "test": "node --import tsx --test tests/",
+    "test": "node scripts/test-db.mjs",
     "test:coverage": "node --import tsx --test --experimental-test-coverage tests/",
     "typecheck": "tsc --noEmit",
     "loadtest": "node loadtest/run.mjs",
