@@ -5,6 +5,7 @@ import env from "../config/env";
 import { logger } from "../config/logger";
 import aiService = require("../services/ai.service");
 import { attachRealtime, userRoom } from "../communication/eventBus";
+import { auditService } from "../services/audit.service";
 
 type SocketNext = (err?: Error) => void;
 
@@ -18,23 +19,34 @@ type SocketNext = (err?: Error) => void;
  * `Authorization: Bearer <token>` handshake header.
  */
 const socketAuthMiddleware = async (socket: Socket, next: SocketNext): Promise<void> => {
+  // A rejected handshake used to leave no trace at all — indistinguishable
+  // from an ordinary disconnect. Somebody repeatedly presenting a stolen or
+  // expired token is exactly what a security review needs to see.
+  const reject = (reason: string, message: string): void => {
+    auditService.record({
+      action: "authz.socket.rejected",
+      metadata: { reason, ip: socket.handshake?.address ?? null },
+    });
+    next(new Error(message));
+  };
+
   try {
     let token: string | null = socket.handshake?.auth?.token || null;
     if (!token) {
       const header = socket.handshake?.headers?.authorization || "";
       if (header.startsWith("Bearer ")) token = header.split(" ")[1];
     }
-    if (!token) return next(new Error("Unauthorized: authentication token required."));
+    if (!token) return reject("missing_token", "Unauthorized: authentication token required.");
 
     const decoded = jwt.verify(token, env.JWT_SECRET) as JwtPayload & { id: string };
     const user = await userRepository.findById(decoded.id);
-    if (!user) return next(new Error("Unauthorized: user no longer exists."));
+    if (!user) return reject("account_missing", "Unauthorized: user no longer exists.");
 
     // Trusted identity — never rely on client-supplied sender/name after this.
     socket.data.user = { id: user.id, name: user.name, role: user.role };
     return next();
   } catch {
-    return next(new Error("Unauthorized: invalid or expired token."));
+    return reject("invalid_or_expired_token", "Unauthorized: invalid or expired token.");
   }
 };
 
@@ -90,6 +102,11 @@ const initSockets = (io: Server): void => {
 
       // Rate limit — drop bursts that would fan out to the paid AI engine.
       if (!withinSocketRateLimit(authUser.id)) {
+        auditService.record({
+          actorId: authUser.id,
+          action: "security.rate_limit.socket",
+          metadata: { socketId: socket.id },
+        });
         socket.emit("error", { message: "Rate limit exceeded. Please slow down." });
         return;
       }

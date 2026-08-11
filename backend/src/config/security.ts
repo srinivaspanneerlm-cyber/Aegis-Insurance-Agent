@@ -1,7 +1,28 @@
 import rateLimit from "express-rate-limit";
 import type { CorsOptions } from "cors";
+import type { Request, Response, NextFunction } from "express";
 import env from "./env";
 import { RATE_LIMITS } from "./constants";
+import { auditService } from "../services/audit.service";
+
+/**
+ * A blocked request used to just get a 429 with nothing left behind — a
+ * sustained brute-force or scraping burst was invisible to the audit trail
+ * even though it is exactly the kind of event a security review needs to see.
+ * Replicates express-rate-limit's own default handler (status + JSON body)
+ * so behaviour is unchanged; it only adds the audit record alongside it.
+ */
+const auditedRateLimitHandler =
+  (action: string) =>
+  (req: Request, res: Response, _next: NextFunction, options: { statusCode: number; message: unknown }): void => {
+    auditService.record({
+      actorId: req.user?.id ?? null,
+      action,
+      metadata: { ip: req.ip, path: req.originalUrl, method: req.method },
+    });
+    res.status(options.statusCode);
+    if (!res.writableEnded) res.send(options.message);
+  };
 
 // Strict CORS: only browser origins on the validated allowlist may send
 // credentialed requests. A wildcard origin is never combined with
@@ -44,6 +65,7 @@ export const apiLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  handler: auditedRateLimitHandler("security.rate_limit.api"),
 });
 
 export const authLimiter = rateLimit({
@@ -55,6 +77,7 @@ export const authLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  handler: auditedRateLimitHandler("security.rate_limit.auth"),
 });
 
 // Tighter limiter for endpoints that fan out to the paid LLM engine
@@ -68,4 +91,5 @@ export const aiLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  handler: auditedRateLimitHandler("security.rate_limit.ai"),
 });

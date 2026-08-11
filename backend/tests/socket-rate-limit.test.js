@@ -18,6 +18,7 @@ const { test, describe, mock, beforeEach } = require("node:test");
 const { chatRepository } = require("../src/repositories");
 const aiService = require("../src/services/ai.service");
 const { initSockets } = require("../src/sockets");
+const { auditService } = require("../src/services/audit.service");
 
 let seq = 0;
 const uniqueUser = (tag) => ({ id: `user-${tag}-${Date.now()}-${seq++}`, name: "Subject", role: "customer" });
@@ -104,5 +105,19 @@ describe("socket message rate limit", () => {
     const other = connectAs(uniqueUser("quiet-neighbour"));
     await send(other, 1);
     assert.equal(errorEvents(other).length, 0, "a different identity has its own allowance");
+  });
+
+  test("being throttled leaves an audit record, not just a dropped message", async () => {
+    // Task 9.7. A sustained burst against this throttle used to be invisible
+    // to the audit trail — the client got an error event and nothing else.
+    const record = mock.method(auditService, "record", () => {});
+    const user = uniqueUser("audited");
+    const socket = connectAs(user);
+
+    await send(socket, 21);
+
+    const calls = record.mock.calls.filter((c) => c.arguments[0].action === "security.rate_limit.socket");
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].arguments[0].actorId, user.id);
   });
 });
