@@ -985,8 +985,12 @@ export const authService = {
     const email = rawEmail.toLowerCase().trim();
     const user = await userRepository.findByEmail(email);
 
+    // Same reasoning as register(): not awaited into the response path, or an
+    // account that exists takes measurably longer to answer than one that
+    // doesn't — the timing itself becomes the oracle the identical message
+    // above is meant to prevent.
     if (user && !user.emailVerifiedAt) {
-      await sendVerificationMail({ id: user.id, email });
+      void sendVerificationMail({ id: user.id, email });
     }
   },
 
@@ -1051,27 +1055,34 @@ export const authService = {
 
     if (!user) return;
 
-    try {
-      const { token, expiresAt } = await issueToken(user.id, email, "PASSWORD_RESET");
-      await sendAuthMail({
-        to: email,
-        kind: "PASSWORD_RESET",
-        subject: "Reset your Aegis password",
-        actionUrl: identityUrl("/reset-password", { token }),
-        expiresAt,
-      });
-      auditService.record({
-        actorId: user.id,
-        action: "auth.password.reset_requested",
-        metadata: { ip: context?.ipAddress ?? null },
-      });
-    } catch (error) {
-      auditService.record({
-        actorId: user.id,
-        action: "auth.password.reset_send_failed",
-        metadata: { reason: error instanceof Error ? error.message : "unknown" },
-      });
-    }
+    // Not awaited into the response path, for the same reason the docstring
+    // above warns about: issuing a token is a DB write and sending the mail
+    // is a network call (up to 8s when a webhook is configured) — either one
+    // left in the response path makes a known address answer measurably
+    // slower than an unknown one.
+    void (async () => {
+      try {
+        const { token, expiresAt } = await issueToken(user.id, email, "PASSWORD_RESET");
+        await sendAuthMail({
+          to: email,
+          kind: "PASSWORD_RESET",
+          subject: "Reset your Aegis password",
+          actionUrl: identityUrl("/reset-password", { token }),
+          expiresAt,
+        });
+        auditService.record({
+          actorId: user.id,
+          action: "auth.password.reset_requested",
+          metadata: { ip: context?.ipAddress ?? null },
+        });
+      } catch (error) {
+        auditService.record({
+          actorId: user.id,
+          action: "auth.password.reset_send_failed",
+          metadata: { reason: error instanceof Error ? error.message : "unknown" },
+        });
+      }
+    })();
   },
 
   /**

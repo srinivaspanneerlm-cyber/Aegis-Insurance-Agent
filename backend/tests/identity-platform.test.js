@@ -455,9 +455,14 @@ describe("Password reset", () => {
     const email = uniqueEmail("reset-retire");
     const reg = await register(email);
 
+    // Issued fire-and-forget: the request must not wait on token issuance or
+    // a mail provider (Task 9.5 — otherwise a known address answers slower
+    // than an unknown one, and the timing itself reveals the account).
     await requestReset(email);
+    await new Promise((resolve) => setTimeout(resolve, 250));
     const first = await latestToken(reg.body.data.user.id, "PASSWORD_RESET");
     await requestReset(email);
+    await new Promise((resolve) => setTimeout(resolve, 250));
 
     const retired = await prisma.verificationToken.findUnique({ where: { id: first.id } });
     assert.ok(retired.consumedAt, "the earlier link no longer works");
