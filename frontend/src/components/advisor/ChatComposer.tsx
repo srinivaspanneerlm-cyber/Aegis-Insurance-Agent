@@ -88,6 +88,7 @@ export function ChatComposer({
           <textarea
             ref={textareaRef}
             rows={1}
+            aria-label="Message the advisor"
             value={inputVal}
             onChange={e => onInputChange(e.target.value)}
             onKeyDown={onKeyDown}
@@ -101,6 +102,7 @@ export function ChatComposer({
         {/* Send button */}
         <button
           type="submit"
+          aria-label="Send message"
           disabled={!inputVal.trim() || isStreaming}
           className="p-3.5 rounded-2xl flex-shrink-0 flex items-center justify-center transition-all duration-200 cursor-pointer disabled:opacity-30 disabled:scale-100 active:scale-95 touch-manipulation select-none bg-white text-slate-950 hover:bg-slate-100 shadow-[0_0_15px_rgba(255,255,255,0.1)] mb-px"
         >

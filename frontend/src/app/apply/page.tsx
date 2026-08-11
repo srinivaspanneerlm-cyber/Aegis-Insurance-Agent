@@ -21,7 +21,7 @@ function ApplyForm() {
   const flow = useApplyFlow();
 
   return (
-    <div className={`min-h-screen relative flex flex-col justify-between transition-colors duration-300 ${wrapperClass}`}>
+    <div className={`min-h-screen relative flex flex-col justify-between overflow-hidden transition-colors duration-300 ${wrapperClass}`}>
       <Navbar />
       <main id="main-content">
 

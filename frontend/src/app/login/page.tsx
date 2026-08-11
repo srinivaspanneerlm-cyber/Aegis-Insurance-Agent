@@ -94,12 +94,12 @@ export default function ConsumerLoginPage() {
               <span>Human-Centered AI Underwriting</span>
             </span>
 
-            <h2 className="text-4xl sm:text-5xl font-black tracking-tight leading-tight">
+            <h1 className="text-4xl sm:text-5xl font-black tracking-tight leading-tight">
               Insurance designed to <br/>
               <span className="bg-gradient-to-r from-purple-500 via-indigo-400 to-cyan-400 bg-clip-text text-transparent">
                 protect what matters.
               </span>
-            </h2>
+            </h1>
 
             <p className="text-slate-400 text-sm font-semibold max-w-md leading-relaxed">
               Log in to access your direct, commission-free insurance vault. Aegis AI helps you coordinate coverage matrices conversationally, protecting your family without dynamic markups.
