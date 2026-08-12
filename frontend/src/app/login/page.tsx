@@ -29,7 +29,9 @@ export default function ConsumerLoginPage() {
   const google = useGoogleSignIn({
     onCredential: loginWithGoogle,
     onError: setErrorMsg,
-    appearance: { theme: theme === "dark" ? "filled_black" : "outline", width: 320 },
+    // No width here on purpose: the button measures the space it is given, so it
+    // stays flush with the email and password fields at every viewport.
+    appearance: { theme: theme === "dark" ? "filled_black" : "outline" },
   });
 
   // Already signed in? Nobody who has a session should be looking at a sign-in
@@ -125,9 +127,7 @@ export default function ConsumerLoginPage() {
 
               {/* Google login — official Google Identity Services button */}
               {google.status !== "unconfigured" ? (
-                <div className="flex justify-center">
-                  <div ref={google.containerRef} className="min-h-[44px]" />
-                </div>
+                <div ref={google.containerRef} className="w-full min-h-[44px] [&>div]:!w-full" />
               ) : (
                 <p className="text-center text-[11px] text-slate-500 dark:text-slate-400">
                   Google sign-in is not configured. Use your email and password below.

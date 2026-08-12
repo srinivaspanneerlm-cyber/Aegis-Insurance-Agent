@@ -141,6 +141,16 @@ export function useGoogleSignIn({
     });
 
     container.innerHTML = "";
+
+    // Google renders into an element of a fixed pixel width, so a hardcoded
+    // number is only ever right at one viewport: it left the button visibly
+    // narrower than the email and password fields directly beneath it, which
+    // reads as a third-party widget bolted on rather than part of the form.
+    // Measuring the space the caller actually gave us keeps the two edges
+    // aligned at every width. The clamp is Google's own supported range.
+    const measured = Math.round(container.getBoundingClientRect().width);
+    const fitted = measured >= 200 ? { width: Math.min(400, measured) } : {};
+
     gid.renderButton(container, {
       type: "standard",
       theme: "filled_black",
@@ -148,6 +158,8 @@ export function useGoogleSignIn({
       text: "continue_with",
       shape: "pill",
       logo_alignment: "center",
+      ...fitted,
+      // An explicit appearance from the caller still wins over the measurement.
       ...(appearance ?? {}),
     });
     setStatus("ready");
@@ -190,6 +202,27 @@ export function useGoogleSignIn({
       );
     }
   }, []);
+
+  // Google's button is drawn once at a fixed pixel width, so it does not follow
+  // the form when the window changes — rotate a phone or drag a window wider and
+  // it stays the size it was born at, no longer flush with the fields under it.
+  // Redrawing on a real width change keeps them aligned. The threshold avoids
+  // reacting to sub-pixel noise, and re-rendering does not itself alter the
+  // container's width, so this cannot feed itself.
+  useEffect(() => {
+    const container = containerRef.current;
+    if (status !== "ready" || !container || typeof ResizeObserver === "undefined") return;
+
+    let last = container.getBoundingClientRect().width;
+    const observer = new ResizeObserver(() => {
+      const now = container.getBoundingClientRect().width;
+      if (Math.abs(now - last) < 8) return;
+      last = now;
+      mount();
+    });
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, [status, mount]);
 
   return { containerRef, status };
 }
