@@ -70,9 +70,17 @@ export default function TransferDialog({ request, onConfirm, onDecline }: Props)
     onDecline();
   };
 
-  const reasonLabel = request?.reason
-    ? request.reason.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase()) + " Insurance"
-    : "a specialized domain";
+  // The reason arrives as a domain slug ("motor") from some paths and as a
+  // phrase that already ends in the word ("health insurance") from others, so
+  // appending it unconditionally produced "Health Insurance Insurance" on
+  // screen, in the dialog a customer is asked to consent in.
+  const reasonLabel = (() => {
+    if (!request?.reason) return "a specialised area";
+    const spoken = request.reason
+      .replace(/-/g, " ")
+      .replace(/\b\w/g, (c) => c.toUpperCase());
+    return /insurance$/i.test(spoken) ? spoken : `${spoken} Insurance`;
+  })();
 
   return (
     <AnimatePresence>
