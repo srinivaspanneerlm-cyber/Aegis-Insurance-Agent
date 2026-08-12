@@ -243,7 +243,7 @@ export default function PaymentPage() {
               <div className="space-y-2 text-sm text-white/50">
                 <p>Corporate / B2B payment details:</p>
                 <div className="font-mono text-xs text-white/35 space-y-1 bg-white/[0.03] rounded-xl p-4 border border-white/5">
-                  <p>Account Name: Aegis Insurance Pvt Ltd</p>
+                  <p>Account Name: Aegis Insurance Solutions Ltd</p>
                   <p>Account No: 1234567890123456</p>
                   <p>IFSC Code: AEGS0001234</p>
                   <p>Reference: {state.sessionId?.slice(0, 12).toUpperCase() || "AGSPOL123456"}</p>

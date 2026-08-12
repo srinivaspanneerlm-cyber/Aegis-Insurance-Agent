@@ -47,14 +47,27 @@ SHARED_FIELDS: List[str] = [
 ]
 
 DOMAIN_FIELDS: Dict[str, List[str]] = {
+    # Every field an agent's QUESTION_PIPELINE asks for has to be storable here,
+    # or that pipeline can never finish: _check_missing_details treats a field
+    # it cannot write as permanently missing, so the agent re-asks the same
+    # question forever and the recommendation engine is never reached. Motor,
+    # travel and home each had six or seven such fields, which is why only the
+    # health advisor could ever produce a recommendation.
     "health":        ["coverage_type", "pre_existing_conditions", "preferred_hospitals",
                       "maternity_required", "critical_illness_history"],
     "motor":         ["vehicle", "registration_number", "vehicle_year",
-                      "vehicle_type", "ncb_history", "previous_insurer"],
+                      "vehicle_type", "ncb_history", "previous_insurer",
+                      "vehicle_detail", "fuel_type", "registration_year",
+                      "usage_type", "insurance_type", "claim_history"],
     "travel":        ["travel_plans", "destination", "trip_duration",
-                      "travel_frequency", "visa_type"],
+                      "travel_frequency", "visa_type",
+                      "travel_dates", "num_travellers", "purpose",
+                      "traveller_ages", "medical_conditions", "visa_requirement",
+                      "trip_cost"],
     "home-property": ["property", "property_value", "construction_year",
-                      "tenants", "floor_number", "property_type"],
+                      "tenants", "floor_number", "property_type",
+                      "construction_type", "property_age", "built_up_area",
+                      "contents_value", "security_system", "ownership_type"],
     "executive":     ["company_name", "company_size", "industry",
                       "annual_turnover", "employee_count"],
 }
@@ -442,6 +455,7 @@ class EnhancedProfileManager:
         message: str,
         user_name: Optional[str] = None,
         context_question: str = "",
+        pipeline_fields: Optional[List[str]] = None,
     ) -> Dict[str, Any]:
         """
         Extract facts from message → write to BOTH shared and domain profiles.
@@ -449,6 +463,10 @@ class EnhancedProfileManager:
 
         context_question: the last message the agent sent (used for context-aware
         extraction — interprets bare number answers like "35" as age, budget, etc.)
+
+        pipeline_fields: the asking agent's question pipeline, in order. Lets a
+        reply be filed against the step it answers when no extraction rule
+        covers that field — see section 2b.
         """
         domain_customer_id = f"{domain}_{base_customer_id}"
 
@@ -482,6 +500,34 @@ class EnhancedProfileManager:
         # ── 2. Load existing profiles ─────────────────────────────────────────
         shared = self.load_shared_profile(base_customer_id)
         domain_profile = self.load_domain_profile(domain_customer_id)
+
+        # ── 2b. The answer to the question that was actually asked ────────────
+        # Extraction above is a set of per-field heuristics, and it only knows
+        # the fields somebody wrote a rule for. Every agent's question pipeline
+        # asks for more than that — a motor consultation wants fuel type, usage
+        # and claim history; a travel one wants dates, traveller ages and trip
+        # cost — and none of those had a rule, so the answers evaporated and the
+        # pipeline asked the same question forever. Three of the four domains
+        # could never finish a consultation, which meant three of the four
+        # agents could never reach a recommendation at all.
+        #
+        # The pipeline is ordered, and the profile as it stood *before* this
+        # message says which step was outstanding — so that is the field this
+        # message answers. Recorded only when the heuristics did not already
+        # find something better, and only when the message reads like an answer
+        # rather than a question of their own.
+        if pipeline_fields:
+            merged_before = {**shared, **domain_profile}
+            pending = next(
+                (f for f in pipeline_fields if not merged_before.get(f)), None
+            )
+            if pending and not extracted.get(pending):
+                answer = message.strip()
+                asks_back = answer.endswith("?") or answer.lower().startswith(
+                    ("what", "why", "how", "who", "which", "can you", "could you", "tell me")
+                )
+                if answer and not asks_back and len(answer) <= 400:
+                    extracted[pending] = sanitize_profile_value(pending, answer)
 
         # ── 3. Set name from user_name if not already known ───────────────────
         if user_name and not shared.get("name"):

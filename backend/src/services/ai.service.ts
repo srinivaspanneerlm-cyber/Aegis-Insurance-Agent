@@ -314,23 +314,43 @@ function _buildFallbackReply(
     };
 
     const plan = plans[category] || plans.health;
-    const agentMessages: Record<string, string> = {
-      motor: `Alex AI here, ${userName}. I've locked in the **${plan.planName}** for your vehicle. Zero-depreciation means full part replacement value at claim time.`,
-      travel: `Ethan AI here, ${userName}! Your travel is fully secured with the **${plan.planName}**. Includes medevac, trip cancellation, and baggage protection.`,
-      "home-property": `Emma AI here, ${userName}. Your property is protected with the **${plan.planName}** — complete structure, contents, and natural calamity cover.`,
-      health: `Sarah AI here, ${userName}. Based on your health profile, I've curated the **${plan.planName}** for your family with zero co-pay and 12,000+ cashless hospitals.`,
-    };
 
-    const explanation = agentMessages[category] || agentMessages.health;
-    return `[RECOMMENDATION:${JSON.stringify(plan)}]\n\n${explanation}\n\nClick **View Details** for full coverage breakdown or **Select Plan** to proceed.`;
+    // Deliberately no [RECOMMENDATION:...] card here, and no claim-settlement
+    // ratio, score or "I've locked this in".
+    //
+    // This branch runs only when the AI engine could not be reached, so nothing
+    // has been scored against this customer's profile — the plan below is a
+    // popular product for the category, not a recommendation. Emitting the card
+    // rendered it on screen identically to a real engine result, complete with
+    // a confidence score, and the customer had no way to tell that the advisor
+    // was down. Somebody choosing cover during an outage deserves to know they
+    // are looking at a general suggestion.
+    const commonlyChosen: Record<string, string> = {
+      motor: `our vehicle cover, **${plan.planName}**`,
+      travel: `our travel cover, **${plan.planName}**`,
+      "home-property": `our home cover, **${plan.planName}**`,
+      health: `our health cover, **${plan.planName}**`,
+    };
+    const suggestion = commonlyChosen[category] || commonlyChosen.health;
+
+    return (
+      `I can't reach the advisor just now, ${userName}, so I can't look at your ` +
+      `details properly yet — please try again in a moment.\n\n` +
+      `In the meantime, a plan many families start with is ${suggestion}. ` +
+      `That is a general suggestion, not advice for your situation. Once the ` +
+      `advisor is back it will go through your details and show you the plans ` +
+      `that actually fit.`
+    );
   }
 
-  // Ask missing info
+  // Still offline, but nothing has been claimed yet — so this can simply say so
+  // and collect the details the advisor will need when it returns. No figures
+  // are quoted here, which is why these lines are safe to keep as they are.
   const introMessages: Record<string, string> = {
-    motor: `Alex AI here, ${userName}. To calibrate your vehicle protection shield: what's your vehicle make, model, and year? I'll calculate the exact IDV and premium for you.`,
-    travel: `Ethan AI here, ${userName}! To secure your journey: where are you travelling and approximately when? I'll map out the exact coverage you need.`,
-    "home-property": `Emma AI here, ${userName}. To structure your home protection: do you own or rent? Is it an apartment or independent house? This helps me calculate the right coverage.`,
-    health: `Sarah AI here, ${userName}. To design the best health protection: who are we covering (yourself, family), approximate age, and monthly budget?`,
+    motor: `I can't reach the advisor just now, ${userName} — please try again in a moment. Meanwhile, what vehicle are we covering: make, model and year?`,
+    travel: `I can't reach the advisor just now, ${userName} — please try again in a moment. Meanwhile, where are you travelling, and roughly when?`,
+    "home-property": `I can't reach the advisor just now, ${userName} — please try again in a moment. Meanwhile, do you own or rent, and is it a flat or an independent house?`,
+    health: `I can't reach the advisor just now, ${userName} — please try again in a moment. Meanwhile, who are we covering, and roughly what ages?`,
   };
 
   return introMessages[category] || introMessages.health;

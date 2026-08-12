@@ -172,6 +172,14 @@ async def stream_chat(
     yield f"data: {json.dumps(agent_info_payload)}\n\n"
 
     # ── Phase 5: Stream reply in word-batches for smooth rendering ────────────
+    # An empty reply used to stream no tokens at all, which left an empty bubble
+    # on screen — indistinguishable, to the customer, from the advisor ignoring
+    # them. It happened for real on the turn after a recommendation. Whatever
+    # emptied it upstream, nothing silent should reach the screen.
+    if not reply.strip():
+        logger.warning("[StreamService] Orchestrator returned an empty reply — substituting a prompt to repeat")
+        reply = "Could you say that once more? I want to be sure I answer the right thing."
+
     if reply:
         words = reply.split(" ")
         batch_size = 2  # 2 words per frame ≈ natural reading pace

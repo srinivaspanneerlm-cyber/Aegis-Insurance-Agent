@@ -150,10 +150,15 @@ class MemoryOrchestrator:
         domain: str,
         message: str,
         user_name: Optional[str] = None,
+        pipeline_fields: Optional[List[str]] = None,
     ) -> Dict[str, Any]:
         """
         Extract profile data from message and update both shared + domain profiles.
         Returns the complete merged profile for immediate use.
+
+        `pipeline_fields` is the asking agent's question pipeline in order, so a
+        reply can be filed against the step it answers when no extraction rule
+        covers that field.
 
         Fetches the last agent turn from ConversationStore so that bare number
         answers ("35" in reply to "How old are you?") are correctly interpreted.
@@ -174,6 +179,7 @@ class MemoryOrchestrator:
         return self.profile_manager.update_with_message(
             base_customer_id, domain, message, user_name,
             context_question=last_agent_question,
+            pipeline_fields=pipeline_fields,
         )
 
     def load_profile(self, base_customer_id: str, domain: str) -> Dict[str, Any]:
