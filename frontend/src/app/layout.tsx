@@ -11,7 +11,14 @@ export const metadata: Metadata = {
   // Internally this application is the Aegis Customer Portal: the customer-
   // facing half of the platform. Staff tooling lives in the separate Enterprise
   // Admin application, against the same backend.
-  title: "Aegis Customer Portal | AI-Powered Family Protection & Insurance Advisor",
+  // Every screen inherited this one string, so ten open tabs were ten identical
+  // labels and a bookmark said nothing about what had been bookmarked. Pages
+  // supply their own segment through the template; the default still covers the
+  // home page and anything that has not named itself yet.
+  title: {
+    default: "Aegis Customer Portal | AI-Powered Family Protection & Insurance Advisor",
+    template: "%s | Aegis Customer Portal",
+  },
   applicationName: "Aegis Customer Portal",
   description: "Understand insurance before you buy it. Aegis pairs specialist AI advisors with a curated catalogue of health, motor, travel and home policies, and explains each recommendation in plain language.",
   keywords: "insurance, AI advisor, health insurance, term life, vehicle insurance, family protection, premium fintech",
