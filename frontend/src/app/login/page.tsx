@@ -25,6 +25,17 @@ export default function ConsumerLoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
+  // Why they are looking at this form. Somebody bounced here mid-task without a
+  // word assumes the app lost their work or turned them away; naming the reason
+  // is the difference between trying again and giving up. Read once on mount so
+  // it cannot overwrite a real sign-in error afterwards.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const reason = new URLSearchParams(window.location.search).get("reason");
+    if (reason === "expired") setErrorMsg("Your session ended. Please sign in again.");
+    if (reason === "idle") setErrorMsg("You were signed out after a period of inactivity. Please sign in again.");
+  }, []);
+
   // Google Identity Services, via the shared hook the homepage modal uses too.
   const google = useGoogleSignIn({
     onCredential: loginWithGoogle,

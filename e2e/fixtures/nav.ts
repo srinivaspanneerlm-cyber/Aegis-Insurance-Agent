@@ -12,7 +12,18 @@ export async function visit(page: Page, path: string) {
   try {
     await page.goto(path, { waitUntil: "domcontentloaded" });
   } catch (error) {
-    if (!String(error).includes("ERR_ABORTED")) throw error;
+    const message = String(error);
+    // Same tolerance for the guard as for the compiler. A navigation that
+    // starts before the session cookie has settled is answered by the route
+    // guard sending the browser to identity, and Playwright reports the first
+    // navigation as "interrupted by another navigation". The cookie is there by
+    // the time that unwinds, so asking again lands on the page — retrying is
+    // waiting for the sign-in to take effect, not ignoring a real redirect. A
+    // genuinely unauthenticated run still fails, because the second attempt is
+    // redirected too and the assertions that follow never find their console.
+    const raceable =
+      message.includes("ERR_ABORTED") || message.includes("interrupted by another navigation");
+    if (!raceable) throw error;
     await page.goto(path, { waitUntil: "domcontentloaded" });
   }
 }

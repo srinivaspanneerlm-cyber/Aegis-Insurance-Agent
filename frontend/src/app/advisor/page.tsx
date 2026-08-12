@@ -393,6 +393,7 @@ function AdvisorChat() {
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="fixed inset-0 h-screen w-screen overflow-hidden bg-slate-950 flex flex-col z-50 select-none touch-none">
+      <h1 className="sr-only">Talk to an Aegis advisor</h1>
 
       <AdvisorBackdrop glowColor={advisor.glowColor} />
 

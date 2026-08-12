@@ -389,7 +389,7 @@ const DUMMY_HASH = "$2b$12$C6UzMDM.H6dfI/f/IKcEeO.Vp9m9m4Zr1lJj0m2v0mQ9mE8xZ8yQK
 // Fields returned to clients on register (never the password hash). `onboardedAt`
 // is included because the client routes on it: a user with none has not finished
 // onboarding and is sent there instead of the dashboard.
-const PUBLIC_USER_SELECT = {
+export const PUBLIC_USER_SELECT = {
   id: true,
   name: true,
   email: true,

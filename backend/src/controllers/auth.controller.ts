@@ -1,5 +1,5 @@
 import type { Response } from "express";
-import { authService } from "../services/auth.service";
+import { authService, PUBLIC_USER_SELECT } from "../services/auth.service";
 import catchAsync from "../utils/catchAsync";
 import {
   setAuthCookie,
@@ -121,9 +121,21 @@ const logout = catchAsync(async (req, res) => {
 });
 
 const getMe = catchAsync(async (req, res) => {
-  // req.user has already been verified and injected by the protect middleware.
-  const { password: _pw, ...userWithoutPassword } = req.user!;
-  void _pw;
+  // req.user is the whole stored row, and dropping the password hash is not the
+  // same as choosing what to publish: this was also returning failedLoginAttempts,
+  // lockedUntil, mfaMethod, passwordChangedAt and the row version — account
+  // internals the client has no use for, and which register and login already
+  // decline to send. Project it through the same field list those use, so the
+  // four entry points describe a person identically.
+  const user = req.user!;
+  const source = user as unknown as Record<string, unknown>;
+  const userWithoutPassword = {
+    ...Object.fromEntries(Object.keys(PUBLIC_USER_SELECT).map((f) => [f, source[f]])),
+    // Named explicitly because `sessionPayload` derives permissions and the
+    // portal from them, and a spread of string keys cannot promise they exist.
+    role: user.role,
+    realm: user.realm,
+  };
   // Resolved capabilities travel with the user so the client can decide what to
   // *render*. It is never what decides what may happen: the API re-derives this
   // from the stored role on every request it serves.

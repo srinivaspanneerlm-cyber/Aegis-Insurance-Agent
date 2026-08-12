@@ -1,4 +1,4 @@
-import { chatRepository } from "../repositories";
+import { chatRepository, sessionRepository } from "../repositories";
 import { HISTORY } from "../config/constants";
 import aiService = require("./ai.service");
 import AppError from "../utils/appError";
@@ -20,6 +20,18 @@ export const chatService = {
    */
   async createMessage({ message, product_type, session_id, userId, userName, requestId }: CreateMessageInput) {
     const sessionIdToStore = session_id || null;
+
+    // `Chat.sessionId` is a foreign key to Session, and the id here was minted
+    // by the AI engine, which has no row in this table. So the first turn (no
+    // id yet) saved fine and the second — a client echoing back the id it was
+    // just handed, exactly as intended — violated the constraint and 500'd.
+    // Record the session before the chat that references it.
+    if (sessionIdToStore) {
+      await sessionRepository.ensure(sessionIdToStore, {
+        userId,
+        agentDomain: product_type || null,
+      });
+    }
 
     const customerMessage = await chatRepository.create({
       message, sender: "customer", sessionId: sessionIdToStore, userId, agentDomain: product_type || null,

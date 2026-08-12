@@ -25,6 +25,7 @@ export default function ConsumerDashboard() {
       <div className="min-h-screen bg-slate-950 flex flex-col justify-between">
         <Navbar />
         <main id="main-content">
+        <h1 className="sr-only">Your dashboard</h1>
         <div className="flex-grow flex items-center justify-center flex-col gap-4">
           <div className="relative w-16 h-16">
             <div className="absolute inset-0 rounded-full border-4 border-purple-500/20" />

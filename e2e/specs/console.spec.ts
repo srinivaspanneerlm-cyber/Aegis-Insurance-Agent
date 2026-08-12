@@ -64,7 +64,7 @@ test.describe("the console refuses what it should", () => {
   test("AI monitoring is not offered to an administrator who cannot use it", async ({ page }) => {
     // `/ai-systems` needs platform.configure, which no ENTERPRISE role holds.
     // The navigation is permission-gated so nobody is shown a link that 403s.
-    await page.goto("/");
+    await visit(page, "/");
     await expect(page.getByRole("navigation").getByText("AI Agents")).toHaveCount(0);
   });
 });

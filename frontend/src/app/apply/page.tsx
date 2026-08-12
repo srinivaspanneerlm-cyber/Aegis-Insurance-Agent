@@ -24,6 +24,7 @@ function ApplyForm() {
     <div className={`min-h-screen relative flex flex-col justify-between overflow-hidden transition-colors duration-300 ${wrapperClass}`}>
       <Navbar />
       <main id="main-content">
+        <h1 className="sr-only">Apply for cover</h1>
 
       {/* Decorative Glows */}
       {theme === "dark" && (

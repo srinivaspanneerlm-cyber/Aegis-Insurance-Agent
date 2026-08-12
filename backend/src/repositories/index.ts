@@ -8,6 +8,7 @@
 import type {
   User,
   Chat,
+  Session,
   Lead,
   Policy,
   Company,
@@ -391,8 +392,40 @@ class AuditLogRepository extends BaseRepository<AuditLog> {
 }
 
 export { BaseRepository };
+/**
+ * Conversation sessions the AI engine owns.
+ *
+ * The engine mints a session id and the browser echoes it back on the next
+ * turn. `Chat.sessionId` is a foreign key to this table, so a chat could only
+ * carry that id if a row for it existed — and nothing created one. The first
+ * turn stored null and passed; the second, the moment a well-behaved client
+ * used the id it had just been given, violated the constraint and returned 500.
+ */
+class SessionRepository extends BaseRepository<Session> {
+  constructor() {
+    super(prisma, "session");
+  }
+
+  /**
+   * Make sure a chat may reference this session, without disturbing one that is
+   * already there — the engine keeps a session across many turns, and each turn
+   * should only move `lastActive`.
+   */
+  async ensure(
+    sessionId: string,
+    data: { userId?: string | null; agentDomain?: string | null; agentName?: string | null }
+  ): Promise<void> {
+    await this.delegate.upsert({
+      where: { sessionId },
+      create: { sessionId, ...data },
+      update: { lastActive: new Date() },
+    });
+  }
+}
+
 export const userRepository = new UserRepository();
 export const chatRepository = new ChatRepository();
+export const sessionRepository = new SessionRepository();
 export const leadRepository = new LeadRepository();
 export const policyRepository = new PolicyRepository();
 export const companyRepository = new CompanyRepository();

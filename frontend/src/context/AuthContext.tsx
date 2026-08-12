@@ -107,7 +107,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // to it.
     const handleAuthError = () => {
       clearSession();
-      router.replace(LOGIN_ROUTE);
+      // Say why. Being returned to a sign-in form with no explanation reads as
+      // the app having lost their work or rejected them; "your session ended"
+      // is the difference between a customer trying again and giving up.
+      router.replace(`${LOGIN_ROUTE}?reason=expired`);
     };
 
     window.addEventListener("aegis_auth_error", handleAuthError);
@@ -255,8 +258,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const returnTo = pathnameRef.current;
     router.replace(
       returnTo && isProtectedPath(returnTo)
-        ? `${LOGIN_ROUTE}?next=${encodeURIComponent(returnTo)}`
-        : LOGIN_ROUTE
+        ? `${LOGIN_ROUTE}?next=${encodeURIComponent(returnTo)}&reason=idle`
+        : `${LOGIN_ROUTE}?reason=idle`
     );
   }, [router, clearSession]);
 

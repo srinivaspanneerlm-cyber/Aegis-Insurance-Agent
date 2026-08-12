@@ -71,7 +71,20 @@ export class ReauthRequiredError extends Error {
 
 // 2) Response interceptor — renew silently on 401, and only give up if that fails.
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // A proxy, gateway or hotel wifi portal can answer a JSON request with an
+    // HTML page and a 200. axios reports that as success, the caller reads
+    // fields off a string, every one of them is undefined, and the screen shows
+    // nothing at all — the customer presses the button and no message ever
+    // arrives. A body that claims to be JSON and is not is a failure, so say so.
+    const contentType = String(response.headers?.["content-type"] ?? "");
+    if (contentType.includes("json") && typeof response.data === "string") {
+      return Promise.reject(
+        new Error("We couldn't read the reply from Aegis. Please try again.")
+      );
+    }
+    return response;
+  },
   async (error) => {
     const config = error.config ?? {};
     const status = error.response ? error.response.status : null;

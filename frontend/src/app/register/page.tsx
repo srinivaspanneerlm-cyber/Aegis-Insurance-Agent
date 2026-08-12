@@ -86,9 +86,9 @@ export default function RegisterPage() {
                 <Shield className="w-7 h-7 stroke-[2]" />
               </motion.div>
 
-              <h2 className="text-2xl font-black tracking-tight mt-4 text-inherit flex items-center justify-center leading-none">
+              <h1 className="text-2xl font-black tracking-tight mt-4 text-inherit flex items-center justify-center leading-none">
                 Create your account
-              </h2>
+              </h1>
 
               <span className={`inline-flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest py-1 px-3.5 rounded-lg leading-none text-royal-600 bg-royal-50 border border-royal-100 dark:text-cyan-400 dark:bg-cyan-400/10 dark:border dark:border-cyan-400/20`}>
                 <Sparkles className="w-3 h-3 text-cyan-400 animate-pulse" />
