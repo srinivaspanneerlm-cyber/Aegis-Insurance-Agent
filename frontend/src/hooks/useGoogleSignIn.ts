@@ -118,6 +118,18 @@ export function useGoogleSignIn({
 
   const appearanceKey = JSON.stringify(appearance ?? {});
 
+  // Read through a ref, for the same reason the handlers above do. Callers pass
+  // an object literal — `appearance={{ theme: … }}` — which is a new object on
+  // every render, so depending on the object made `mount` a new function every
+  // render too. The effects below list `mount`, so they re-ran every render and
+  // tore the button down and rebuilt it each time: the element under the
+  // pointer kept being replaced, and the cursor flickered between arrow and
+  // hand while it sat still over the button. `appearanceKey` is the string form
+  // and only changes when the appearance genuinely does, which is what the
+  // effect below always meant by it.
+  const appearanceRef = useRef(appearance);
+  appearanceRef.current = appearance;
+
   const mount = useCallback(() => {
     const gid = window.google?.accounts?.id;
     const container = containerRef.current;
@@ -160,10 +172,16 @@ export function useGoogleSignIn({
       logo_alignment: "center",
       ...fitted,
       // An explicit appearance from the caller still wins over the measurement.
-      ...(appearance ?? {}),
+      ...(appearanceRef.current ?? {}),
     });
     setStatus("ready");
-  }, [appearance]);
+    // `appearanceKey` is deliberately listed though the body reads the ref:
+    // it is the string form of the appearance, and it is what should decide
+    // when the button is worth rebuilding — switching the page from dark to
+    // light has to redraw it. The rule cannot see that the ref and the key
+    // describe the same value, only that the key is unreferenced here.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [appearanceKey]);
 
   useEffect(() => {
     if (!enabled || !clientId()) {
