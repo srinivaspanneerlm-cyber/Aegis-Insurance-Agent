@@ -100,7 +100,10 @@ export const DOCUMENT_KINDS: Record<string, DocumentKindSpec> = {
   address_proof: {
     kind: "address_proof",
     label: { en: "Address Proof", ta: "முகவரி சான்று", taEn: "Address proof" },
-    hint: { en: "Electricity bill, rent agreement or passport" },
+    hint: {
+      en: "Electricity or gas bill in your own name",
+      taEn: "Ungal peyaril electricity illa gas bill",
+    },
     icon: "🏠",
     accept: ACCEPT_PAPERWORK,
     maxBytes: 10 * 1024 * 1024,
@@ -113,7 +116,10 @@ export const DOCUMENT_KINDS: Record<string, DocumentKindSpec> = {
   rc_book: {
     kind: "rc_book",
     label: { en: "RC Book", ta: "ஆர்.சி. புத்தகம்", taEn: "RC book" },
-    hint: { en: "Registration certificate of the vehicle", taEn: "Vehicle registration certificate" },
+    hint: {
+      en: "RC in your own name. If it is in someone else's name, we also need their signed permission",
+      taEn: "Ungal peyaril RC. Vera peyaril irundhaa, avanga sign panna permission-um venum",
+    },
     icon: "📄",
     accept: ACCEPT_PAPERWORK,
     maxBytes: 10 * 1024 * 1024,
@@ -129,6 +135,27 @@ export const DOCUMENT_KINDS: Record<string, DocumentKindSpec> = {
     maxBytes: 10 * 1024 * 1024,
     multiple: false,
     aliases: ["driving licence", "driving license", "driver's licence", "dl copy", "ஓட்டுநர் உரிமம்"],
+    stages: PAPERWORK_STAGES,
+  },
+  vehicle_authorisation: {
+    kind: "vehicle_authorisation",
+    label: {
+      en: "Owner's Signed Permission",
+      ta: "உரிமையாளர் கையொப்ப அனுமதி",
+      taEn: "Owner oda signed permission",
+    },
+    hint: {
+      en: "Only if the RC is in someone else's name — a signed letter from them",
+      taEn: "RC vera peyaril irundhaa mattum — avanga sign panna letter",
+    },
+    icon: "✍️",
+    accept: ACCEPT_PAPERWORK,
+    maxBytes: 10 * 1024 * 1024,
+    multiple: false,
+    aliases: [
+      "authorisation", "authorization", "owner permission", "noc",
+      "no objection certificate", "அனுமதி கடிதம்",
+    ],
     stages: PAPERWORK_STAGES,
   },
   vehicle_photos: {

@@ -57,7 +57,11 @@ export const DOCUMENT_CATALOGUE: Record<string, DocumentSpec> = {
   address_proof: {
     key: "address_proof",
     label: "Address proof",
-    reason: "To confirm where you live, which affects what cover is available.",
+    reason:
+      "To confirm where you live, which affects what cover is available. " +
+      "An electricity bill or a gas bill works, and it must be in your own " +
+      "name — a bill in a landlord's or relative's name proves their address, " +
+      "not yours.",
     category: "identity",
     accepts: DOCUMENT,
   },
@@ -66,7 +70,20 @@ export const DOCUMENT_CATALOGUE: Record<string, DocumentSpec> = {
   rc_book: {
     key: "rc_book",
     label: "Vehicle registration certificate",
-    reason: "To confirm the vehicle is registered to you.",
+    reason:
+      "To confirm the vehicle is registered to you. The RC must be in your own " +
+      "name — if the vehicle is registered to somebody else, we also need their " +
+      "signed authorisation for you to insure it.",
+    category: "vehicle",
+    accepts: DOCUMENT,
+  },
+  vehicle_authorisation: {
+    key: "vehicle_authorisation",
+    label: "Signed authorisation from the registered owner",
+    reason:
+      "The vehicle is registered to somebody else, so we need their signed " +
+      "permission for you to insure it. Without it a claim could be paid to the " +
+      "wrong person, and the policy would be worth nothing to you.",
     category: "vehicle",
     accepts: DOCUMENT,
   },
@@ -190,6 +207,13 @@ export interface RequirementContext {
     readonly hospitalised?: boolean;
     readonly international?: boolean;
     readonly tenant?: boolean;
+    /**
+     * The vehicle is registered to somebody other than the applicant — a
+     * parent, a spouse, a company. Common enough that refusing outright would
+     * turn away real customers; what it needs is the owner's written consent,
+     * not a rejection.
+     */
+    readonly vehicleNotInApplicantName?: boolean;
   };
 }
 
@@ -229,6 +253,12 @@ export function resolveRequirements(context: RequirementContext): ResolvedRequir
     case "motor":
       add("rc_book", true);
       add("driving_licence", true);
+      if (facts.vehicleNotInApplicantName) {
+        // Asked for alongside the RC rather than instead of it: the RC still
+        // establishes what the vehicle is, and the authorisation establishes
+        // that this applicant may insure it.
+        add("vehicle_authorisation", true);
+      }
       if (context.purpose === "CLAIM") {
         add("vehicle_photos", true, "To record the damage being claimed for.");
       } else {

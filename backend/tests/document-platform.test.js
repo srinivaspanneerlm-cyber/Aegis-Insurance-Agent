@@ -110,6 +110,43 @@ describe("Requirements", () => {
     assert.equal(photosOnClaim.required, true);
   });
 
+  test("a vehicle registered to somebody else needs their signed permission", () => {
+    // Registering a car in a parent's or a company's name is ordinary, so
+    // refusing outright would turn away real customers. What it needs is the
+    // owner's written consent — otherwise a claim could be paid to them rather
+    // than to the person who bought the policy.
+    const own = resolveRequirements({ domain: "motor", purpose: "APPLICATION" });
+    const someoneElses = resolveRequirements({
+      domain: "motor", purpose: "APPLICATION",
+      facts: { vehicleNotInApplicantName: true },
+    });
+
+    assert.equal(own.find((r) => r.spec.key === "vehicle_authorisation"), undefined);
+
+    const authorisation = someoneElses.find((r) => r.spec.key === "vehicle_authorisation");
+    assert.ok(authorisation, "an RC in another name must ask for the owner's permission");
+    assert.equal(authorisation.required, true);
+
+    // Asked for alongside the RC, not instead of it: the RC still establishes
+    // what the vehicle is.
+    assert.ok(someoneElses.find((r) => r.spec.key === "rc_book"));
+  });
+
+  test("the documents that count as address proof are named, and so is the name rule", () => {
+    // A customer told only "address proof" guesses, sends the wrong thing and
+    // waits. Both bills are acceptable; whose name is on it is not optional.
+    const reason = DOCUMENT_CATALOGUE.address_proof.reason.toLowerCase();
+    assert.ok(reason.includes("electricity"), "electricity bill should be named");
+    assert.ok(reason.includes("gas"), "gas bill should be named");
+    assert.ok(reason.includes("own name"), "the bill must be in the customer's own name");
+  });
+
+  test("the RC requirement states the name rule", () => {
+    const reason = DOCUMENT_CATALOGUE.rc_book.reason.toLowerCase();
+    assert.ok(reason.includes("own name"));
+    assert.ok(reason.includes("authorisation"), "and what to do when it is not");
+  });
+
   test("a fact changes what is asked for", () => {
     const personal = resolveRequirements({ domain: "motor", purpose: "APPLICATION" });
     const commercial = resolveRequirements({

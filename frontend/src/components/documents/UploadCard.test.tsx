@@ -25,7 +25,9 @@ describe("UploadCard", () => {
     render(<UploadCard requirement={rcBook} onPick={vi.fn()} />);
 
     expect(screen.getByText("RC Book")).toBeInTheDocument();
-    expect(screen.getByText(/Registration certificate/)).toBeInTheDocument();
+    // The hint now carries the rule that actually gets applications rejected:
+    // an RC in somebody else's name needs that owner's signed permission.
+    expect(screen.getByText(/in your own name/i)).toBeInTheDocument();
     expect(screen.getByText(/up to 10 MB/)).toBeInTheDocument();
   });
 
