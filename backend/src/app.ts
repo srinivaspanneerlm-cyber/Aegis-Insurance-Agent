@@ -93,6 +93,20 @@ if (env.LOG_FORMAT === "json") {
 }
 
 // Request parsers
+//
+// The advisor is the one endpoint that legitimately posts more than a form's
+// worth of data: every turn carries the recent conversation so the agent can
+// answer in context, and a consultation that has reached a recommendation
+// carries several kilobytes of it. Against the 10kb limit those requests were
+// rejected with a 413 and the advisor stopped answering mid-conversation —
+// right after a recommendation, which is exactly when somebody has follow-up
+// questions. Parsed first with a larger ceiling, so the general limit below
+// sees the body already read and leaves it alone; every other route keeps 10kb,
+// which is what makes an oversized-payload flood expensive for an attacker.
+const CHAT_BODY_LIMIT = "256kb";
+app.use("/api/v1/chat", express.json({ limit: CHAT_BODY_LIMIT }));
+app.use("/api/chat", express.json({ limit: CHAT_BODY_LIMIT }));
+
 app.use(express.json({ limit: "10kb" }));
 app.use(express.urlencoded({ extended: true, limit: "10kb" }));
 

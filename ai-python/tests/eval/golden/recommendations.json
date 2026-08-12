@@ -85,22 +85,22 @@
   },
   "motor-twowheeler-budget": {
     "segment": "Budget",
-    "recommended": "Third Party Only",
+    "recommended": "Road Guard Basic",
     "ranking": [
       {
         "rank": 1,
-        "plan_name": "Third Party Only",
-        "overall": 81
-      },
-      {
-        "rank": 2,
         "plan_name": "Road Guard Basic",
         "overall": 76
       },
       {
-        "rank": 3,
+        "rank": 2,
         "plan_name": "Drive Safe Starter",
         "overall": 73
+      },
+      {
+        "rank": 3,
+        "plan_name": "Third Party Only",
+        "overall": 60
       }
     ]
   },

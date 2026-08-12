@@ -191,3 +191,43 @@ def test_get_top3_works_on_an_empty_profile():
     result = get_top3_recommendations({})
     assert result["total_plans"] == 3
     assert result["recommended"]
+
+
+class TestStatedCoverPreference:
+    """
+    Asking for comprehensive has to count against a plan that is not.
+
+    The preference only ever worked one way: "third party" lifted those plans to
+    a perfect coverage score, while "comprehensive" did nothing to lower them.
+    Third party is also the cheapest thing on the shelf and the budget score
+    rewards coming in under budget — so a customer who asked for comprehensive
+    cover was shown Third Party Only ranked first, described as comprehensive
+    protection. It pays for damage to other people and nothing for your own car.
+    """
+
+    BASE = {
+        "vehicle": "Hyundai Creta",
+        "vehicle_type": "private car",
+        "registration_year": "2021",
+        "fuel_type": "petrol",
+        "budget": 2000,
+        "location": "Chennai",
+    }
+
+    def _top(self, profile):
+        result = get_top3_recommendations(profile, analyse_risk(profile))
+        return result["plans"][0]["plan_name"].lower()
+
+    def test_asking_for_comprehensive_does_not_return_third_party_first(self):
+        top = self._top({**self.BASE, "insurance_type": "comprehensive"})
+        assert not top.startswith("third"), f"asked for comprehensive, was offered {top!r}"
+
+    def test_asking_for_third_party_still_returns_third_party_first(self):
+        top = self._top({**self.BASE, "insurance_type": "third party only"})
+        assert top.startswith("third"), f"asked for third party, was offered {top!r}"
+
+    def test_saying_nothing_leaves_the_ranking_alone(self):
+        # An unanswered question is not a request for comprehensive; the cheaper
+        # plans must not be penalised on a preference nobody expressed.
+        no_pref = self._top(self.BASE)
+        assert no_pref, "a profile with no stated cover type should still rank"

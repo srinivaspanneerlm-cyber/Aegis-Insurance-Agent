@@ -157,10 +157,21 @@ function AdvisorChat() {
     // Consume the one-shot forced transfer queued by the confirm/return actions
     const { forceTransferTo } = transfer.consumePending();
 
-    // Build history from current conversation (exclude just-added user msg)
+    // Build history from current conversation (exclude just-added user msg).
+    //
+    // Plan cards are stripped out. A recommendation turn carries several
+    // kilobytes of embedded JSON — scores, benefit lists, premium breakdowns —
+    // and ten of those exceed the 10kb body limit, so the request was rejected
+    // with a 413 and the advisor simply stopped answering. It surfaced right
+    // after a recommendation, which is exactly when somebody has more questions.
+    // The model does not need the payload it emitted, only the fact that plans
+    // were shown, so a marker goes in its place.
     const history: ChatHistoryItem[] = conversationRef.current
       .slice(-10)
-      .map(m => ({ role: m.sender === "user" ? "user" : "assistant", content: m.text }));
+      .map(m => ({
+        role: m.sender === "user" ? "user" : "assistant",
+        content: m.text.replace(/\[RECOMMENDATION:[\s\S]*?\]/g, "[plans were shown here]"),
+      }));
 
     const addErrorMsg = () => {
       setMessages(prev => [

@@ -162,7 +162,11 @@ def _score_plan(plan: Dict[str, Any], profile: Dict[str, Any], risk: Dict[str, A
     fuel_type     = str(profile.get("fuel_type", "petrol")).lower()
     is_ev         = "electric" in fuel_type
     is_commercial = "commercial" in str(profile.get("usage_type", "")).lower()
-    wants_tp_only = "third" in str(profile.get("insurance_type", "")).lower()
+    stated_cover  = str(profile.get("insurance_type", "")).lower()
+    wants_tp_only = "third" in stated_cover
+    # Only when they actually said it. An unanswered question is not a request
+    # for comprehensive, and must not quietly penalise the cheaper plans.
+    wants_comprehensive = "comprehensive" in stated_cover or "full" in stated_cover
     overall_risk  = risk.get("overall_risk_score", 50)
 
     # ── Budget Match ────────────────────────────────────────────────────────
@@ -209,8 +213,20 @@ def _score_plan(plan: Dict[str, Any], profile: Dict[str, Any], risk: Dict[str, A
         coverage_score += 5
     if is_commercial and plan.get("policy_type", "").lower().count("commercial") > 0:
         coverage_score += 5
-    if wants_tp_only and plan.get("policy_type", "").lower().startswith("third"):
+    plan_is_tp_only = plan.get("policy_type", "").lower().startswith("third")
+    if wants_tp_only and plan_is_tp_only:
         coverage_score = 98  # perfect match
+    elif wants_comprehensive and plan_is_tp_only:
+        # The preference only ever worked in one direction: asking for third
+        # party lifted those plans to a perfect score, but asking for
+        # comprehensive did nothing to lower them. A third-party policy is also
+        # the cheapest thing on the shelf, and the budget score rewards coming
+        # in under budget — so a customer who said "comprehensive cover please"
+        # was shown Third Party Only ranked first, described as comprehensive
+        # protection. It is not: it pays for damage to other people and nothing
+        # for your own vehicle. A plan that cannot do the thing that was asked
+        # for should not win on price.
+        coverage_score = min(coverage_score, 25)
 
     coverage_score = min(100, coverage_score)
 
@@ -273,7 +289,17 @@ def _build_plan_quality(
     if plan.get("rsa"):
         reasons.append("24×7 roadside assistance included")
     if not reasons:
-        reasons.append("solid comprehensive cover for your vehicle type")
+        # This branch is reached when a plan has none of the extras above —
+        # which is precisely what a bare third-party policy is. Calling that
+        # "comprehensive cover" told the customer the opposite of what they
+        # were buying.
+        if plan.get("policy_type", "").lower().startswith("third"):
+            reasons.append(
+                "covers damage you cause to other people, as the law requires — "
+                "not damage to your own vehicle"
+            )
+        else:
+            reasons.append("solid comprehensive cover for your vehicle type")
     why_this = f"{prefix}: {', '.join(reasons[:3])}."
 
     # Why NOT the others
