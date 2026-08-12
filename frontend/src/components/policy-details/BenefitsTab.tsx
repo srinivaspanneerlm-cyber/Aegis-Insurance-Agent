@@ -39,7 +39,7 @@ export function BenefitsTab({
 
       {/* Benefits Section */}
       <div className="space-y-3">
-        <h3 className="text-xs font-black uppercase tracking-wider text-slate-500">Included Underwriter Benefits</h3>
+        <h3 className="text-xs font-black uppercase tracking-wider text-slate-500">What&apos;s included</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {plan.benefits.map((b, i) => (
             <div key={i} className="flex items-start gap-2.5 p-3 rounded-2xl bg-slate-900/60 border border-white/5 text-xs text-slate-200">
@@ -53,7 +53,7 @@ export function BenefitsTab({
       {/* Category Specific Metrics in Details Tab */}
       {plan.category && plan.category !== "health" && (
         <div className="p-5 rounded-3xl bg-slate-950/60 border border-white/5 space-y-4 text-left">
-          <h3 className="text-xs font-black uppercase tracking-wider text-cyan-400">Domain-Specific Parameters</h3>
+          <h3 className="text-xs font-black uppercase tracking-wider text-cyan-400">Details for this cover</h3>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-xs font-semibold text-slate-350">
             {plan.category === "motor" && (
               <>

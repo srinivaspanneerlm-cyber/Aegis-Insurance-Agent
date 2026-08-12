@@ -134,7 +134,7 @@ export default function Hero({ onScrollToChat, onScrollToForm }: HeroProps) {
             </div>
             <div>
               <h5 className="font-bold text-navy-900 text-xs sm:text-[13px] leading-snug">Bank-Grade Security</h5>
-              <p className="text-[10px] text-slate-500 font-semibold mt-0.5">100% Encrypted Vault</p>
+              <p className="text-[10px] text-slate-500 font-semibold mt-0.5">Your details stay private</p>
             </div>
           </motion.div>
 

@@ -71,7 +71,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
       await login(consumerEmail, consumerPassword);
       onClose();
     } catch (err) {
-      setConsumerError(err instanceof Error ? err.message : "Invalid credentials. Verify your vault keys.");
+      setConsumerError(err instanceof Error ? err.message : "That email or password doesn't match. Please try again.");
     }
   };
 

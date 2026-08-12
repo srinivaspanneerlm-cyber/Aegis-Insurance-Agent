@@ -20,7 +20,7 @@ const labels = (rows: { label: string }[]) => rows.map((r) => r.label);
 describe("detailRows", () => {
   it("healthRows keeps only rows with a value", () => {
     const rows = healthRows(basePlan({ room_rent: "No cap", icu: undefined, ncb: "50%" }));
-    expect(labels(rows)).toEqual(["Room Rent", "NCB"]);
+    expect(labels(rows)).toEqual(["Room rent limit", "No-claim bonus"]);
   });
 
   it("motorRows drops negative values but keeps a real value", () => {
@@ -30,16 +30,16 @@ describe("detailRows", () => {
       zero_dep: false,          // -> "No", dropped (not in always-list)
       consumables: false,       // -> "Not included", dropped
     }));
-    expect(labels(rows)).toContain("IDV");
-    expect(labels(rows)).toContain("Engine Protect");
-    expect(labels(rows)).not.toContain("Zero Dep");
-    expect(labels(rows)).not.toContain("Consumables");
+    expect(labels(rows)).toContain("Vehicle's insured value");
+    expect(labels(rows)).toContain("Engine damage cover");
+    expect(labels(rows)).not.toContain("Full parts cover");
+    expect(labels(rows)).not.toContain("Oils and small parts");
   });
 
   it("motorRows drops an always-listed label when its value is missing", () => {
     // "Policy Type" is in the keep-list but has no value -> final filter removes it.
     const rows = motorRows(basePlan({ policy_type: undefined }));
-    expect(labels(rows)).not.toContain("Policy Type");
+    expect(labels(rows)).not.toContain("Type of cover");
   });
 
   it("propertyRows drops 'Not included' rows", () => {

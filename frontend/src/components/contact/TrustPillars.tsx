@@ -9,10 +9,10 @@ const PILLARS = [
   { title: "Executive AI Assistance", desc: "Speak directly with the primary operations brain monitoring network metrics.", icon: <Users className="w-5 h-5 text-cyan-400" /> },
   { title: "24/7 Intelligent Support", desc: "Fallback controllers respond continuously under 45ms even in offline periods.", icon: <Clock className="w-5 h-5 text-purple-400" /> },
   { title: "AI-Powered Guidance", desc: "No complex ticketing codes. Conversational matching handles queries naturally.", icon: <Cpu className="w-5 h-5 text-emerald-400" /> },
-  { title: "Secure Consultation", desc: "Communications are compiled directly in authenticated vault directories.", icon: <Shield className="w-5 h-5 text-rose-400" /> },
+  { title: "Private conversation", desc: "Communications are compiled directly in authenticated vault directories.", icon: <Shield className="w-5 h-5 text-rose-400" /> },
 ];
 
-/** "AI Communication Protocols" trust-seal grid. */
+/** "How the advisor talks to you" trust-seal grid. */
 export function TrustPillars() {
   const glass = glassCardClass;
 
@@ -24,7 +24,7 @@ export function TrustPillars() {
             <ShieldCheck className="w-3.5 h-3.5" />
             <span>Executive Trust Seals</span>
           </span>
-          <h2 className="text-3xl font-black tracking-tight text-white leading-none">AI Communication Protocols</h2>
+          <h2 className="text-3xl font-black tracking-tight text-white leading-none">How the advisor talks to you</h2>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 text-left">

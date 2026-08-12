@@ -26,37 +26,37 @@ export const ComparisonView = memo(function ComparisonView({
   const healthRows: { label: string; key: keyof MultiPlan; highlight?: "high" | "low" }[] = [
     { label: "Coverage",          key: "coverage",          highlight: "high" },
     { label: "Premium",           key: "premium" },
-    { label: "Cashless Hospitals",key: "cashless_hospitals", highlight: "high" },
-    { label: "Room Rent",         key: "room_rent" },
+    { label: "Hospitals with no upfront payment",key: "cashless_hospitals", highlight: "high" },
+    { label: "Room rent limit",         key: "room_rent" },
     { label: "ICU",               key: "icu" },
-    { label: "Day Care",          key: "day_care" },
-    { label: "PED Waiting",       key: "ped_waiting" },
-    { label: "NCB",               key: "ncb" },
+    { label: "Same-day treatment",          key: "day_care" },
+    { label: "Wait for existing illness",       key: "ped_waiting" },
+    { label: "No-claim bonus",               key: "ncb" },
     { label: "Maternity",         key: "maternity" },
     { label: "Critical Illness",  key: "critical_illness" },
     { label: "Ambulance",         key: "ambulance" },
-    { label: "Restoration",       key: "restoration" },
-    { label: "OPD",               key: "opd" },
-    { label: "Claim Ratio",       key: "claim_ratio",       highlight: "high" },
-    { label: "Co-payment",        key: "co_payment" },
-    { label: "Eligibility",       key: "eligibility" },
+    { label: "Cover refilled after a claim",       key: "restoration" },
+    { label: "Doctor visits",               key: "opd" },
+    { label: "Claims actually paid",       key: "claim_ratio",       highlight: "high" },
+    { label: "Your share of each bill",        key: "co_payment" },
+    { label: "Who can join",       key: "eligibility" },
   ];
 
   const motorRows: { label: string; key: keyof MultiPlan; highlight?: "high" | "low" }[] = [
-    { label: "Policy Type",       key: "policy_type" },
+    { label: "Type of cover",       key: "policy_type" },
     { label: "Coverage",          key: "coverage" },
     { label: "Premium",           key: "premium" },
-    { label: "IDV",               key: "idv" },
-    { label: "Zero Dep",          key: "zero_dep_claims" },
-    { label: "Engine Protect",    key: "engine_protect_detail" },
-    { label: "RSA",               key: "rsa_services" },
-    { label: "Consumables",       key: "consumables" },
+    { label: "Vehicle's insured value",               key: "idv" },
+    { label: "Full parts cover",          key: "zero_dep_claims" },
+    { label: "Engine damage cover",    key: "engine_protect_detail" },
+    { label: "Roadside help",               key: "rsa_services" },
+    { label: "Oils and small parts",       key: "consumables" },
     { label: "Battery Cover",     key: "battery_cover_detail" },
-    { label: "PA Cover",          key: "pa_owner_driver" },
-    { label: "Cashless Garages",  key: "cashless_garages",  highlight: "high" },
-    { label: "NCB",               key: "ncb" },
+    { label: "Personal accident cover",          key: "pa_owner_driver" },
+    { label: "Garages with no upfront payment",  key: "cashless_garages",  highlight: "high" },
+    { label: "No-claim bonus",               key: "ncb" },
     { label: "Claim Process",     key: "claim_process" },
-    { label: "Claim Ratio",       key: "claim_ratio",       highlight: "high" },
+    { label: "Claims actually paid",       key: "claim_ratio",       highlight: "high" },
   ];
 
   const propertyRows: { label: string; key: keyof MultiPlan; highlight?: "high" | "low" }[] = [
@@ -76,7 +76,7 @@ export const ComparisonView = memo(function ComparisonView({
     { label: "Jewelry / Valuables",  key: "jewelry_detail" },
     { label: "All-Risk Contents",    key: "all_risk_contents" },
     { label: "Claim Process",        key: "claim_process" },
-    { label: "Claim Ratio",          key: "claim_ratio",             highlight: "high" },
+    { label: "Claims actually paid",          key: "claim_ratio",             highlight: "high" },
   ];
 
   const travelRows: { label: string; key: keyof MultiPlan; highlight?: "high" | "low" }[] = [
@@ -96,7 +96,7 @@ export const ComparisonView = memo(function ComparisonView({
     { label: "Schengen Compliant",  key: "schengen_compliant" },
     { label: "Annual Multi-Trip",   key: "annual_multi_trip" },
     { label: "Concierge",           key: "concierge" },
-    { label: "Claim Ratio",         key: "claim_ratio",              highlight: "high" },
+    { label: "Claims actually paid",         key: "claim_ratio",              highlight: "high" },
     { label: "Claim Process",       key: "claim_process" },
   ];
 

@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 
 /** Trust-deck badges shown beneath the hero headline. */
 const TRUST_BADGES = [
-  { title: "AI-Powered Consultation", icon: <Sparkles className="text-cyan-400" /> },
+  { title: "Talk to an advisor", icon: <Sparkles className="text-cyan-400" /> },
   { title: "100% Secure & Trusted", icon: <ShieldCheck className="text-emerald-400" /> },
   { title: "Personalized for You", icon: <User className="text-royal-400" /> },
   { title: "24/7 AI Support", icon: <Activity className="text-rose-400" /> },

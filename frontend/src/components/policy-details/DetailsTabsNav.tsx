@@ -9,7 +9,7 @@ interface DetailsTabsNavProps {
 }
 
 const TABS: { id: DetailTab; label: string; icon: React.ReactNode }[] = [
-  { id: "benefits", label: "Benefits & Premium Calculator", icon: <Calculator className="w-4.5 h-4.5" /> },
+  { id: "benefits", label: "What you get and what it costs", icon: <Calculator className="w-4.5 h-4.5" /> },
   { id: "network", label: "Cashless Network Finder", icon: <Search className="w-4.5 h-4.5" /> },
   { id: "exclusions", label: "Exclusions & CRO Sign-off", icon: <ShieldAlert className="w-4.5 h-4.5" /> },
   { id: "compare", label: "Interactive Compare View", icon: <Scale className="w-4.5 h-4.5" /> },

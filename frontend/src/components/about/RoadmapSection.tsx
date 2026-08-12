@@ -24,10 +24,10 @@ interface RoadmapMilestone {
 
 const MILESTONES: RoadmapMilestone[] = [
   {
-    listTitle: "Voice AI Consultation",
+    listTitle: "Talk by voice",
     listDesc: "Talk to an AI advisor by voice, in your own language.",
     phase: "Phase 1",
-    detailTitle: "Voice AI Consultation",
+    detailTitle: "Talk by voice",
     detailDesc: "Speak to an AI advisor in real time instead of typing — helpful for first-time buyers, seniors, and anyone who finds forms hard. Your conversation stays private and encrypted.",
   },
   {
@@ -60,7 +60,7 @@ const MILESTONES: RoadmapMilestone[] = [
   },
   {
     listTitle: "End-to-End Processing",
-    listDesc: "Claims, lockups, payouts, and billing cleared inside vault.",
+    listDesc: "Claims, payouts and billing, all in one place.",
     phase: "Phase 6",
     detailTitle: "End-to-End AI Insurance Processing",
     detailDesc: "Enabling the entire claim loop—from consultation intake to qualify lead conversion, cashless hospital bed settlement, and safe premium payment locks—all within the secure vault.",
@@ -145,7 +145,7 @@ export function RoadmapSection() {
                   <div className="pt-6 border-t border-white/5 flex items-center justify-between text-[10px] text-slate-500 font-bold uppercase tracking-wider">
                     <span className="flex items-center gap-1">
                       <Flame className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
-                      <span>Calibrating Pipeline Nodes</span>
+                      <span>Getting your details</span>
                     </span>
                     <span className="text-cyan-400">IN DEVELOPMENT</span>
                   </div>

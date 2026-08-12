@@ -69,7 +69,7 @@ export default function ConsumerHistoryPage() {
                 <Clock className="w-3.5 h-3.5" />
                 <span>Underwriting Dialogues</span>
               </span>
-              <h2 className="text-3xl font-black text-white">Consultation Log history</h2>
+              <h2 className="text-3xl font-black text-white">Your past chats</h2>
               <p className="text-xs text-slate-400 font-semibold max-w-lg">
                 Inspect archived conversations logged during personalized risk evaluation matching.
               </p>

@@ -48,7 +48,7 @@ export default function ConsumerRecommendationsPage() {
                 <Sparkles className="w-3.5 h-3.5" />
                 <span>Personalized Audit Vault</span>
               </span>
-              <h2 className="text-3xl font-black text-white">Dynamic AI Coverage Vault</h2>
+              <h2 className="text-3xl font-black text-white">Cover matched to you</h2>
               <p className="text-xs text-slate-400 font-semibold max-w-lg">
                 These dynamic policy suggestions are coordinated automatically based on your conversation audits. Talk with Aegis to lock in premium limits.
               </p>

@@ -141,7 +141,7 @@ export function VaultChatRoom({
                     type="text"
                     value={inputVal}
                     onChange={(e) => setInputVal(e.target.value)}
-                    placeholder="Ask Sri AI about vault clearance, platform workflows..."
+                    placeholder="Ask about your policy, claims or payments…"
                     className={`flex-grow py-3 px-4 rounded-xl border outline-none text-xs font-semibold transition-all ${inputClass}`}
                   />
                   <button

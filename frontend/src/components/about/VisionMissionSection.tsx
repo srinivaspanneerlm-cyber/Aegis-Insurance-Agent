@@ -50,7 +50,7 @@ export function VisionMissionSection() {
           </div>
           <div className="pt-6 flex items-center gap-2 text-[10px] font-black uppercase tracking-wider text-cyan-400">
             <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
-            <span>Direct Encrypted Vaults</span>
+            <span>Your details stay private</span>
           </div>
         </motion.div>
 

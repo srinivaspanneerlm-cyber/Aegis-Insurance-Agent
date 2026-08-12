@@ -55,7 +55,7 @@ export default function ConsumerLoginPage() {
       await login(email, password);
       // login handles redirect
     } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : "Invalid credentials. Please verify your passcode vault.");
+      setErrorMsg(err instanceof Error ? err.message : "That email or password doesn't match. Please try again.");
     }
   };
 
@@ -93,7 +93,7 @@ export default function ConsumerLoginPage() {
           <div className="lg:col-span-6 text-left space-y-6">
             <span className="inline-flex items-center gap-1.5 text-purple-400 bg-purple-950/30 border border-purple-800/40 py-1.5 px-4 rounded-full text-xs font-bold uppercase tracking-widest leading-none">
               <Heart className="w-3.5 h-3.5" />
-              <span>Human-Centered AI Underwriting</span>
+              <span>Insurance explained in plain language</span>
             </span>
 
             <h1 className="text-4xl sm:text-5xl font-black tracking-tight leading-tight">
@@ -104,7 +104,7 @@ export default function ConsumerLoginPage() {
             </h1>
 
             <p className="text-slate-400 text-sm font-semibold max-w-md leading-relaxed">
-              Log in to access your direct, commission-free insurance vault. Aegis AI helps you coordinate coverage matrices conversationally, protecting your family without dynamic markups.
+              Sign in to see your plans. Aegis AI answers your questions in ordinary words, helps you choose cover that fits your family, and never adds a commission to the price.
             </p>
 
           </div>
@@ -119,9 +119,9 @@ export default function ConsumerLoginPage() {
               <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-purple-650 via-indigo-500 to-cyan-500" />
 
               <div className="text-center mb-8">
-                <h3 className="text-xl font-black text-white">Consumer Login</h3>
+                <h3 className="text-xl font-black text-white">Sign in</h3>
                 <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mt-1">
-                  Access Your Consultation Vault
+                  Sign in to see your plans
                 </p>
               </div>
 
@@ -142,7 +142,7 @@ export default function ConsumerLoginPage() {
               <div className="flex items-center my-6">
                 <div className={`flex-grow h-[1px] bg-slate-200 dark:bg-white/10`} />
                 <span className="px-3.5 text-[8.5px] text-slate-500 font-black uppercase tracking-widest">
-                  Secure Credentials
+                  or use your email
                 </span>
                 <div className={`flex-grow h-[1px] bg-slate-200 dark:bg-white/10`} />
               </div>
@@ -162,7 +162,7 @@ export default function ConsumerLoginPage() {
                 {/* Email Address */}
                 <div className="space-y-1.5">
                   <label htmlFor="login-email" className="text-[9px] font-black uppercase tracking-widest text-slate-500 block">
-                    Registered Email Address:
+                    Email address
                   </label>
                   <div className="relative">
                     <input
@@ -181,7 +181,7 @@ export default function ConsumerLoginPage() {
                 {/* Password */}
                 <div className="space-y-1.5">
                   <label htmlFor="login-password" className="text-[9px] font-black uppercase tracking-widest text-slate-500 block">
-                    Vault Passcode:
+                    Password
                   </label>
                   <div className="relative">
                     <input
@@ -215,11 +215,11 @@ export default function ConsumerLoginPage() {
                   {loading ? (
                     <>
                       <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      <span>Opening Vault Room...</span>
+                      <span>Signing you in…</span>
                     </>
                   ) : (
                     <>
-                      <span>Unlock Client Vault</span>
+                      <span>Sign in</span>
                       <ArrowRight className="w-4.5 h-4.5" />
                     </>
                   )}

@@ -71,7 +71,7 @@ export default function PolicyPage() {
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {[
             { label: "Coverage", value: plan.coverage, icon: ShieldCheck },
-            { label: "Claim Ratio", value: plan.claimSettlementRatio || NOT_DISCLOSED, icon: TrendingUp },
+            { label: "Claims actually paid", value: plan.claimSettlementRatio || NOT_DISCLOSED, icon: TrendingUp },
             { label: "Risk Level", value: plan.riskLevel || NOT_DISCLOSED, icon: Star },
           ].map(({ label, value, icon: Icon }) => (
             <div key={label} className="bg-white/5 rounded-xl p-3 text-center border border-white/5">

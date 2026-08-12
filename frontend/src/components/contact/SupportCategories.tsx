@@ -11,7 +11,7 @@ const CATEGORIES = [
   { title: "Insurance Guidance", val: "🛡 Insurance Guidance", icon: <Shield className="w-5 h-5 text-cyan-400" /> },
   { title: "Technical Support", val: "⚙ Technical Support", icon: <Cpu className="w-5 h-5 text-purple-400" /> },
   { title: "AI Recommendation Help", val: "🤖 AI Recommendation Help", icon: <Sparkles className="w-5 h-5 text-emerald-400" /> },
-  { title: "Consultation Assistance", val: "📋 Consultation Assistance", icon: <Activity className="w-5 h-5 text-rose-400" /> },
+  { title: "Help with your chat", val: "📋 Help with your chat", icon: <Activity className="w-5 h-5 text-rose-400" /> },
   { title: "Account Support", val: "🔐 Account Support", icon: <Lock className="w-5 h-5 text-amber-400" /> },
   { title: "Platform Questions", val: "💡 Platform Questions", icon: <PhoneCall className="w-5 h-5 text-pink-400" /> },
 ];

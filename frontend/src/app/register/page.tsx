@@ -23,19 +23,19 @@ export default function RegisterPage() {
     setErrorMsg("");
 
     if (!name.trim() || !email.trim() || !password.trim()) {
-      setErrorMsg("Please complete all security validation parameters.");
+      setErrorMsg("Please fill in all the fields.");
       return;
     }
 
     if (password.length < 6) {
-      setErrorMsg("Password security protocol requires at least 6 characters.");
+      setErrorMsg("Your password must be at least 6 characters.");
       return;
     }
 
     try {
       await register(name, email, password);
     } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : "Failed to register secure credentials.");
+      setErrorMsg(err instanceof Error ? err.message : "We couldn't create your account. Please try again.");
     }
   };
 
@@ -87,12 +87,12 @@ export default function RegisterPage() {
               </motion.div>
 
               <h2 className="text-2xl font-black tracking-tight mt-4 text-inherit flex items-center justify-center leading-none">
-                Establish Secure Shield
+                Create your account
               </h2>
 
               <span className={`inline-flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest py-1 px-3.5 rounded-lg leading-none text-royal-600 bg-royal-50 border border-royal-100 dark:text-cyan-400 dark:bg-cyan-400/10 dark:border dark:border-cyan-400/20`}>
                 <Sparkles className="w-3 h-3 text-cyan-400 animate-pulse" />
-                <span>Join Aegis Protection Net</span>
+                <span>Create your account</span>
               </span>
             </div>
 
@@ -110,7 +110,7 @@ export default function RegisterPage() {
 
               {/* Legal Name */}
               <div className="space-y-2">
-                <label htmlFor="reg-name" className={`text-[10px] font-bold uppercase tracking-widest block ${labelClass}`}>Full Legal Name:</label>
+                <label htmlFor="reg-name" className={`text-[10px] font-bold uppercase tracking-widest block ${labelClass}`}>Your name</label>
                 <div className="relative">
                   <input
                     id="reg-name"
@@ -127,7 +127,7 @@ export default function RegisterPage() {
 
               {/* Security Email */}
               <div className="space-y-2">
-                <label htmlFor="reg-email" className={`text-[10px] font-bold uppercase tracking-widest block ${labelClass}`}>Security Email Address:</label>
+                <label htmlFor="reg-email" className={`text-[10px] font-bold uppercase tracking-widest block ${labelClass}`}>Email address</label>
                 <div className="relative">
                   <input
                     id="reg-email"
@@ -135,7 +135,7 @@ export default function RegisterPage() {
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="officer@corporate.com"
+                    placeholder="you@example.com"
                     className={`w-full py-3.5 pl-11 pr-4 rounded-xl border outline-none text-xs font-semibold transition-all ${getInputClass()}`}
                   />
                   <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-slate-400" />
@@ -144,7 +144,7 @@ export default function RegisterPage() {
 
               {/* Password */}
               <div className="space-y-2">
-                <label htmlFor="reg-password" className={`text-[10px] font-bold uppercase tracking-widest block ${labelClass}`}>Vault Passcode Key:</label>
+                <label htmlFor="reg-password" className={`text-[10px] font-bold uppercase tracking-widest block ${labelClass}`}>Password</label>
                 <div className="relative">
                   <input
                     id="reg-password"
@@ -152,7 +152,7 @@ export default function RegisterPage() {
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Min 6 characters passcode"
+                    placeholder="At least 6 characters"
                     className={`w-full py-3.5 pl-11 pr-4 rounded-xl border outline-none text-xs font-semibold transition-all ${getInputClass()}`}
                   />
                   <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-slate-400" />
@@ -168,11 +168,11 @@ export default function RegisterPage() {
                 {loading ? (
                   <>
                     <div className="w-4 h-4 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
-                    <span>Configuring Security Vault...</span>
+                    <span>Creating your account…</span>
                   </>
                 ) : (
                   <>
-                    <span>Generate Aegis Credentials</span>
+                    <span>Create account</span>
                     <ArrowRight className="w-4 h-4" />
                   </>
                 )}

@@ -38,7 +38,7 @@ export function AdvisorChatPanel({
             {/* Glowing recommendation badge */}
             <span className="inline-flex items-center gap-1 text-[8.5px] text-purple-400 font-extrabold uppercase tracking-widest mt-1.5 leading-none">
               <span className="w-1.5 h-1.5 bg-purple-500 rounded-full animate-ping" />
-              <span>AI Optimized Underwriting</span>
+              <span>Advice matched to you</span>
             </span>
           </div>
         </div>

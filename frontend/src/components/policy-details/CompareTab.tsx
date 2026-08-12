@@ -29,7 +29,7 @@ export function CompareTab({ plan, onProceed, onProceedAlternative }: CompareTab
           <table className="w-full text-xs text-left border-collapse">
             <thead>
               <tr className="border-b border-white/15">
-                <th className="py-3 px-4 font-black uppercase tracking-wider text-slate-500 w-1/4">Calibration Matrix</th>
+                <th className="py-3 px-4 font-black uppercase tracking-wider text-slate-500 w-1/4">Your details</th>
                 <th className="py-3 px-4 text-cyan-400 font-black uppercase tracking-wider bg-cyan-500/5 border-x border-white/5 w-3/8 text-base">
                   🥇 Recommended: {plan.planName}
                 </th>

@@ -11,7 +11,7 @@ import {
 const CHECKS = [
   { id: "identity",    icon: User,          label: "Identity Verification",   sub: "Cross-checking government ID records",       delay: 0    },
   { id: "age",         icon: Calendar,      label: "Age Validation",          sub: "Verifying eligibility age bracket",           delay: 600  },
-  { id: "risk",        icon: Activity,      label: "Risk Profiling",          sub: "Analysing underwriting risk parameters",      delay: 1200 },
+  { id: "risk",        icon: Activity,      label: "Risk Profiling",          sub: "Working out what suits you",      delay: 1200 },
   { id: "coverage",    icon: FileCheck,     label: "Coverage Eligibility",    sub: "Mapping coverage limits to profile",          delay: 1800 },
   { id: "fraud",       icon: AlertTriangle, label: "Fraud Detection",         sub: "Running 47-point fraud pattern scan",         delay: 2400 },
   { id: "policy",      icon: ClipboardCheck,label: "Policy Rules Check",      sub: "Reviewing plan rules and eligibility",         delay: 3000 },

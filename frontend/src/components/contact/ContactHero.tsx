@@ -19,7 +19,7 @@ export function ContactHero({ onOpenChat }: { onOpenChat: () => void }) {
             </span>
             <span className="inline-flex items-center gap-1.5 text-emerald-400 bg-emerald-950/30 border border-emerald-800/40 py-1.5 px-3 rounded-full text-[10px] font-black uppercase tracking-wider leading-none">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span>Active Vault</span>
+              <span>Active cover</span>
             </span>
           </div>
 

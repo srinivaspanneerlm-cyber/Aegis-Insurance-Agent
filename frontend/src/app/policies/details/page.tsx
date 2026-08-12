@@ -52,7 +52,7 @@ function PolicyDetailsContent() {
               className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-white transition-colors py-1"
             >
               <ArrowLeft className="w-4 h-4" />
-              <span>Back to Policy Vaults</span>
+              <span>Back to your policies</span>
             </Link>
           </div>
 

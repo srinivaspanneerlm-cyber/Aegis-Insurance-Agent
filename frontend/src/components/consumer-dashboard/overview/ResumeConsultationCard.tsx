@@ -17,7 +17,7 @@ export function ResumeConsultationCard({ setActiveNav }: { setActiveNav: (nav: N
           <MessageSquare className="w-5 h-5 text-purple-400" />
         </div>
         <div>
-          <p className={`text-xs font-black text-content`}>Continue Your AI Consultation</p>
+          <p className={`text-xs font-black text-content`}>Continue your chat</p>
           <p className="text-[11.5px] text-slate-500 font-semibold mt-0.5">Resume your family health protection session with Sarah AI.</p>
         </div>
       </div>

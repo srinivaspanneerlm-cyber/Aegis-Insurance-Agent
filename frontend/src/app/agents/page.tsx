@@ -54,7 +54,7 @@ export default function AgentsPage() {
       experience: 8,
       avatar: "👨‍💼",
       badge: "AI Premium Audit Specialist",
-      skills: ["Commercial Fleet Matrix", "Zero-Depreciation Cover", "EV Battery Risk Audit"]
+      skills: ["Commercial vehicles", "Zero-Depreciation Cover", "EV Battery Risk Audit"]
     },
     {
       id: "ethan",

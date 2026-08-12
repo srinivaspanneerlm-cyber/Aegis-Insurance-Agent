@@ -49,10 +49,10 @@ const FIELDS: FieldDef[][] = [
   [
     { key: "aadhaar",    label: "Aadhaar Number",    placeholder: "1234 5678 9012", icon: CreditCard,   required: true,
       maxLength: 12 },
-    { key: "nomineeName", label: "Nominee Name",     placeholder: "Priya Shankar",  icon: User,         required: true },
+    { key: "nomineeName", label: "Nominee name (who receives the money)",     placeholder: "Priya Shankar",  icon: User,         required: true },
   ],
   [
-    { key: "nomineeRelation", label: "Nominee Relationship", placeholder: "Select", icon: Heart,        required: true,
+    { key: "nomineeRelation", label: "How they are related to you", placeholder: "Select", icon: Heart,        required: true,
       options: ["Spouse", "Parent", "Child", "Sibling", "Other"] },
     { key: "address",    label: "Address",           placeholder: "123 MG Road",    icon: MapPin,       required: true },
   ],

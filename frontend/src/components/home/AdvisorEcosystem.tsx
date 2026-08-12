@@ -13,7 +13,7 @@ const ADVISORS = [
     icon: <Car className="w-6 h-6 text-cyan-400" />,
     bot: "Alex",
     color: "from-blue-600/20 to-cyan-500/20 hover:border-cyan-400/40 text-cyan-300 shadow-[0_0_20px_rgba(6,182,212,0.05)]",
-    telemetry: ["Zero-Dep Calculation", "Instant Garage Clearance", "Key Recovery Protocol"],
+    telemetry: ["Zero-Dep Calculation", "Instant Garage Clearance", "Reset your password"],
   },
   {
     name: "Sarah AI",
@@ -40,7 +40,7 @@ const ADVISORS = [
     icon: <HomeIcon className="w-6 h-6 text-emerald-400" />,
     bot: "Emma",
     color: "from-emerald-600/20 to-teal-500/20 hover:border-emerald-400/40 text-emerald-300 shadow-[0_0_20px_rgba(16,185,129,0.05)]",
-    telemetry: ["Fire Re-construction Cost", "Content Protection Vaults", "Temporary Relocation Limits"],
+    telemetry: ["Fire Re-construction Cost", "Cover for your belongings", "Temporary Relocation Limits"],
   },
 ];
 
@@ -112,7 +112,7 @@ export function AdvisorEcosystem() {
                   href={`/advisor?bot=${encodeURIComponent(adv.bot)}`}
                   className="w-full py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest bg-white text-slate-950 hover:bg-slate-100 flex items-center justify-center gap-2 transition-all cursor-pointer shadow-lg"
                 >
-                  <span>Start Consultation</span>
+                  <span>Talk to an advisor</span>
                   <ArrowRight className="w-4 h-4" />
                 </Link>
               </div>

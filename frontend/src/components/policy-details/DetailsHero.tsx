@@ -44,7 +44,7 @@ export function DetailsHero({ plan, onProceed }: DetailsHeroProps) {
       {/* Quick Actions Panel */}
       <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto items-stretch sm:items-center">
         <div className="text-left sm:text-right bg-slate-950/40 px-5 py-3 rounded-2xl border border-white/5">
-          <span className="text-[9px] text-slate-500 font-black uppercase tracking-wider block">Calibrated Premium</span>
+          <span className="text-[9px] text-slate-500 font-black uppercase tracking-wider block">Your premium</span>
           <span className="text-xl font-black text-cyan-400 font-mono">{plan.premium}</span>
           <span className="text-[10px] text-slate-400 font-medium block">All-inclusive projection</span>
         </div>

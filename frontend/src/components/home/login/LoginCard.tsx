@@ -27,7 +27,7 @@ const CARD = {
   emailPlaceholder: "E.g., name@gmail.com",
   forgotColor: "text-purple-400",
   submit: "border-purple-500/20 bg-gradient-to-r from-purple-600 to-indigo-650 hover:from-purple-500 hover:to-indigo-550",
-  loadingLabel: "Decrypting Vault...",
+  loadingLabel: "Loading…",
   submitLabel: "Login to Account",
 };
 

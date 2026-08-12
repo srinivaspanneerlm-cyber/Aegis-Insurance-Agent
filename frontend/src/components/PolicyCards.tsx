@@ -66,7 +66,7 @@ export default function PolicyCards({ selectedPlan, onSelectPlan, onScrollToForm
         "Day-1 Pre-Existing Illness Cover",
         "Zero Co-Pay Required",
         "No Room Rent Cap Limit",
-        "Free Doctor Consultation 24/7",
+        "Talk to a doctor, any time",
       ],
       recommended: true,
     },
@@ -117,7 +117,7 @@ export default function PolicyCards({ selectedPlan, onSelectPlan, onScrollToForm
             return {
               id: policy.id,
               name: policy.policyName,
-              tagline: "Custom corporate protection underwritten by Aegis Core",
+              tagline: "Cover built for your business",
               icon: Heart,
               iconColor: "text-royal-600 bg-blue-50",
               coverage: policy.coverage,

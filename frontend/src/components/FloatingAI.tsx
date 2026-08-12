@@ -19,7 +19,7 @@ export default function FloatingAI() {
     { label: "Family Shield", icon: Heart, href: "/advisor?category=family", color: "text-rose-500 bg-rose-500/10 border-rose-500/20" },
     { label: "Motor Shield", icon: Car, href: "/advisor?category=motor", color: "text-blue-400 bg-blue-500/10 border-blue-500/20" },
     { label: "Life Shield", icon: Shield, href: "/advisor?category=life", color: "text-amber-400 bg-amber-500/10 border-amber-500/20" },
-    { label: "Accident Vault", icon: Award, href: "/advisor?category=accident", color: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20" },
+    { label: "Accident cover", icon: Award, href: "/advisor?category=accident", color: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20" },
     { label: "Travel Secure", icon: Plane, href: "/advisor?category=travel", color: "text-cyan-400 bg-cyan-500/10 border-cyan-500/20" },
   ];
 
@@ -63,7 +63,7 @@ export default function FloatingAI() {
                     <span className="absolute bottom-[-1px] right-[-1px] w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-slate-900" />
                   </div>
                   <div>
-                    <h4 className={`font-bold text-sm text-content`}>Aegis Protection Vault</h4>
+                    <h4 className={`font-bold text-sm text-content`}>Your cover</h4>
                     <p className="text-[10px] text-slate-500 font-bold tracking-wider uppercase">Active AI Concierge</p>
                   </div>
                 </div>

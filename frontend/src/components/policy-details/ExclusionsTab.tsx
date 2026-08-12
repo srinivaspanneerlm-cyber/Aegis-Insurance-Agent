@@ -10,7 +10,7 @@ export function ExclusionsTab({ plan }: { plan: PlanDetails }) {
       <div>
         <h2 className="text-xl font-black text-white flex items-center gap-2">
           <ShieldAlert className="w-5 h-5 text-rose-400" />
-          <span>Exclusions & Underwriting Mandates</span>
+          <span>What&apos;s not covered</span>
         </h2>
         <p className="text-xs text-slate-400 font-semibold mt-1">
           Complete transparency regarding non-covered risks and waiting criteria before formal validation checks.
@@ -38,7 +38,7 @@ export function ExclusionsTab({ plan }: { plan: PlanDetails }) {
             <div className="p-4 rounded-2xl bg-amber-500/5 border border-amber-500/15 flex items-start gap-3 mt-4 text-left">
               <Clock className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
               <div className="space-y-1 text-xs">
-                <span className="font-black text-amber-400 uppercase tracking-wide text-[9px] block">Waiting Period Mandate</span>
+                <span className="font-black text-amber-400 uppercase tracking-wide text-[9px] block">Waiting period</span>
                 <p className="text-slate-350 font-semibold leading-relaxed">{plan.waitingPeriod}</p>
               </div>
             </div>

@@ -69,7 +69,7 @@ export default function LeadForm({ initialPlanSelection }: LeadFormProps) {
       }
       setIsSuccess(true);
     } catch (err) {
-      notify.error(err instanceof Error ? err.message : "Failed to submit underwriting details.");
+      notify.error(err instanceof Error ? err.message : "We couldn't send your details. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -277,7 +277,7 @@ export default function LeadForm({ initialPlanSelection }: LeadFormProps) {
                         required
                         value={formData.email}
                         onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                        placeholder="E.g., sharma@corporate.com"
+                        placeholder="you@example.com"
                         className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-200/80 rounded-2xl text-[14px] text-navy-900 focus:bg-white focus:border-royal-500 focus:ring-1 focus:ring-royal-500/20 outline-none transition-all font-medium"
                       />
                     </div>
@@ -307,7 +307,7 @@ export default function LeadForm({ initialPlanSelection }: LeadFormProps) {
                       {isSubmitting ? (
                         <>
                           <div className="w-4.5 h-4.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                          <span>AI Underwriting Active...</span>
+                          <span>Checking your details…</span>
                         </>
                       ) : (
                         <>

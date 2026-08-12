@@ -77,7 +77,7 @@ export const RecommendationCard = memo(function RecommendationCard({
         {/* Core metrics */}
         <div className="grid grid-cols-3 gap-2 bg-slate-900/50 p-3 rounded-xl border border-white/5">
           {[
-            { label: "Claim Ratio", value: data.claimSettlementRatio || NOT_DISCLOSED, color: "text-emerald-400" },
+            { label: "Claims actually paid", value: data.claimSettlementRatio || NOT_DISCLOSED, color: "text-emerald-400" },
             { label: "Risk Tier",   value: data.riskLevel || NOT_DISCLOSED,           color: riskColor },
             { label: "Confidence",  value: `${data.confidenceScore || 0.98}/1.0`,  color: "text-cyan-400" },
           ].map(({ label: l, value, color }) => (

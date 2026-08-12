@@ -67,7 +67,7 @@ export function PoliciesViewport({
                   Active Scope
                 </span>
                 <h4 className={`text-base font-black group-hover:text-purple-400 transition-colors leading-none text-content`}>{plan.policyName}</h4>
-                {/* This line read "Authorized underwriter network partners locked securely" — words shaped like information. Coverage and premium below are what a customer opened this to check. */}
+                {/* This line read "Your details are shared only with the insurer you choose" — words shaped like information. Coverage and premium below are what a customer opened this to check. */}
               </div>
             </div>
 

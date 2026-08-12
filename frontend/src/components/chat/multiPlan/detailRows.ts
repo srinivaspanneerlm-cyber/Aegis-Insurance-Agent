@@ -14,36 +14,36 @@ export interface DetailRow {
 
 export function healthRows(plan: MultiPlan): DetailRow[] {
   return [
-    { label: "Cashless Hospitals", value: plan.cashless_hospitals },
-    { label: "Room Rent",           value: plan.room_rent },
+    { label: "Hospitals with no upfront payment", value: plan.cashless_hospitals },
+    { label: "Room rent limit",           value: plan.room_rent },
     { label: "ICU",                 value: plan.icu },
-    { label: "Day Care",            value: plan.day_care },
-    { label: "PED Waiting",         value: plan.ped_waiting },
-    { label: "NCB",                 value: plan.ncb },
+    { label: "Same-day treatment",            value: plan.day_care },
+    { label: "Wait for existing illness",         value: plan.ped_waiting },
+    { label: "No-claim bonus",                 value: plan.ncb },
     { label: "Health Checkup",      value: plan.health_checkup },
     { label: "Maternity",           value: plan.maternity },
     { label: "Critical Illness",    value: plan.critical_illness },
     { label: "Ambulance",           value: plan.ambulance },
-    { label: "Restoration",         value: plan.restoration },
-    { label: "OPD",                 value: plan.opd },
-    { label: "Co-payment",          value: plan.co_payment },
-    { label: "Eligibility",         value: plan.eligibility },
+    { label: "Cover refilled after a claim",         value: plan.restoration },
+    { label: "Doctor visits",                 value: plan.opd },
+    { label: "Your share of each bill",          value: plan.co_payment },
+    { label: "Who can join",         value: plan.eligibility },
   ].filter(r => r.value);
 }
 
 export function motorRows(plan: MultiPlan): DetailRow[] {
   return [
-    { label: "Policy Type",      value: plan.policy_type },
-    { label: "IDV",              value: plan.idv },
-    { label: "Zero Dep",         value: plan.zero_dep ? `Yes — ${plan.zero_dep_claims || ""}` : "No" },
-    { label: "Engine Protect",   value: plan.engine_protect ? "Yes" : "No" },
-    { label: "RSA",              value: plan.rsa ? "Yes" : "No" },
-    { label: "Consumables",      value: plan.consumables ? "Included" : "Not included" },
+    { label: "Type of cover",      value: plan.policy_type },
+    { label: "Vehicle's insured value",              value: plan.idv },
+    { label: "Full parts cover",         value: plan.zero_dep ? `Yes — ${plan.zero_dep_claims || ""}` : "No" },
+    { label: "Engine damage cover",   value: plan.engine_protect ? "Yes" : "No" },
+    { label: "Roadside help",              value: plan.rsa ? "Yes" : "No" },
+    { label: "Oils and small parts",      value: plan.consumables ? "Included" : "Not included" },
     { label: "Return Invoice",   value: plan.return_invoice ? "Included" : "No" },
     { label: "Battery Cover",    value: plan.battery_cover ? (plan.battery_cover_detail || "Yes") : "N/A" },
     { label: "PA Owner-Driver",  value: plan.pa_owner_driver },
-    { label: "Cashless Garages", value: plan.cashless_garages },
-    { label: "NCB",              value: plan.ncb },
+    { label: "Garages with no upfront payment", value: plan.cashless_garages },
+    { label: "No-claim bonus",              value: plan.ncb },
     { label: "Claim Process",    value: plan.claim_process },
   ].filter(r => r.value && r.value !== "No" && r.value !== "Not included" && r.value !== "N/A" || ["Policy Type","IDV","Cashless Garages","NCB","Claim Process"].includes(r.label)).filter(r => r.value);
 }
@@ -65,7 +65,7 @@ export function propertyRows(plan: MultiPlan): DetailRow[] {
     { label: "Jewelry / Valuables",  value: plan.jewelry_cover ? (plan.jewelry_detail || "Included") : "Not included" },
     { label: "All-Risk Contents",    value: plan.all_risk_contents ? "Included" : "Not included" },
     { label: "Claim Process",        value: plan.claim_process },
-    { label: "Eligibility",          value: plan.eligibility },
+    { label: "Who can join",          value: plan.eligibility },
   ].filter(r => r.value && r.value !== "Not included");
 }
 
@@ -88,7 +88,7 @@ export function travelRows(plan: MultiPlan): DetailRow[] {
     { label: "Flight Hijack",      value: plan.flight_hijack ? "Included" : "Not included" },
     { label: "Concierge",          value: plan.concierge ? "Included" : "Not included" },
     { label: "Claim Process",      value: plan.claim_process },
-    { label: "Eligibility",        value: plan.eligibility },
+    { label: "Who can join",        value: plan.eligibility },
   ].filter(r => r.value && r.value !== "Not included" && r.value !== "Not covered" && r.value !== "Not Schengen" && r.value !== "Per-trip only" && r.value !== "Not covered"
     || ["Scope","Medical Cover","Claim Process","Eligibility"].includes(r.label)
   ).filter(r => r.value);
