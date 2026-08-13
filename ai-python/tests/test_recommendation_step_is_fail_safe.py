@@ -24,6 +24,11 @@ class _StubLLM:
         return REPLY
 
 
+class _ExplodingLLM:
+    async def generate_response(self, system_prompt, user_message, history, tools):
+        raise ConnectionError("ollama is down")
+
+
 class _Agent(BaseInsuranceAgent):
     NAME = "Sarah AI"
     DOMAIN = "health"
@@ -75,3 +80,16 @@ def test_no_plan_card_is_attached_when_the_engine_failed():
 
 def test_the_happy_path_is_unchanged():
     assert _answer(None) == REPLY
+
+
+def test_an_llm_failure_is_reported_as_a_failed_turn():
+    """The domain fallback reads like a real reply, so returning it got it
+    cached and written to history. It is raised now, and respond() marks the
+    turn failed so nothing keeps it."""
+    agent = _Agent(None)
+    agent.llm = _ExplodingLLM()
+
+    response = asyncio.run(agent.respond("what do you suggest?", [], "Sivamaran J", "s1"))
+
+    assert response.failed is True
+    assert response.text  # the customer still gets something to read
