@@ -7,6 +7,8 @@ from __future__ import annotations
 from typing import Any, Dict, List, Optional, Tuple
 import re
 
+from app.utils.money import parse_amount
+
 from .health_plans import HEALTH_PLANS, PLANS_BY_SEGMENT, SEGMENT_THRESHOLDS
 
 
@@ -16,17 +18,18 @@ def _parse_budget(raw: Any) -> Optional[int]:
     """Return monthly budget in INR, or None if unparseable."""
     if raw is None:
         return None
-    text = str(raw).lower().replace(",", "").replace(" ", "")
-    # Handle "2000/month" or "2000 per month"
-    text = re.sub(r"(per|/)?(month|mo|yr|year|annual|annually)", "", text)
-    digits = re.findall(r"\d+", text)
-    if not digits:
+    # Drop the period words first ("2000/month", "2000 per month") so they
+    # cannot be mistaken for part of the figure, then read the number.
+    text = re.sub(r"(per|/)?(month|mo|yr|year|annual|annually)", "", str(raw).lower())
+    val = parse_amount(text)
+    if val is None:
         return None
-    val = int(digits[0])
+    # "10k" is ten thousand rupees. Reading it as ₹10 put the customer in the
+    # cheapest segment and scored every plan against a budget they never named.
     # If text hints at an annual figure (> 12000 without "month" context), convert
     if "annual" in str(raw).lower() or "year" in str(raw).lower():
-        val = val // 12
-    return val
+        val = val / 12
+    return int(val)
 
 
 def _parse_age(raw: Any) -> Optional[int]:

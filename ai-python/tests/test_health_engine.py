@@ -35,6 +35,18 @@ def test_parse_budget_converts_annual_to_monthly(raw):
     assert _parse_budget(raw) == 2000
 
 
+@pytest.mark.parametrize("raw,expected", [
+    ("10k",         10000),
+    ("10k sure",    10000),
+    ("10 thousand", 10000),
+    ("1 lakh",     100000),
+])
+def test_parse_budget_reads_indian_magnitudes(raw, expected):
+    """"10k" is ten thousand rupees. Read as ₹10 it put the customer in the
+    cheapest segment and scored every plan against a budget they never named."""
+    assert _parse_budget(raw) == expected
+
+
 @pytest.mark.parametrize("raw", [None, "", "abc"])
 def test_parse_budget_returns_none_when_unparseable(raw):
     assert _parse_budget(raw) is None
