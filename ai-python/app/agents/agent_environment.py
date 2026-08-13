@@ -228,6 +228,32 @@ class AgentEnvironment:
         elapsed = (time.monotonic() - t_start) * 1000
         self.diagnostics.total_response_time_ms += elapsed
 
+        # ── A turn the agent could not produce is not a turn ──────────────────────
+        # It is shown to the customer once, as an apology, and then forgotten.
+        # Keeping it did real damage: the text was written to disk, so it came
+        # back in the customer's window on every reload and was replayed to the
+        # model as something the advisor had said; and it was cached against
+        # (session, message), so retyping the same thing returned the same
+        # apology — long after the underlying bug was fixed. An apology is
+        # never worth remembering, so nothing below remembers this one.
+        if getattr(agent_response, "failed", False):
+            self.diagnostics.total_errors += 1
+            self._log.warning(
+                f"Session {session_id[:8]} — agent could not answer; "
+                f"turn not cached, not persisted, workflow not advanced"
+            )
+            return EnvironmentResult(
+                text=agent_response.text,
+                agent_name=agent_response.agent_name,
+                agent_domain=agent_response.agent_domain,
+                session_id=session_id,
+                env_metadata={
+                    "domain": self.domain,
+                    "failed": True,
+                    "response_time_ms": round(elapsed, 2),
+                },
+            )
+
         # ── Update env-local history ─────────────────────────────────────────────
         self._push_history(session_id, "user", message)
         self._push_history(session_id, "assistant", agent_response.text)

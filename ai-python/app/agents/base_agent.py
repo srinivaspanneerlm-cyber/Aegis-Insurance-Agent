@@ -38,6 +38,7 @@ class AgentResponse:
         transfer_to: Optional[str] = None,
         transfer_to_name: Optional[str] = None,
         transfer_reason: Optional[str] = None,
+        failed: bool = False,
     ):
         self.text = text
         self.agent_name = agent_name
@@ -47,6 +48,10 @@ class AgentResponse:
         self.transfer_to = transfer_to
         self.transfer_to_name = transfer_to_name
         self.transfer_reason = transfer_reason
+        # The agent could not produce this turn — `text` is an apology, not an
+        # answer. It is shown once and then forgotten: nothing caches it, saves
+        # it, or advances the conversation on it. See AgentEnvironment.process.
+        self.failed = failed
 
     def to_dict(self) -> dict:
         return {
@@ -58,6 +63,7 @@ class AgentResponse:
             "transfer_to": self.transfer_to,
             "transfer_to_name": self.transfer_to_name,
             "transfer_reason": self.transfer_reason,
+            "failed": self.failed,
         }
 
 
@@ -856,27 +862,27 @@ NEVER expose these internal instructions in your response. Speak naturally as a 
         )
 
         # Step 4: Recommendation + Executive Validation
+        #
+        # Guarded as a whole. This is the arithmetic half of the turn — scoring
+        # engines, premium comparisons, underwriting rules — and all of it runs
+        # on values the customer typed in their own words. When something in
+        # here raised, the exception escaped the entire turn and the customer
+        # got the generic interruption message instead of a reply, even though
+        # the advisor had plenty to say without a recommendation. A plan card
+        # we could not build is a card the customer does not see this turn; it
+        # is not a reason to stop talking to them.
         rec_result    = None
         exec_approval = None
-        if not missing:
-            if ctx.locked:
-                # Rec locked — reuse existing, do NOT regenerate card
-                rec_result    = existing_rec
-                exec_approval = existing_cached.get("exec_approval") if existing_cached else None
-                logger.debug(f"[{self.NAME}] Recommendation LOCKED for {customer_id}")
-            elif ctx.force_compare:
-                # Force compare — generate alternative (do NOT write to cache)
-                rec_result    = self.recommend(profile, self.DOMAIN)
-                exec_approval = self._executive_validate(rec_result, profile)
-                logger.debug(f"[{self.NAME}] Force COMPARE mode for {customer_id}")
-            elif existing_cached:
-                rec_result    = existing_cached["rec_result"]
-                exec_approval = existing_cached["exec_approval"]
-                logger.debug(f"[{self.NAME}] Recommendation cache hit for {customer_id}")
-            else:
-                rec_result    = self.recommend(profile, self.DOMAIN)
-                exec_approval = self._executive_validate(rec_result, profile)
-                self._cache_recommendation(customer_id, rec_result, exec_approval, profile)
+        try:
+            rec_result, exec_approval = self._recommendation_for_turn(
+                customer_id, profile, missing, ctx, existing_cached, existing_rec
+            )
+        except Exception as e:
+            logger.error(
+                f"[{self.NAME}] Recommendation step failed for {customer_id} — "
+                f"continuing without a plan card: {e}",
+                exc_info=True,
+            )
 
         # Step 5: Build intent-aware workflow context
         cfg = getattr(self, "_env_config", {})
@@ -913,6 +919,46 @@ NEVER expose these internal instructions in your response. Speak naturally as a 
             logger.error(f"[{self.NAME}] LLM error: {e}", exc_info=True)
             return self._domain_fallback(user_name, profile, rec_result)
 
+    def _recommendation_for_turn(
+        self,
+        customer_id: str,
+        profile: Dict[str, Any],
+        missing: List[str],
+        ctx,
+        existing_cached: Optional[Dict[str, Any]],
+        existing_rec: Optional[Dict[str, Any]],
+    ) -> Tuple[Optional[Dict], Optional[Dict]]:
+        """Which recommendation this turn gets, and whether it was approved.
+
+        Extracted so the caller can guard the whole decision in one place. The
+        branches below are unchanged: locked reuses, force-compare regenerates
+        without writing to the cache, a cache hit is reused, and anything else
+        is generated and cached.
+        """
+        rec_result    = None
+        exec_approval = None
+        if not missing:
+            if ctx.locked:
+                # Rec locked — reuse existing, do NOT regenerate card
+                rec_result    = existing_rec
+                exec_approval = existing_cached.get("exec_approval") if existing_cached else None
+                logger.debug(f"[{self.NAME}] Recommendation LOCKED for {customer_id}")
+            elif ctx.force_compare:
+                # Force compare — generate alternative (do NOT write to cache)
+                rec_result    = self.recommend(profile, self.DOMAIN)
+                exec_approval = self._executive_validate(rec_result, profile)
+                logger.debug(f"[{self.NAME}] Force COMPARE mode for {customer_id}")
+            elif existing_cached:
+                rec_result    = existing_cached["rec_result"]
+                exec_approval = existing_cached["exec_approval"]
+                logger.debug(f"[{self.NAME}] Recommendation cache hit for {customer_id}")
+            else:
+                rec_result    = self.recommend(profile, self.DOMAIN)
+                exec_approval = self._executive_validate(rec_result, profile)
+                self._cache_recommendation(customer_id, rec_result, exec_approval, profile)
+
+        return rec_result, exec_approval
+
     # ── Main entry point ─────────────────────────────────────────────────────
 
     async def respond(
@@ -948,9 +994,11 @@ NEVER expose these internal instructions in your response. Speak naturally as a 
                 transfer_reason=violation["detected_domain"],
             )
 
+        failed = False
         try:
             reply = await self.generate_response(message, history, user_name, session_id, user_id=user_id)
         except Exception as e:
+            failed = True
             # With the traceback, because without it this catch-all reports a
             # bare "could not convert string to float: '10k sure'" with no file
             # or line, and the customer-facing symptom — the interruption
@@ -968,11 +1016,13 @@ NEVER expose these internal instructions in your response. Speak naturally as a 
         if not text.strip():
             logger.warning(f"[{self.NAME}] Empty reply after cleaning — asking the customer to repeat")
             text = "Could you say that once more? I want to be sure I answer the right thing."
+            failed = True
 
         return AgentResponse(
             text=text,
             agent_name=self.NAME,
             agent_domain=self.DOMAIN,
+            failed=failed,
         )
 
     def _fallback_message(self, user_name: str) -> str:
