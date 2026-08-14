@@ -5,7 +5,24 @@ No embedding API key is used, so these exercise the deterministic offline ranker
 (BM25 + concept-intent boost). The engine builds from the repo's real
 insurance-data knowledge base.
 """
+import pytest
+
+from app.config.config import settings
 from app.services.hybrid_search import HybridSearchEngine, _BM25Index, _tokenize
+
+
+@pytest.fixture(autouse=True)
+def _force_offline_path(monkeypatch):
+    """Keep these tests on the offline ranker whatever the developer's .env says.
+
+    The engine goes online the moment a Gemini key exists, so before this the
+    suite passed or failed according to whether the machine running it happened
+    to have one configured — green on CI, red on the laptop of anyone who added
+    a key. What is under test here is the deterministic BM25 path, so it is
+    pinned rather than left to the environment.
+    """
+    monkeypatch.setattr(settings, "GEMINI_API_KEY", "")
+    monkeypatch.setattr(settings, "GEMINI_EMBEDDING_MODEL", "")
 
 
 # ── BM25 unit ─────────────────────────────────────────────────────────────────

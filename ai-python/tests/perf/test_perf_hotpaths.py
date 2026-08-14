@@ -30,6 +30,7 @@ from typing import List
 import pytest
 
 from app.agents.base_agent import BaseInsuranceAgent
+from app.config.config import settings
 
 from .benchmark import Timing, format_table, measure
 
@@ -84,6 +85,20 @@ def _measure_render() -> Timing:
     }
     return measure(lambda: agent._format_profile_for_prompt(dict(profile)),
                    label="prompt render · full profile")
+
+
+@pytest.fixture(autouse=True)
+def _keep_retrieval_offline(monkeypatch):
+    """No network call inside a millisecond benchmark.
+
+    The docstring above promises these paths are LLM-free, and they were —
+    until a Gemini key in the environment turned `search` into an embedding
+    request over the wire. That does not measure the BM25 regression these
+    ceilings exist to catch; it measures the developer's internet connection,
+    and it fails a machine that has a key configured while passing one that
+    does not.
+    """
+    monkeypatch.setattr(settings, "GEMINI_EMBEDDING_MODEL", "")
 
 
 def _measure_retrieval() -> Timing:
