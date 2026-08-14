@@ -76,52 +76,95 @@ async def _create_chat_completion(client: AsyncOpenAI, **kwargs: Any) -> Any:
 class LLMService:
     """
     LLM provider abstraction — supports Ollama (local), Gemini, and OpenAI.
-    Set DEFAULT_PROVIDER in .env to switch between them.
+    Set DEFAULT_PROVIDER in .env to choose which one answers first, and
+    LLM_FALLBACK_PROVIDERS to say who answers if that one cannot.
+
+    Every provider in the chain is configured up front, because the point of a
+    fallback is to be ready at the moment the primary fails — building its
+    client only then would mean the first failed turn is also the turn that
+    discovers the key is missing.
     """
 
     def __init__(self):
-        self.provider = settings.active_provider
+        self.chain = settings.provider_chain
+        # The provider that answers first. Kept as `.provider` because that is
+        # what this object has always exposed.
+        self.provider = self.chain[0]
         self.gemini_configured = False
         self.openai_configured = False
         self.ollama_configured = False
-        self.openai_client = None  # reused for both OpenAI and Ollama (OpenAI-compat API)
+        # Ollama speaks the OpenAI-compatible API, so both use the same SDK —
+        # but they need separate clients, pointed at different hosts with
+        # different keys. One shared attribute would mean whichever was
+        # configured second silently answered for both.
+        self.ollama_client: Optional[AsyncOpenAI] = None
+        self.openai_client: Optional[AsyncOpenAI] = None
 
-        try:
-            if self.provider == "ollama":
-                self.openai_client = AsyncOpenAI(
-                    base_url=f"{settings.OLLAMA_BASE_URL}/v1",
-                    api_key=settings.OLLAMA_API_KEY,
-                    timeout=settings.LLM_CALL_TIMEOUT_SECONDS,
-                )
-                self.ollama_configured = True
-                logger.info(
-                    f"Ollama client configured: {settings.OLLAMA_BASE_URL} | model: {settings.OLLAMA_MODEL}"
-                )
-
-            elif self.provider == "gemini":
-                if settings.GEMINI_API_KEY:
-                    genai.configure(api_key=settings.GEMINI_API_KEY)
-                    self.gemini_configured = True
-                    logger.info("Gemini API client configured successfully.")
-                else:
-                    logger.warning("GEMINI_API_KEY missing — Gemini will run in offline fallback mode.")
-
-            elif self.provider == "openai":
-                if settings.OPENAI_API_KEY:
-                    self.openai_client = AsyncOpenAI(
-                        api_key=settings.OPENAI_API_KEY,
+        for provider in self.chain:
+            try:
+                if provider == "ollama":
+                    self.ollama_client = AsyncOpenAI(
+                        base_url=f"{settings.OLLAMA_BASE_URL}/v1",
+                        api_key=settings.OLLAMA_API_KEY,
                         timeout=settings.LLM_CALL_TIMEOUT_SECONDS,
                     )
-                    self.openai_configured = True
-                    logger.info("OpenAI API client configured successfully.")
+                    self.ollama_configured = True
+                    logger.info(
+                        f"Ollama client configured: {settings.OLLAMA_BASE_URL} | model: {settings.OLLAMA_MODEL}"
+                    )
+
+                elif provider == "gemini":
+                    if settings.GEMINI_API_KEY:
+                        genai.configure(api_key=settings.GEMINI_API_KEY)
+                        self.gemini_configured = True
+                        logger.info("Gemini API client configured successfully.")
+                    else:
+                        logger.warning("GEMINI_API_KEY missing — Gemini will run in offline fallback mode.")
+
+                elif provider == "openai":
+                    if settings.OPENAI_API_KEY:
+                        self.openai_client = AsyncOpenAI(
+                            api_key=settings.OPENAI_API_KEY,
+                            timeout=settings.LLM_CALL_TIMEOUT_SECONDS,
+                        )
+                        self.openai_configured = True
+                        logger.info("OpenAI API client configured successfully.")
+                    else:
+                        logger.warning("OPENAI_API_KEY missing — OpenAI will run in offline fallback mode.")
+
                 else:
-                    logger.warning("OPENAI_API_KEY missing — OpenAI will run in offline fallback mode.")
+                    logger.error(f"Unknown provider: {provider}")
 
-            else:
-                logger.error(f"Unknown provider: {self.provider}")
+            except Exception as e:
+                # One provider failing to initialise must not take the others
+                # with it — a bad OLLAMA_BASE_URL should still leave Gemini
+                # able to answer.
+                logger.error(f"Error initializing {provider} client: {e}. Remaining providers unaffected.")
 
-        except Exception as e:
-            logger.error(f"Error initializing LLM client: {e}. Fallback active.")
+        if len(self.chain) > 1:
+            logger.info(f"LLM provider chain: {' → '.join(self.chain)}")
+        else:
+            logger.warning(
+                f"LLM provider chain: {self.chain[0]} only — no fallback configured. "
+                "Set GEMINI_API_KEY (or OPENAI_API_KEY) so a failed turn can still be answered."
+            )
+
+    async def _dispatch(
+        self,
+        provider: str,
+        system_prompt: str,
+        user_message: str,
+        history: Optional[List],
+        tools: Optional[List],
+    ) -> str:
+        """Route one attempt to the named provider."""
+        if provider == "ollama":
+            return await self._call_ollama(system_prompt, user_message, history, tools)
+        if provider == "gemini":
+            return await self._call_gemini(system_prompt, user_message, history, tools)
+        if provider == "openai":
+            return await self._call_openai(system_prompt, user_message, history, tools)
+        raise ValueError(f"Unsupported provider: {provider}")
 
     async def generate_response(
         self,
@@ -130,26 +173,53 @@ class LLMService:
         history: Optional[List] = None,
         tools: Optional[List] = None,
     ) -> str:
-        """Generate a response from the configured LLM provider."""
+        """Generate a response, falling through the provider chain on failure.
 
-        # Time and count the LLM call by provider (8.2). Observation only —
-        # the reply and any exception pass through unchanged.
-        start = time.perf_counter()
-        try:
-            if self.provider == "ollama":
-                reply = await self._call_ollama(system_prompt, user_message, history, tools)
-            elif self.provider == "gemini":
-                reply = await self._call_gemini(system_prompt, user_message, history, tools)
-            elif self.provider == "openai":
-                reply = await self._call_openai(system_prompt, user_message, history, tools)
-            else:
-                raise ValueError(f"Unsupported provider: {self.provider}")
-        except Exception:
-            metrics.observe_llm_call(self.provider, "error", time.perf_counter() - start)
-            raise
+        The whole turn — system prompt, history and message — is handed to each
+        provider in turn, so a fallback answers with exactly the context the
+        primary had. The customer sees a reply to what they actually asked;
+        nothing about the switch reaches the conversation.
 
-        metrics.observe_llm_call(self.provider, "success", time.perf_counter() - start)
-        return reply
+        Only if every provider fails does this raise, and it raises the last
+        provider's error, which is the most recent true account of why no
+        answer was produced.
+        """
+        last_error: Optional[BaseException] = None
+
+        for index, provider in enumerate(self.chain):
+            is_last = index == len(self.chain) - 1
+            # Time and count the LLM call by provider (8.2). Observation only —
+            # the reply and any exception pass through unchanged.
+            start = time.perf_counter()
+            try:
+                call = self._dispatch(provider, system_prompt, user_message, history, tools)
+                # A provider with someone behind it gets a deadline, so a hang
+                # cannot eat the budget its fallback needs. The last one has
+                # nobody behind it and runs to its own policy.
+                if is_last:
+                    reply = await call
+                else:
+                    reply = await asyncio.wait_for(call, timeout=settings.LLM_PROVIDER_BUDGET_SECONDS)
+            except Exception as e:
+                metrics.observe_llm_call(provider, "error", time.perf_counter() - start)
+                last_error = e
+                if is_last:
+                    raise
+                logger.warning(
+                    f"LLM provider '{provider}' failed ({type(e).__name__}: {e}) — "
+                    f"falling back to '{self.chain[index + 1]}' for this turn."
+                )
+                continue
+
+            metrics.observe_llm_call(provider, "success", time.perf_counter() - start)
+            if index > 0:
+                logger.warning(f"Turn answered by fallback provider '{provider}'.")
+            return reply
+
+        # Unreachable: a non-empty chain either returns or re-raises on its
+        # last provider. Kept so the function never returns None if that
+        # invariant is ever broken.
+        raise last_error or ValueError("No LLM provider configured.")
 
     # ── Ollama ────────────────────────────────────────────────────────────────
 
@@ -160,7 +230,7 @@ class LLMService:
         history: Optional[List],
         tools: Optional[List],
     ) -> str:
-        if not self.ollama_configured or self.openai_client is None:
+        if not self.ollama_configured or self.ollama_client is None:
             raise ValueError("Ollama client is not configured.")
 
         logger.info(f"Invoking Ollama model: {settings.OLLAMA_MODEL}")
@@ -177,7 +247,7 @@ class LLMService:
         messages.append({"role": "user", "content": user_message})
 
         response = await _create_chat_completion(
-            self.openai_client,
+            self.ollama_client,
             model=settings.OLLAMA_MODEL,
             messages=messages,
             temperature=0.3,
@@ -198,10 +268,10 @@ class LLMService:
         if not self.gemini_configured:
             raise ValueError("Gemini client is not configured (missing API key).")
 
-        logger.info("Invoking Gemini (gemini-2.5-flash)...")
+        logger.info(f"Invoking Gemini ({settings.GEMINI_MODEL})...")
 
         model = genai.GenerativeModel(
-            model_name="gemini-2.5-flash",
+            model_name=settings.GEMINI_MODEL,
             system_instruction=system_prompt,
             tools=tools,
         )
@@ -218,8 +288,16 @@ class LLMService:
 
         final_prompt = f"{formatted_context}Customer: {user_message}\n\nAegis Advisor:"
 
-        max_retries   = 5
+        # The same bounded policy the OpenAI-compatible path uses. This loop
+        # used to allow 5 attempts with a doubling 4s backoff, which on a
+        # rate-limited key spends over a minute sleeping — long past the 45s
+        # the Node backend waits for, so the customer sees a timeout and the
+        # eventual answer arrives to nobody. The delay is capped for the same
+        # reason: a retry that lands after the caller has given up is not a
+        # retry.
+        max_retries    = max(1, settings.LLM_CALL_MAX_ATTEMPTS)
         backoff_factor = 2.0
+        max_delay      = 8.0
         delay          = 4.0
 
         for attempt in range(max_retries):
@@ -254,7 +332,7 @@ class LLMService:
                             f"(attempt {attempt + 1}/{max_retries})..."
                         )
                         await asyncio.sleep(delay)
-                        delay *= backoff_factor
+                        delay = min(delay * backoff_factor, max_delay)
                         continue
                 raise e
 

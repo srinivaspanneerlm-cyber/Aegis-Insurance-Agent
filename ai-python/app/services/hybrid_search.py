@@ -179,12 +179,11 @@ class HybridSearchEngine:
         """
         Retrieves a dense embedding from the Gemini API, cached in memory.
         """
-        if not self.gemini_configured:
+        if not self.gemini_configured or not settings.GEMINI_EMBEDDING_MODEL:
             return None
         try:
-            # Using industry standard text-embedding-004
             response = genai.embed_content(
-                model="models/text-embedding-004",
+                model=settings.GEMINI_EMBEDDING_MODEL,
                 content=text,
                 task_type="retrieval_query"
             )
