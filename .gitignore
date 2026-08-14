@@ -115,3 +115,7 @@ apps/*/next-env.d.ts
 e2e/.e2e-db
 test-results/
 playwright-report/
+
+# Advisor-memory snapshots taken by scripts/reset-demo-memory.sh before a
+# rehearsal. Local working state, and they contain customer conversation data.
+.demo-memory-backups/
