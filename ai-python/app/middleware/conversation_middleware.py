@@ -21,6 +21,8 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Dict, List, Optional, Any
 
+from app.utils.money import parse_amount
+
 
 # ── States ─────────────────────────────────────────────────────────────────────
 
@@ -69,6 +71,26 @@ _PURCHASE_KW = [
 
 # ── Customer profile view ──────────────────────────────────────────────────────
 
+def _first_number(raw: Any) -> Optional[int]:
+    """The first whole number `raw` carries, or None if it carries none.
+
+    A profile field holds what the customer typed, not what a form validated:
+    "3 per, naan 32 vayasu wife 30 kid 5" is a real answer to "how many
+    members?", and int() on it raises. That exception escaped the whole turn,
+    so a customer who answered the question in a sentence — the way this
+    product asks people to — got "I'm experiencing a brief interruption"
+    instead of a recommendation. The number is read out of the text here the
+    way every domain engine already reads it.
+    """
+    if raw is None or isinstance(raw, bool):
+        return None
+    if isinstance(raw, int):
+        return raw
+    if isinstance(raw, float):
+        return int(raw)
+    digits = re.findall(r"\d+", str(raw))
+    return int(digits[0]) if digits else None
+
 @dataclass
 class CustomerProfileView:
     """
@@ -91,20 +113,22 @@ class CustomerProfileView:
         profile: dict,
         has_recommendation: bool = False,
     ) -> "CustomerProfileView":
-        fs = profile.get("family_size")
-        if fs == 1:
+        members = _first_number(profile.get("family_size"))
+        if members == 1:
             coverage = "individual"
-        elif fs and int(fs) > 1:
+        elif members and members > 1:
             coverage = "family"
         else:
             coverage = None
         return cls(
             coverageType            = coverage,
-            memberCount             = fs,
-            eldestAge               = profile.get("age"),
+            memberCount             = members,
+            eldestAge               = _first_number(profile.get("age")),
             city                    = profile.get("location"),
             medicalConditions       = profile.get("medical_history"),
-            monthlyBudget           = profile.get("budget"),
+            # Money, not a count: "15k" is fifteen thousand, and parse_amount
+            # is what the rest of the codebase reads rupees with.
+            monthlyBudget           = parse_amount(profile.get("budget")),
             recommendationCompleted = has_recommendation,
         )
 
@@ -125,7 +149,7 @@ class CustomerProfileView:
         if self.memberCount:    parts.append(f"{self.memberCount} members")
         if self.eldestAge:      parts.append(f"eldest age {self.eldestAge}")
         if self.city:           parts.append(f"city {self.city}")
-        if self.monthlyBudget:  parts.append(f"₹{self.monthlyBudget}/month budget")
+        if self.monthlyBudget:  parts.append(f"₹{self.monthlyBudget:,.0f}/month budget")
         if self.medicalConditions: parts.append(f"medical: {self.medicalConditions}")
         return ", ".join(parts) if parts else "(no profile data yet)"
 
