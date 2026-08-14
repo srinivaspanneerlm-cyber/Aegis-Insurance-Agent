@@ -41,7 +41,18 @@ class AegisFormatter(logging.Formatter):
         else:
             msg_formatted = f"{LogColors.NAVY}[AEGIS]{LogColors.RESET}"
 
-        return f"{LogColors.BOLD}{timestamp}{LogColors.RESET} {icon} {msg_formatted} {message}"
+        line = f"{LogColors.BOLD}{timestamp}{LogColors.RESET} {icon} {msg_formatted} {message}"
+
+        # Call sites that pass exc_info=True mean it: without the traceback,
+        # a caught error reports only its own str() — "invalid literal for
+        # int() with base 10: '...'" with no file and no line — and finding
+        # it means grepping for the operator. The JSON formatter below has
+        # always included this; the console one silently dropped it, so the
+        # traceback existed everywhere except where it was being read.
+        if record.exc_info:
+            line += f"\n{LogColors.RED}{self.formatException(record.exc_info)}{LogColors.RESET}"
+
+        return line
 
 class AegisJsonFormatter(logging.Formatter):
     """Structured JSON formatter for production log aggregation (one line/event)."""
