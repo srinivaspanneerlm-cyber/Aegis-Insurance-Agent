@@ -46,6 +46,85 @@ SHARED_FIELDS: List[str] = [
     "communication_preference", "medical_history",
 ]
 
+# ── Language preference ───────────────────────────────────────────────────────
+#
+# The advisor answers in English unless the customer asks for something else.
+# Writing *in* Tamil is not the same as asking *for* Tamil: people code-switch
+# mid-sentence, quote a relative, or type one Thanglish word in an otherwise
+# English message, and an advisor that flipped language on each of those read
+# as unstable rather than accommodating. So the switch is a request, made in
+# words, recorded on the profile — and it stays until they ask to change back.
+
+# "I live in Tamil Nadu" is not a request to speak Tamil, and it is the single
+# most likely sentence to be mistaken for one in this product.
+_TAMIL_NADU_RE = re.compile(
+    r"\btamil\s*[-\s]?nadu\b|தமிழ்?\s*நாடு", re.IGNORECASE
+)
+
+# Written in Tamil script, the word "Tamil" is only ever the language — the one
+# other thing it names is the state, and that is removed above before this runs.
+_TAMIL_SCRIPT_NAME_RE = re.compile(r"தமிழ")
+
+_LANGUAGE_NAMES = [
+    # Checked in order: "tamil english mix" names Thanglish, not Tamil.
+    ("thanglish", r"(?:thanglish|tanglish|tamil\s*[-+/&]?\s*english|tamglish)"),
+    ("tamil",     r"(?:tamil|tamizh|thamizh|தமிழ்?)"),
+    ("english",   r"(?:english|ingliish|inglish)"),
+]
+
+# What asking sounds like: a verb of speaking, the "-la / -il" postposition
+# Thanglish uses ("tamil la pesunga"), "in <language>", or "<language> please".
+_ASK_VERB = (
+    r"(?:speak|talk|reply|respond|answer|write|say|tell|explain|converse|"
+    r"switch|change|continue|use|prefer|want|pesu|pesunga|pesungo|pesalaam|"
+    r"sollu|sollunga|solluvinga|type|mattunga)"
+)
+
+
+def detect_language_request(message: str) -> Optional[str]:
+    """The language the customer asked for, or None if they did not ask.
+
+    Returns "english", "tamil" or "thanglish".
+    """
+    if not message:
+        return None
+    text = _TAMIL_NADU_RE.sub(" ", message)
+    stripped = text.strip().lower().strip(".!? ")
+
+    if _TAMIL_SCRIPT_NAME_RE.search(text):
+        return "tamil"
+
+    for name, pattern in _LANGUAGE_NAMES:
+        # The bare word on its own line — "thanglish" as a whole reply is a
+        # request, not a topic.
+        if re.fullmatch(pattern, stripped, re.IGNORECASE):
+            return name
+        asked = (
+            # "speak in tamil", "can you reply in thanglish", "switch to tamil"
+            re.search(rf"{_ASK_VERB}\W+(?:\w+\W+){{0,3}}{pattern}\b", text, re.IGNORECASE)
+            # "tamil la pesunga", "thanglish-la sollunga"
+            or re.search(rf"\b{pattern}\s*[-\s]?(?:la|le|il|lay)\b", text, re.IGNORECASE)
+            # "in tamil", "tamil please"
+            or re.search(rf"\bin\s+{pattern}\b", text, re.IGNORECASE)
+            or re.search(rf"\b{pattern}\s+(?:please|plz|pls)\b", text, re.IGNORECASE)
+        )
+        if asked:
+            return name
+    return None
+
+
+# Pipeline steps that record a decision the customer has to actually make, not
+# a fact about them. They are filled only by an agent that has read the reply
+# and judged it an agreement — never by the positional rule below, which fills
+# "the next empty slot" with whatever was typed.
+#
+# This is what showed three plans on the opening line. A customer whose facts
+# were already on disk from an earlier session had exactly one empty slot left,
+# `recommendation_confirmed`, so "I need help choosing health insurance" was
+# filed as their consent to see plans, the pipeline read as complete, and the
+# engine ran before the advisor had said a word.
+GATE_FIELDS: frozenset = frozenset({"recommendation_confirmed", "profile_confirmed"})
+
 DOMAIN_FIELDS: Dict[str, List[str]] = {
     # Every field an agent's QUESTION_PIPELINE asks for has to be storable here,
     # or that pipeline can never finish: _check_missing_details treats a field
@@ -456,6 +535,7 @@ class EnhancedProfileManager:
         user_name: Optional[str] = None,
         context_question: str = "",
         pipeline_fields: Optional[List[str]] = None,
+        answering_agent: bool = False,
     ) -> Dict[str, Any]:
         """
         Extract facts from message → write to BOTH shared and domain profiles.
@@ -467,6 +547,9 @@ class EnhancedProfileManager:
         pipeline_fields: the asking agent's question pipeline, in order. Lets a
         reply be filed against the step it answers when no extraction rule
         covers that field — see section 2b.
+
+        answering_agent: whether the advisor has spoken in this conversation, so
+        this message can be an answer to something. False on the opening line.
         """
         domain_customer_id = f"{domain}_{base_customer_id}"
 
@@ -486,6 +569,13 @@ class EnhancedProfileManager:
             for k, v in ctx_extracted.items():
                 if k not in extracted:  # supplement only — never override standard extraction
                     extracted[k] = v
+
+        # ── 1b-ii. A request to be spoken to in another language ──────────────
+        # Recorded like any other preference, and shared across domains: asking
+        # Sarah for Tamil should not have to be repeated to Alex.
+        requested_language = detect_language_request(message)
+        if requested_language:
+            extracted["language"] = requested_language
 
         # ── 1c. Filter out false cross-domain field extractions ───────────────
         extracted = self._filter_cross_domain_fields(extracted, domain)
@@ -516,10 +606,26 @@ class EnhancedProfileManager:
         # message answers. Recorded only when the heuristics did not already
         # find something better, and only when the message reads like an answer
         # rather than a question of their own.
-        if pipeline_fields:
+        #
+        # Two things this rule must not do, both of which it did:
+        #
+        # A reply is only "positioned" against a step if the advisor has said
+        # something for it to be a reply to. On the opening line there is
+        # nothing, so "I need help choosing health insurance" was filed as the
+        # answer to the first pipeline question — the customer's own greeting
+        # recorded as a fact about them.
+        #
+        # And a consent step is never filled this way at all (see GATE_FIELDS):
+        # agreeing to see plans is a decision, and the customer has to make it.
+        # This is the one that showed three plans on the opening message.
+        if pipeline_fields and answering_agent:
             merged_before = {**shared, **domain_profile}
             pending = next(
-                (f for f in pipeline_fields if not merged_before.get(f)), None
+                (
+                    f for f in pipeline_fields
+                    if f not in GATE_FIELDS and not merged_before.get(f)
+                ),
+                None,
             )
             if pending and not extracted.get(pending):
                 answer = message.strip()
@@ -578,6 +684,24 @@ class EnhancedProfileManager:
 
         # Return the merged view
         return domain_profile
+
+    def set_field(
+        self, base_customer_id: str, domain: str, field: str, value: Any
+    ) -> Dict[str, Any]:
+        """Write one field an agent has decided on, bypassing extraction.
+
+        The gate fields need this. They are never inferred from what the
+        customer typed — an agent reads the reply, judges it an agreement, and
+        records that judgement — so there is nothing for the extractor to do
+        and no message to hand it.
+        """
+        domain_customer_id = f"{domain}_{base_customer_id}"
+        profile = self.load_domain_profile(domain_customer_id)
+        profile["customer_id"] = domain_customer_id
+        profile[field] = value
+        profile["last_interaction"] = datetime.utcnow().isoformat()
+        self.save_domain_profile(domain_customer_id, profile)
+        return profile
 
     # ── Cross-domain context helper ───────────────────────────────────────────
 

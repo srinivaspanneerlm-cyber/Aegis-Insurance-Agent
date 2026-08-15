@@ -103,26 +103,49 @@ backup video paused in a player, GitHub Actions tab showing green CI.
 
 ### The conversation half — 60 seconds
 
-Type these in order. **Every line below was run against the live system**; the
-timings are what actually came back.
+Type these in order. The consultation now runs the full discovery before it
+will show anything, so this half is longer than it was — budget closer to 90
+seconds, and expect roughly 4–10s per LLM turn.
+
+> **Timings not re-measured.** The per-line timings in the previous version of
+> this table were taken from live rehearsal runs of the old five-step flow.
+> The advisor now asks eight questions and passes two consent gates before a
+> plan exists, so those numbers no longer describe this script. Rehearse it
+> once against the live system and write the real timings back in here before
+> presenting.
 
 | # | Type exactly | What comes back | Say while it thinks |
 |---|---|---|---|
-| 1 | `enakku family health insurance venum, budget 15k` | Sarah AI / health, ~4s. Asks how many members. | "I did not pick an agent and I did not type English. The orchestrator read Thanglish, decided this was health, and handed it to Sarah." |
-| 2 | `3 per, naan 32 vayasu wife 30 kid 5` | ~4–6s. Confirms the ages, asks the next question. | "A sentence, not a form. That is how people actually answer." |
-| 3 | `Coimbatore` | ~4–8s. Asks about medical conditions. | — |
-| 4 | `medical problem illa` | ~6–10s. Offers to show the plans. | "It collected what it needed and nothing more." |
-| 5 | `en plans-a kaatunga` | **The card** — three ranked plans with cover, monthly premium, cashless hospitals. ~8s. | "Three plans, ranked, with the reasoning: their budget, their ages, their city." |
-| 6 | `car insurance-um venuma?` | **~0.4s** — consent prompt: progress saved, shall I connect you to Alex? | "Now the part that is hard to copy. Different domain — and it does not switch on me. It asks." |
-| 7 | `illa, health insurance pathi pesalaam` | Sarah returns **and recites the whole profile**: 3 people, the ages, ₹15,000, Coimbatore, no conditions. | "One memory. It never lost the customer while it was asking about a different product." |
+| 1 | `enakku family health insurance venum, budget 15k` | Sarah AI / health. Asks who the cover is for. **No plans.** | "I did not pick an agent and I did not type English. The orchestrator read Thanglish, decided this was health, and handed it to Sarah." |
+| 2 | `enna plan best-nu sollunga` | Declines to name one, and asks the next question instead. | "This is the whole product. It will not recommend anything until it knows enough to recommend the right thing. A tool that answers that question now is guessing." |
+| 3 | `naan, wife, oru kozhandhai` | Asks how many in total. | "A sentence, not a form. That is how people actually answer." |
+| 4 | `3 per, naan 32 vayasu wife 30 kid 5` | Confirms the ages, asks what worries them most. | — |
+| 5 | `hospital bill romba adhigam aidum-nu bayam` | Asks what cover they already have. | "It is asking what they are afraid of, not just what they earn. That answer changes which plan wins." |
+| 6 | `office-la basic coverage irukku` | Asks the city. | — |
+| 7 | `Coimbatore` | Asks about medical conditions. | — |
+| 8 | `medical problem illa` | **Reads the whole profile back** and asks if it got it right. Still no plans. | "It is checking its own understanding before it acts on it." |
+| 9 | `aama, correct` | Says one plan fits, and **asks permission** to show why. Still no plans. | "It has picked one. It is asking before it shows me." |
+| 10 | `seri, kaatunga` | **The card** — one plan, with cover, premium, and why it won. | "One recommendation, with its reasons — not a shortlist handed back for me to choose from. The engine scored the catalogue; the advisor explains the result." |
+| 11 | `vera option irukka?` | Offers the next-best option and asks — does not dump the rest. | "Even the alternatives are asked for, never pushed." |
+| 12 | `car insurance-um venuma?` | **~0.4s** — consent prompt: progress saved, shall I connect you to Alex? | "Now the part that is hard to copy. Different domain — and it does not switch on me. It asks." |
+| 13 | `illa, health insurance pathi pesalaam` | Sarah returns **and recites the whole profile**: 3 people, the ages, ₹15,000, Coimbatore, no conditions. | "One memory. It never lost the customer while it was asking about a different product." |
 
-### Two things to make sure they see
+### Three things to make sure they see
 
-1. **Step 6 — the consent prompt.** It is the most impressive moment and the
-   most reliable: it needs no LLM call, so it lands in under half a second even
-   on bad wifi. Ran three times in rehearsal, worked three times.
-2. **Step 7 — the profile recited back.** This is the "it remembers me" moment,
-   and it is stronger than saying so.
+1. **Step 2 — the refusal to guess.** The judge's instinct is that an AI
+   advisor answers instantly. This one says it does not know enough yet, and
+   that is the differentiator.
+2. **Step 12 — the consent prompt.** The most reliable moment: it needs no LLM
+   call, so it lands in under half a second even on bad wifi. Ran three times
+   in rehearsal, worked three times.
+3. **Step 13 — the profile recited back.** This is the "it remembers me"
+   moment, and it is stronger than saying so.
+
+### If you are short on time
+
+Steps 3–7 are the discovery, and they are the least surprising part. You can
+answer them quickly and keep the narration for steps 2, 8, 9 and 10 — the
+refusal, the read-back, the permission, and the single recommendation.
 
 ### Lines that break the demo — tested, do not use
 

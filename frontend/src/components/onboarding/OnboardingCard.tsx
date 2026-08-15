@@ -104,7 +104,7 @@ export function OnboardingCard({ flow, customerName }: OnboardingCardProps) {
                 Which language suits you best?
               </h1>
               <p className="mt-1 text-[13px] font-medium text-slate-500 dark:text-slate-400">
-                Ungalukku edhu comfortable-o adhu select pannunga.
+                Pick whichever you are most comfortable reading.
               </p>
             </div>
             <div className="space-y-2.5" role="radiogroup" aria-label="Preferred language">

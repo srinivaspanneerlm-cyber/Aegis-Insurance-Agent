@@ -26,6 +26,10 @@ const MultiPlanSuite = dynamic(
   () => import("./chat/MultiPlanSuite").then((m) => m.MultiPlanSuite),
   { ssr: false, loading: RecSkeleton },
 );
+const SinglePlanRecommendation = dynamic(
+  () => import("./chat/SinglePlanRecommendation").then((m) => m.SinglePlanRecommendation),
+  { ssr: false, loading: RecSkeleton },
+);
 const RecommendationCard = dynamic(
   () => import("./chat/RecommendationCard").then((m) => m.RecommendationCard),
   { ssr: false, loading: RecSkeleton },
@@ -114,11 +118,14 @@ const ChatMessage = memo(function ChatMessage({
           </div>
         )}
 
-        {/* Recommendation card — single or multi-plan */}
+        {/* Recommendation card. The backend decides how many plans a turn is
+            allowed to show; this only renders what it sent. */}
         {parsed && !message.isStreaming && (
-          parsed.data.type === "multi_plan" && parsed.data.plans?.length
-            ? <MultiPlanSuite data={parsed.data} onUIAction={onUIAction} />
-            : <RecommendationCard data={parsed.data} onUIAction={onUIAction} />
+          parsed.data.type === "single_plan" && parsed.data.plans?.length
+            ? <SinglePlanRecommendation data={parsed.data} onUIAction={onUIAction} />
+            : parsed.data.type === "multi_plan" && parsed.data.plans?.length
+              ? <MultiPlanSuite data={parsed.data} onUIAction={onUIAction} />
+              : <RecommendationCard data={parsed.data} onUIAction={onUIAction} />
         )}
 
         {/* Timestamp + action buttons */}

@@ -165,12 +165,14 @@ class MemoryOrchestrator:
         """
         # Fetch last agent question for context-aware extraction
         last_agent_question = ""
+        answering_agent = False
         try:
             history = self.conversation_store.load_history(base_customer_id, domain)
             if history:
                 # History entries alternate user/assistant; find last assistant turn
                 for turn in reversed(history):
                     if turn.get("role") == "assistant":
+                        answering_agent = True
                         last_agent_question = trailing_question(turn.get("content", ""))
                         break
         except Exception as e:
@@ -180,7 +182,22 @@ class MemoryOrchestrator:
             base_customer_id, domain, message, user_name,
             context_question=last_agent_question,
             pipeline_fields=pipeline_fields,
+            # An advisor turn exists, so this message can be a reply to it. The
+            # question it asked may not have parsed (a turn that ends in a
+            # statement yields none), but the reply is still an answer and has
+            # to land somewhere, or the pipeline never advances.
+            answering_agent=answering_agent,
         )
+
+    def set_profile_field(
+        self, base_customer_id: str, domain: str, field: str, value: Any
+    ) -> Dict[str, Any]:
+        """Record one field the agent decided on, without running extraction.
+
+        Used for the consent gates, which are the agent's reading of a reply
+        rather than a fact extracted from it.
+        """
+        return self.profile_manager.set_field(base_customer_id, domain, field, value)
 
     def load_profile(self, base_customer_id: str, domain: str) -> Dict[str, Any]:
         """Load the merged profile (shared + domain) for a customer."""

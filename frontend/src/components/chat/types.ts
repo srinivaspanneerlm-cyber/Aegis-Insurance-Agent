@@ -43,6 +43,11 @@ export interface RecommendationData {
   plans?: MultiPlan[];
   total_plans?: number;
   recommended?: string;
+  // Single best-fit result (`type: "single_plan"`): why the engine chose this
+  // plan, and whether anything else is available if the customer asks.
+  reason_codes?: string[];
+  alternatives_available?: boolean;
+  considered_count?: number;
   risk_summary?: Record<string, number>;
   vehicle_cat?: string;
 }

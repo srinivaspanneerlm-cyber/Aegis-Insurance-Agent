@@ -14,11 +14,15 @@ export const MultiPlanCard = memo(function MultiPlanCard({
   category,
   index,
   onSelect,
+  showRank = true,
 }: {
   plan: MultiPlan;
   category: string;
   index: number;
   onSelect: (plan: MultiPlan) => void;
+  /** Rank badge and position number. Off when the plan is shown on its own —
+   *  "Best Match" only means something next to the matches it beat. */
+  showRank?: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
 
@@ -37,17 +41,21 @@ export const MultiPlanCard = memo(function MultiPlanCard({
         {/* Rank + plan name row */}
         <div className="flex items-start justify-between gap-3 mb-3">
           <div className="flex items-center gap-2.5">
-            <div className={`w-6 h-6 rounded-lg ${rankConfig.scoreBg} flex items-center justify-center flex-shrink-0`}>
-              {index === 0
-                ? <Star className={`w-3.5 h-3.5 ${rankConfig.scoreText}`} />
-                : <span className={`text-[9px] font-black ${rankConfig.scoreText}`}>#{plan.rank}</span>
-              }
-            </div>
-            <div>
-              <span className={`text-[8px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border ${rankConfig.badge}`}>
-                {rankConfig.label}
-              </span>
-            </div>
+            {showRank && (
+              <>
+                <div className={`w-6 h-6 rounded-lg ${rankConfig.scoreBg} flex items-center justify-center flex-shrink-0`}>
+                  {index === 0
+                    ? <Star className={`w-3.5 h-3.5 ${rankConfig.scoreText}`} />
+                    : <span className={`text-[9px] font-black ${rankConfig.scoreText}`}>#{plan.rank}</span>
+                  }
+                </div>
+                <div>
+                  <span className={`text-[8px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border ${rankConfig.badge}`}>
+                    {rankConfig.label}
+                  </span>
+                </div>
+              </>
+            )}
           </div>
           {/* Overall score */}
           <div className={`flex-shrink-0 px-2.5 py-1 rounded-xl ${rankConfig.scoreBg} border border-white/5`}>

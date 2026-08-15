@@ -13,7 +13,7 @@ export const ADVISORS = {
     accentBg: "bg-cyan-500/10",
     accentText: "text-cyan-400",
     pythonDomain: "motor",
-    intro: "Hey! 👋\n\nI'm Alex, your vehicle insurance advisor.\n\nCar or bike insurance pathi help venuma? Correct place-la vandhutenga! 😊\n\nEverything will be simple — no confusing language, no pressure.\n\nEna vehicle insure pannanum? Make and model sollunga!",
+    intro: "Hey! 👋\n\nI'm Alex, your vehicle insurance advisor.\n\nCar or bike — you're in the right place. I'll keep it simple: no jargon, no pressure.\n\nWhat are we insuring? Tell me the make and model.",
     placeholder: "Tell Alex about your vehicle...",
   },
   health: {
@@ -28,7 +28,7 @@ export const ADVISORS = {
     accentBg: "bg-emerald-500/10",
     accentText: "text-emerald-400",
     pythonDomain: "health",
-    intro: "Hello! 👋\n\nI'm Sarah, your health insurance advisor.\n\nநான் Sarah — உங்களுக்கு best health insurance plan கண்டுபிடிக்க இங்க இருக்கேன்.\n\nHealth insurance confusing-ah irukku? Don't worry — I'll explain everything step by step.\n\nWho are we looking to protect — just yourself, or your family too?",
+    intro: "Hello! 👋\n\nI'm Sarah, your health insurance advisor.\n\nHealth insurance can feel confusing — don't worry, I'll explain everything step by step, and I won't suggest anything until I understand what you actually need.\n\nWho are we looking to protect — just yourself, or your family too?",
     placeholder: "Ask Sarah about health plans for your family...",
   },
   travel: {
@@ -43,7 +43,7 @@ export const ADVISORS = {
     accentBg: "bg-purple-500/10",
     accentText: "text-purple-400",
     pythonDomain: "travel",
-    intro: "Hey, welcome! ✈️\n\nI'm Ethan, your travel insurance advisor.\n\nTrip plan panreengala? Perfect timing — right cover edutha, worry-free-ah travel panna mudiyum.\n\nWhere are you planning to travel?",
+    intro: "Hey, welcome! ✈️\n\nI'm Ethan, your travel insurance advisor.\n\nPlanning a trip? Good timing — with the right cover sorted, you can stop thinking about it and enjoy the travelling.\n\nWhere are you headed?",
     placeholder: "Tell Ethan about your travel plans...",
   },
   property: {
@@ -58,7 +58,7 @@ export const ADVISORS = {
     accentBg: "bg-amber-500/10",
     accentText: "text-amber-400",
     pythonDomain: "home-property",
-    intro: "Welcome! 🏡\n\nI'm Emma, your home insurance advisor.\n\nUngal home — life-la most important investment. Sari ah protect pannum plan kandupidipom.\n\nDo you own your home or are you renting?",
+    intro: "Welcome! 🏡\n\nI'm Emma, your home insurance advisor.\n\nYour home is usually the most valuable thing you own — let's find the cover that protects it properly.\n\nDo you own your home, or are you renting?",
     placeholder: "Ask Emma about protecting your home...",
   },
   miscellaneous: {
@@ -73,7 +73,7 @@ export const ADVISORS = {
     accentBg: "bg-rose-500/10",
     accentText: "text-rose-400",
     pythonDomain: "executive",
-    intro: "Good to connect. 💼\n\nI'm Sri, your guide at Aegis AI.\n\nHealth, Motor, Travel, or Home insurance — ungalukku ena help venum sollunga. Correct specialist kitta connect panniduven! 😊\n\nWhat brings you here today?",
+    intro: "Good to connect. 💼\n\nI'm Sri, your guide at Aegis AI.\n\nHealth, motor, travel or home insurance — tell me what you need and I'll connect you to the right specialist.\n\nWhat brings you here today?",
     placeholder: "Tell Sri about your risk protection needs...",
   },
 };
