@@ -130,6 +130,12 @@ seconds, and expect roughly 4–10s per LLM turn.
 | 12 | `car insurance-um venuma?` | **~0.4s** — consent prompt: progress saved, shall I connect you to Alex? | "Now the part that is hard to copy. Different domain — and it does not switch on me. It asks." |
 | 13 | `illa, health insurance pathi pesalaam` | Sarah returns **and recites the whole profile**: 3 people, the ages, ₹15,000, Coimbatore, no conditions. | "One memory. It never lost the customer while it was asking about a different product." |
 
+**If you do accept the transfer at step 12**, Alex runs the same consultation
+Sarah does — his own discovery, his own read-back, his own permission request,
+then one plan. Motor, travel and home all work this way; the flow is the
+product, not one advisor's script. It is a good thing to show if you have the
+time, and a long detour if you do not.
+
 ### Three things to make sure they see
 
 1. **Step 2 — the refusal to guess.** The judge's instinct is that an AI

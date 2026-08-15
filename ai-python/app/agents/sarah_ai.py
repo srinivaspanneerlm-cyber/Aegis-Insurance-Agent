@@ -10,44 +10,6 @@ from app.agents.base_agent import BaseInsuranceAgent
 from app.utils.logger import logger
 
 
-_AFFIRMATIVE = re.compile(
-    r"\b(yes|yeah|yep|yup|ya|aama|seri|sari|sure|ok|okay|proceed|show|view|"
-    r"go ahead|ready|please|absolutely|correct|right|exactly|thats right|"
-    r"let me see|show me|tell me|let.s see|show recommendations|confirm|"
-    r"sounds good|great|perfect|why not|of course)\b",
-    re.IGNORECASE,
-)
-
-# A reply that disagrees, however politely. Checked first: "no, that's not
-# right" contains "right", and "not correct" contains "correct".
-_NEGATIVE = re.compile(
-    r"\b(no|nope|not really|not quite|not right|not correct|incorrect|wrong|"
-    r"almost|nearly|actually|change|correction|illa|illai|wait|hold on|but )\b",
-    re.IGNORECASE,
-)
-
-
-def _is_agreement(message: str) -> bool:
-    """Whether this reply is the customer agreeing to something.
-
-    A gate is a decision the customer makes, so it takes an actual agreement to
-    pass one — not the word "ok" appearing somewhere in a sentence. "Ok but my
-    father is actually 65" is a correction, and treating it as consent skips
-    the step that exists to catch exactly that.
-
-    An agreement is short and says yes. Anything long enough to carry a new
-    fact is treated as new information rather than as a green light, and the
-    advisor asks again — the safe direction to be wrong in, since the cost is
-    one extra question instead of a plan the customer never asked to see.
-    """
-    text = message.strip()
-    if not text or _NEGATIVE.search(text):
-        return False
-    if not _AFFIRMATIVE.search(text):
-        return False
-    return len(text.split()) <= 8
-
-
 class SarahAI(BaseInsuranceAgent):
     DOMAIN = "health"
     NAME = "Sarah AI"
@@ -327,86 +289,6 @@ you genuinely care — because you do.
             logger.error(f"[SarahAI] Health engine error: {e}")
             # Fallback to base decision engine
             return super().recommend(profile, category)
-
-    # ── Confirmation detection ────────────────────────────────────────────────
-
-    # The two gates, in the order they must be passed. Neither can be filled by
-    # the profile writer (see GATE_FIELDS) — only by this method, having read
-    # the reply and judged it an agreement.
-    _GATES: List[str] = ["profile_confirmed", "recommendation_confirmed"]
-
-    def update_profile(
-        self, customer_id: str, message: str, user_name: Optional[str] = None
-    ) -> Dict[str, Any]:
-        profile = super().update_profile(customer_id, message, user_name)
-
-        data_fields = [
-            field for field, _ in self.QUESTION_PIPELINE if field not in self._GATES
-        ]
-        if not all(profile.get(field) for field in data_fields):
-            return profile
-
-        # Exactly one gate can be passed per turn, and only the next one: a
-        # single "yes" confirms the summary it was answering, and nothing more.
-        # Reading it as consent to both would put a plan on screen in the same
-        # turn the customer was still checking their own details.
-        pending_gate = next(
-            (gate for gate in self._GATES if not profile.get(gate)), None
-        )
-        if pending_gate and _is_agreement(message):
-            profile[pending_gate] = "yes"
-            self._persist_gate(customer_id, pending_gate, "yes")
-
-        return profile
-
-    def _after_turn(self, customer_id: str, profile: Dict[str, Any], ctx) -> None:
-        """Remember whether an offer of alternatives is outstanding.
-
-        The offer has to outlive the turn that made it: the customer's "yes, go
-        on" arrives one message later, carrying no clue about what it agrees to.
-        """
-        was_open = bool(profile.get("alternative_offered"))
-        if ctx.offer_alternatives and not was_open:
-            self._persist_gate(customer_id, "alternative_offered", "yes")
-        elif was_open:
-            # Taken up or let go — either way the question is no longer open.
-            self._persist_gate(customer_id, "alternative_offered", "")
-
-    def _persist_gate(self, customer_id: str, field: str, value: str) -> None:
-        """Record an advisor-side decision so it survives the next page load."""
-        if not self._memory_orch:
-            return
-        try:
-            self._memory_orch.set_profile_field(customer_id, self.DOMAIN, field, value)
-        except Exception as e:
-            logger.debug(f"[SarahAI] Failed to persist {field}: {e}")
-
-    # ── Multi-plan post-processing ────────────────────────────────────────────
-
-    def _ensure_recommendation_embedded(
-        self, reply: str, rec_result: Optional[dict], missing: list,
-        card_due: bool = True,
-    ) -> str:
-        """Attach the engine's result as a card, if this turn earned one.
-
-        The card is built here from what the engine returned, never from what
-        the model wrote, so the plan the customer sees is the plan that was
-        scored — the model narrates the decision, it does not make it.
-        """
-        if (
-            not missing
-            and card_due
-            and rec_result
-            and isinstance(rec_result, dict)
-            and rec_result.get("type") in ("single_plan", "multi_plan")
-            and "[RECOMMENDATION:" not in reply
-        ):
-            try:
-                rec_json = json.dumps(rec_result, ensure_ascii=False, default=str)
-                reply = reply.rstrip() + f"\n\n[RECOMMENDATION:{rec_json}]"
-            except Exception as e:
-                logger.error(f"[SarahAI] Failed to embed recommendation JSON: {e}")
-        return reply
 
     # ── Domain fallback ───────────────────────────────────────────────────────
 

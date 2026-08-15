@@ -80,6 +80,19 @@ describe("SinglePlanRecommendation", () => {
     expect(screen.queryByText(/next-best option compares/)).toBeNull();
   });
 
+  it.each([
+    ["health", "Recommended Health Plan"],
+    ["motor", "Recommended Motor Plan"],
+    ["travel", "Recommended Travel Plan"],
+    ["property", "Recommended Property Plan"],
+    ["home-property", "Recommended Property Plan"],
+  ])("names the domain on a %s recommendation", (category, heading) => {
+    // All four specialists produce single-plan results now, so none of them
+    // may fall through to a generic "Insurance" heading.
+    render(<SinglePlanRecommendation data={{ ...data, category }} />);
+    expect(screen.getByText(heading)).toBeTruthy();
+  });
+
   it("renders nothing rather than an empty card when no plan came through", () => {
     const { container } = render(
       <SinglePlanRecommendation data={{ ...data, plans: [] }} />

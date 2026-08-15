@@ -9,6 +9,46 @@ import re
 
 from .travel_plans import TRAVEL_PLANS, PLANS_BY_SEGMENT, SEGMENT_THRESHOLDS, TRAVEL_TYPE_KEYWORDS
 
+# Catalogue keyed the way a scored result refers to a plan.
+_PLAN_BY_ID: Dict[str, Dict[str, Any]] = {
+    plan["plan_id"]: plan for plan in TRAVEL_PLANS.values()
+}
+
+
+def _reason_codes(
+    plan: Dict[str, Any],
+    profile: Dict[str, Any],
+    scores: Dict[str, int],
+) -> List[str]:
+    """Why this plan won, traced back to what the customer actually said."""
+    codes: List[str] = []
+    dest      = str(profile.get("destination") or "").strip()
+    purpose   = str(profile.get("purpose") or "").strip()
+    ages      = str(profile.get("traveller_ages") or "").strip()
+    medical   = str(profile.get("medical_conditions") or "").strip()
+    visa      = str(profile.get("visa_requirement") or "").strip()
+    trip_cost = str(profile.get("trip_cost") or "").strip()
+
+    if dest:
+        codes.append(f"Cover matched to their destination: \"{dest}\".")
+    if visa:
+        codes.append(
+            f"Their stated visa requirement — \"{visa}\" — was a hard constraint "
+            f"on which plans could qualify."
+        )
+    if purpose:
+        codes.append(f"Rated for the trip they described: {purpose}.")
+    if ages:
+        codes.append(f"Traveller ages taken into account: {ages}.")
+    if medical:
+        codes.append(f"Declared medical conditions factored in: \"{medical}\".")
+    if trip_cost:
+        codes.append(f"Trip cancellation cover sized against the trip cost they gave: {trip_cost}.")
+    if not codes:
+        codes.append("Highest overall score against the requirements they confirmed.")
+    return codes
+
+
 
 # ── Parsers ───────────────────────────────────────────────────────────────────
 
@@ -595,14 +635,17 @@ def _build_plan_quality(
 
 # ── Top-3 recommendation ──────────────────────────────────────────────────────
 
-def get_top3_recommendations(
+def _rank_segment_plans(
     profile: Dict[str, Any],
-    risk: Optional[Dict[str, Any]] = None,
-) -> Dict[str, Any]:
-    segment = classify_segment(profile)
-    if risk is None:
-        risk = analyse_risk(profile)
+    risk: Dict[str, Any],
+    segment: str,
+) -> List[Dict[str, Any]]:
+    """Every plan in the customer's segment, scored and ranked best-first.
 
+    The single shared scoring pass behind both entry points below, so a
+    best-fit plan is by construction the plan that would have ranked #1 in the
+    shortlist — one engine, one ordering, two presentations of it.
+    """
     plan_keys = PLANS_BY_SEGMENT.get(segment, PLANS_BY_SEGMENT["standard"])
     scored: List[tuple] = []
 
@@ -684,6 +727,20 @@ def get_top3_recommendations(
             "limitations":        quality["limitations"],
         })
 
+    return plans_out
+
+
+def get_top3_recommendations(
+    profile: Dict[str, Any],
+    risk: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    """The full ranked shortlist for this profile."""
+    segment = classify_segment(profile)
+    if risk is None:
+        risk = analyse_risk(profile)
+
+    plans_out = _rank_segment_plans(profile, risk, segment)
+
     return {
         "type":          "multi_plan",
         "category":      "travel",
@@ -694,4 +751,56 @@ def get_top3_recommendations(
         "plans":         plans_out,
         "total_plans":   len(plans_out),
         "recommended":   plans_out[0]["plan_name"] if plans_out else "",
+    }
+
+
+def get_best_fit_recommendation(
+    profile: Dict[str, Any],
+    risk: Optional[Dict[str, Any]] = None,
+    exclude_plan_ids: Optional[List[str]] = None,
+) -> Optional[Dict[str, Any]]:
+    """The single plan that best fits this profile.
+
+    The customer asked one question — what should I buy? — and a shortlist is
+    not an answer to it, it is the choosing handed back to them. The engine
+    already knows which plan scores highest; this returns that one with the
+    reasons it won, and keeps the rest available for a customer who explicitly
+    asks what else there is.
+
+    `exclude_plan_ids` skips plans already shown, which is how "can I see
+    another option?" is served without dumping the catalogue.
+    """
+    segment = classify_segment(profile)
+    if risk is None:
+        risk = analyse_risk(profile)
+
+    ranked = _rank_segment_plans(profile, risk, segment)
+    if not ranked:
+        return None
+
+    excluded  = set(exclude_plan_ids or [])
+    remaining = [p for p in ranked if p["plan_id"] not in excluded]
+    if not remaining:
+        return None
+
+    # Presented on its own, so it is not "rank 2 of 3" to the customer.
+    best = {**remaining[0], "rank": 1}
+
+    return {
+        "type":          "single_plan",
+        "category":      "travel",
+        "segment":       segment.capitalize(),
+        "travel_type":   classify_travel_type(profile),
+        "destination":   profile.get("destination", ""),
+        "risk_summary":  {k: v for k, v in risk.items() if not k.startswith("_")},
+        "plans":         [best],
+        "total_plans":   1,
+        "recommended":   best["plan_name"],
+        "reason_codes": _reason_codes(
+            _PLAN_BY_ID[best["plan_id"]], profile, best["scores"]
+        ),
+        # There are others, and the customer is told so — but they are
+        # not sent until asked for.
+        "alternatives_available": len(remaining) > 1,
+        "considered_count":       len(ranked),
     }

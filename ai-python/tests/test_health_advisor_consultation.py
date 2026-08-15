@@ -21,7 +21,8 @@ import asyncio
 
 import pytest
 
-from app.agents.sarah_ai import SarahAI, _is_agreement
+from app.agents.base_agent import is_agreement
+from app.agents.sarah_ai import SarahAI
 from app.agents.health_engine import get_best_fit_recommendation
 from app.memory.memory_orchestrator import MemoryOrchestrator
 from app.utils.customer_identity import derive_customer_id
@@ -234,7 +235,7 @@ class TestGates:
         "Come on, tell me", "Show me", "Okay", "seri", "aama",
     ])
     def test_the_ways_people_actually_say_yes(self, reply):
-        assert _is_agreement(reply)
+        assert is_agreement(reply)
 
     @pytest.mark.parametrize("reply", [
         "Ok but my father is actually 65",
@@ -244,7 +245,7 @@ class TestGates:
         "Actually, can you change the budget to 3000",
     ])
     def test_replies_that_are_not_agreement(self, reply):
-        assert not _is_agreement(reply)
+        assert not is_agreement(reply)
 
 
 # ── The engine decides, and it decides once ───────────────────────────────────

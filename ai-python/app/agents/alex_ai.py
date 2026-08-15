@@ -10,14 +10,6 @@ from app.agents.base_agent import BaseInsuranceAgent
 from app.utils.logger import logger
 
 
-_AFFIRMATIVE = re.compile(
-    r"\b(yes|yeah|yep|yup|sure|ok|okay|proceed|show|view|go ahead|ready|"
-    r"please|absolutely|let me see|show me|let.s see|show recommendations|"
-    r"confirm|sounds good|great|perfect)\b",
-    re.IGNORECASE,
-)
-
-
 class AlexAI(BaseInsuranceAgent):
     DOMAIN = "motor"
     NAME = "Alex AI"
@@ -46,6 +38,7 @@ class AlexAI(BaseInsuranceAgent):
         ("budget",            "What's your approximate annual premium budget? A rough figure is fine."),
         ("insurance_type",    "Are you looking for comprehensive cover, or specifically third-party only?"),
         ("claim_history",     "Has there been any insurance claim on this vehicle in the last 2–3 years?"),
+        ("profile_confirmed",        "SUMMARY_STEP"),
         ("recommendation_confirmed", "CONFIRMATION_STEP"),
     ]
 
@@ -111,7 +104,28 @@ Order:
 7. Annual budget — rough range fine
 8. Comprehensive or third-party only
 9. Prior claims in last 2-3 years
-10. Confirm → show 3 plans
+10. Summary — say back what you understood and ask if it's right
+11. Permission — "one plan looks like a good fit, shall I show you?" — then WAIT
+
+=== NO PLAN BEFORE THE PERMISSION STEP ===
+This is the rule that matters most. Until the read-back and the permission are done:
+no plan name, no premium, no coverage amount, no match percentage,
+no "best plan", no comparison. Show nothing.
+
+If the customer asks "which plan should I take?" before then — do not name one.
+Say something like:
+"I'd be happy to recommend one, but first I want to understand your situation
+properly so I don't suggest something that doesn't actually fit your needs."
+Then ask the next question and carry on.
+
+=== WHEN YOU PRESENT IT ===
+ONE plan. The engine selects it, not you. You are the advisor who explains it.
+▸ Connect it to the requirements they actually gave you — be specific
+▸ Be honest about the budget. If it is above what they said, say so plainly
+▸ Name a real trade-off from the plan data — a deductible, an exclusion, a
+  waiting period. A recommendation with no trade-off in it is a sales pitch
+▸ They want to compare → ask "shall I show you the next-best option and explain
+  how it differs?" and wait. Never dump the whole list
 
 RULES:
 ▸ Vehicle details they have already given — NEVER ask again
@@ -200,11 +214,11 @@ itself. Let me put a quick comparison together and you can decide in your own
 time — no pressure."
 
 === RECOMMENDATION STYLE ===
-After showing plans:
-▸ Vehicle profile summary (type, year, city, usage)
-▸ Why #1 fits this specific vehicle (age, city theft rate, usage)
-▸ Key feature differences between 3 plans
-▸ Long-term value: NCB savings, zero dep benefit math
+When you present the plan:
+▸ A one-line summary of the vehicle profile (type, year, city, usage)
+▸ Why this plan fits this specific vehicle — its age, the city, how it is used
+▸ A real trade-off from the plan data: a deductible, an exclusion, what is not covered
+▸ Long-term value: NCB savings, whether zero dep is worth it at this age
 ▸ End: it is their call — invite questions, apply no pressure
 
 After recommendation:
@@ -233,75 +247,42 @@ Direct • Practical • Vehicle-knowledgeable • Warm • Human
 
     # ── Engine override ───────────────────────────────────────────────────────
 
-    def recommend(self, profile: Dict[str, Any], category: str) -> Optional[Dict]:
-        """Use the Aegis AI motor recommendation engine instead of the base decision engine."""
+    def recommend(
+        self,
+        profile: Dict[str, Any],
+        category: str,
+        exclude_plan_ids: Optional[List[str]] = None,
+    ) -> Optional[Dict]:
+        """The one plan the Aegis motor engine scores highest for this profile.
+
+        One, not three. A customer who has just answered a full consultation
+        asked what they should buy; three ranked cards hands the choosing back
+        to them. The other plans in their segment are still scored and still
+        reachable — `exclude_plan_ids` is how an explicit request for something
+        else is answered — but nothing beyond the recommendation is sent unless
+        it is asked for.
+        """
         try:
-            from app.agents.motor_engine import get_top3_recommendations, analyse_risk
+            from app.agents.motor_engine import get_best_fit_recommendation, analyse_risk
             risk = analyse_risk(profile)
-            return get_top3_recommendations(profile, risk)
+            return get_best_fit_recommendation(profile, risk, exclude_plan_ids)
         except Exception as e:
             logger.error(f"[AlexAI] Motor engine error: {e}")
             return super().recommend(profile, category)
-
-    # ── Confirmation detection ────────────────────────────────────────────────
-
-    def update_profile(
-        self, customer_id: str, message: str, user_name: Optional[str] = None
-    ) -> Dict[str, Any]:
-        profile = super().update_profile(customer_id, message, user_name)
-
-        if not profile.get("recommendation_confirmed"):
-            data_fields_done = all(
-                profile.get(field)
-                for field, question in self.QUESTION_PIPELINE[:-1]
-            )
-            if data_fields_done and _AFFIRMATIVE.search(message):
-                profile["recommendation_confirmed"] = "yes"
-                if self._memory_orch:
-                    try:
-                        self._memory_orch.update_profile(
-                            customer_id, self.DOMAIN,
-                            "recommendation_confirmed: yes",
-                            user_name,
-                        )
-                    except Exception as e:
-                        logger.debug(f"[AlexAI] Failed to persist recommendation confirmation: {e}")
-
-        return profile
-
-    # ── Multi-plan post-processing ────────────────────────────────────────────
-
-    def _ensure_recommendation_embedded(
-        self, reply: str, rec_result: Optional[dict], missing: list,
-        card_due: bool = True,
-    ) -> str:
-        if (
-            not missing
-            and card_due
-            and rec_result
-            and isinstance(rec_result, dict)
-            and rec_result.get("type") == "multi_plan"
-            and "[RECOMMENDATION:" not in reply
-        ):
-            try:
-                rec_json = json.dumps(rec_result, ensure_ascii=False, default=str)
-                reply = reply.rstrip() + f"\n\n[RECOMMENDATION:{rec_json}]"
-            except Exception as e:
-                logger.error(f"[AlexAI] Failed to embed multi-plan JSON: {e}")
-        return reply
 
     # ── Domain fallback ───────────────────────────────────────────────────────
 
     def _domain_fallback(self, user_name: str, profile: dict, rec_result: Optional[dict]) -> str:
         name = user_name or "there"
-        if rec_result and isinstance(rec_result, dict) and rec_result.get("type") == "multi_plan":
+        if rec_result and isinstance(rec_result, dict) and rec_result.get("plans"):
             plans = rec_result.get("plans", [])
             top = plans[0] if plans else {}
             vehicle = profile.get("vehicle_detail") or profile.get("vehicle_type") or "your vehicle"
             return (
-                f"Alex AI here, {name}. For {vehicle}, I've identified three motor insurance plans. "
-                f"My top pick is **{top.get('plan_name', 'Aegis Road Elite')}** — "
-                f"{top.get('policy_type', 'Comprehensive')} at {top.get('premium', '₹12,000/year')}. "
+                f"Alex AI here, {name}. For {vehicle}, the cover I'd recommend is "
+                f"**{top.get('plan_name')}** — {top.get('policy_type', '')} at "
+                f"{top.get('premium')}. Ask me anything about it, or say the word "
+                f"if you'd like to see how the next-best option compares. "
                 f"[RECOMMENDATION:{json.dumps(rec_result, default=str)}]"
             )
         vehicle = profile.get("vehicle_detail") or profile.get("vehicle_type") or "your vehicle"

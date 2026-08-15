@@ -1,7 +1,7 @@
 "use client";
 import React, { memo } from "react";
 import { motion } from "framer-motion";
-import { Car, Globe, Shield, Activity, Info } from "lucide-react";
+import { Car, Globe, Shield, Activity, Home, Info } from "lucide-react";
 import type { MultiPlan, RecommendationData } from "./types";
 import { MultiPlanCard } from "./MultiPlanCard";
 
@@ -13,10 +13,16 @@ import { MultiPlanCard } from "./MultiPlanCard";
 // to it inviting a decision the customer already asked us to make. The
 // alternatives are still there; they arrive when they are asked for.
 
+// Every domain the specialists cover. `property` and `home-property` both
+// appear — the engine labels its result "property" while the agent's domain key
+// is "home-property", and a card that fell through to "Insurance" would be the
+// only one of the four without its own name on it.
 const CATEGORY_META: Record<string, { Icon: typeof Shield; label: string }> = {
-  health: { Icon: Activity, label: "Health" },
-  motor:  { Icon: Car,      label: "Motor" },
-  travel: { Icon: Globe,    label: "Travel" },
+  health:           { Icon: Activity, label: "Health" },
+  motor:            { Icon: Car,      label: "Motor" },
+  travel:           { Icon: Globe,    label: "Travel" },
+  property:         { Icon: Home,     label: "Property" },
+  "home-property":  { Icon: Home,     label: "Property" },
 };
 
 export const SinglePlanRecommendation = memo(function SinglePlanRecommendation({
