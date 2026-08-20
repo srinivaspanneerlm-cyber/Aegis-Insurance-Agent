@@ -4,6 +4,7 @@ import { RefObject } from "react";
 import { Send, ChevronLeft } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import VoiceEngine from "@/components/VoiceEngine";
+import type { VoiceRuntime } from "@/hooks/useVoiceRuntime";
 import { AttachmentMenu } from "@/components/documents";
 import type { AttachmentSource } from "@/lib/documents/attachmentSources";
 import { ADVISORS, type AdvisorKey } from "@/lib/advisors";
@@ -13,9 +14,9 @@ interface ChatComposerProps {
   onReturnToPrevious: () => void;
   isStreaming: boolean;
   onSubmit: (e?: React.FormEvent) => void;
-  onFinalTranscript: (text: string) => void;
+  /** The page's voice turn machine. The composer only hands it to VoiceEngine. */
+  voiceRuntime: VoiceRuntime;
   speakText: string | null;
-  onSpeakEnd: () => void;
   voiceAgentDomain: string;
   textareaRef: RefObject<HTMLTextAreaElement | null>;
   inputVal: string;
@@ -29,7 +30,7 @@ interface ChatComposerProps {
 /** Bottom input area: return-to-previous pill, voice engine, textarea, send. */
 export function ChatComposer({
   previousAdvisorCategory, onReturnToPrevious, isStreaming, onSubmit,
-  onFinalTranscript, speakText, onSpeakEnd, voiceAgentDomain,
+  voiceRuntime, speakText, voiceAgentDomain,
   textareaRef, inputVal, onInputChange, onKeyDown, placeholder, onAttach,
 }: ChatComposerProps) {
   return (
@@ -74,12 +75,10 @@ export function ChatComposer({
         {/* Voice engine */}
         <div className="flex-shrink-0 pb-1">
           <VoiceEngine
-            onFinalTranscript={onFinalTranscript}
+            runtime={voiceRuntime}
             speakText={speakText}
-            onSpeakEnd={onSpeakEnd}
             agentDomain={voiceAgentDomain}
             disabled={isStreaming}
-            autoSpeak={false}
           />
         </div>
 

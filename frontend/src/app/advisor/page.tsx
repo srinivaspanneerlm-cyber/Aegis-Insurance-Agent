@@ -7,6 +7,7 @@ import { type ChatMsg, type RecommendationData } from "@/components/ChatMessage"
 import TransferDialog from "@/components/TransferDialog";
 import InterruptDialog from "@/components/InterruptDialog";
 import { useStreaming, type ChatHistoryItem } from "@/hooks/useStreaming";
+import { useVoiceRuntime, type VoiceRuntime } from "@/hooks/useVoiceRuntime";
 import { uiActionService } from "@/services/api";
 
 // ── Advisor roster (shared) & page-local helpers ─────────────────────────────
@@ -72,6 +73,9 @@ function AdvisorChat() {
   // Allow sendToAdvisor to read latest messages without stale closure
   const conversationRef = useRef<ChatMsg[]>([]);
   conversationRef.current = messages;
+  // The voice turn machine is created below, after the send path it drives.
+  // Effects and stream callbacks defined before it reach it through this ref.
+  const voiceRuntimeRef = useRef<VoiceRuntime | null>(null);
 
   const { state: streamState, stream, cancel: cancelStream } = useStreaming();
 
@@ -94,6 +98,10 @@ function AdvisorChat() {
   // ── Load agent history from localStorage on agent switch ──────────────────
   useEffect(() => {
     cancelStream();
+    // The turn that stream belonged to is gone too. Without this the runtime
+    // would sit in PROCESSING waiting for a reply that was just aborted, and
+    // the microphone stays locked out behind it.
+    voiceRuntimeRef.current?.reset();
     const domain = ADVISORS[activeCategory].pythonDomain;
     const adv = ADVISORS[activeCategory];
     const stored = loadAgentHistory(domain);
@@ -256,6 +264,17 @@ function AdvisorChat() {
             ]);
 
             setSpeakText(result.text);
+
+            // Whether to say this out loud is answered by the turn state alone.
+            // PROCESSING is only ever reached through `submitTurn`, so it *is*
+            // the record that this reply answers something the customer spoke;
+            // a typed turn leaves the runtime IDLE and stays silent, exactly as
+            // it did before. If there is nothing to read out, the turn is still
+            // closed — a refused `startSpeaking` would otherwise strand it.
+            const voice = voiceRuntimeRef.current;
+            if (voice?.turnState === "PROCESSING" && !voice.startSpeaking(result.text)) {
+              voice.reset();
+            }
           },
           onTransferSuggested: (info) => {
             transfer.suggestTransfer(info, activeCategory);
@@ -269,6 +288,19 @@ function AdvisorChat() {
       addErrorMsg();
     }
   }, [activeCategory, stream]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Voice turn machine ────────────────────────────────────────────────────
+  // Composed over the same two hooks the page already uses: it owns `useVoice`
+  // (mic, recogniser, speaker) and only *observes* `useStreaming`. There is no
+  // second transport and no second send path — a spoken turn goes through
+  // `sendToAdvisor`, the same function the textarea uses, so it reaches
+  // CentralOrchestrator on the same session as everything else.
+  const voiceRuntime = useVoiceRuntime({
+    onSubmit: sendToAdvisor,
+    stream: streamState,
+    onSpeakEnd: () => setSpeakText(null),
+  });
+  voiceRuntimeRef.current = voiceRuntime;
 
   const handleSend = useCallback(async (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -475,12 +507,8 @@ function AdvisorChat() {
             onReturnToPrevious={handleReturnToPrevious}
             isStreaming={isStreaming}
             onSubmit={handleSend}
-            onFinalTranscript={(text) => {
-              setInputVal(text);
-              setTimeout(() => sendToAdvisor(text), 0);
-            }}
+            voiceRuntime={voiceRuntime}
             speakText={speakText}
-            onSpeakEnd={() => setSpeakText(null)}
             voiceAgentDomain={streamState.agentDomain || advisor.pythonDomain}
             textareaRef={textareaRef}
             inputVal={inputVal}

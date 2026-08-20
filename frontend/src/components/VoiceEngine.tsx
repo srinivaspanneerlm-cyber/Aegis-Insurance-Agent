@@ -2,16 +2,21 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Mic, MicOff, Volume2, VolumeX, RotateCcw, Loader2 } from "lucide-react";
-import { useVoice } from "@/hooks/useVoice";
+import type { VoiceRuntime } from "@/hooks/useVoiceRuntime";
 
 // ── Props ──────────────────────────────────────────────────────────────────────
+/**
+ * Presentational only. The microphone, the recogniser and the speaker are owned
+ * by `useVoiceRuntime` on the advisor page, because the page is where the send
+ * path and the stream already live — a turn cannot be sequenced from inside a
+ * button. This component draws that runtime and calls its controls.
+ */
 interface VoiceEngineProps {
-  onFinalTranscript: (text: string) => void;
+  runtime: VoiceRuntime;
+  /** The latest advisor reply, offered for replay. Hidden while it is playing. */
   speakText?: string | null;
-  onSpeakEnd?: () => void;
   agentDomain?: string;
   disabled?: boolean;
-  autoSpeak?: boolean;
 }
 
 // ── Domain accent colors ───────────────────────────────────────────────────────
@@ -29,12 +34,10 @@ const BAR_COUNT = 24;
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function VoiceEngine({
-  onFinalTranscript,
+  runtime,
   speakText,
-  onSpeakEnd,
   agentDomain = "health",
   disabled = false,
-  autoSpeak = false,
 }: VoiceEngineProps) {
   const accent = DOMAIN_ACCENT[agentDomain] || DOMAIN_ACCENT.health;
 
@@ -42,28 +45,17 @@ export default function VoiceEngine({
   const [bars, setBars] = useState<number[]>(Array(BAR_COUNT).fill(0));
   const barTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const voice = useVoice({
-    language: "en-IN",
-    rate: 0.93,
-    onTranscript: (text, isFinal) => {
-      if (isFinal && text.trim()) {
-        onFinalTranscript(text.trim());
-      }
-    },
-    onSpeakEnd,
-  });
-
   // Animate waveform bars when listening or speaking
   useEffect(() => {
-    const active = voice.isListening || voice.isSpeaking;
+    const active = runtime.isListening || runtime.isSpeaking;
     if (active) {
       barTimerRef.current = setInterval(() => {
         setBars(prev =>
           prev.map((_, i) => {
             const center = Math.abs(i - BAR_COUNT / 2);
             const envelope = Math.max(0, 1 - center / (BAR_COUNT / 2));
-            const noise = voice.isListening
-              ? voice.volume * 0.7 + Math.random() * 0.3
+            const noise = runtime.isListening
+              ? runtime.volume * 0.7 + Math.random() * 0.3
               : 0.4 + Math.random() * 0.4;
             return noise * envelope;
           })
@@ -74,27 +66,24 @@ export default function VoiceEngine({
       setBars(Array(BAR_COUNT).fill(0));
     }
     return () => { if (barTimerRef.current) clearInterval(barTimerRef.current); };
-  }, [voice.isListening, voice.isSpeaking, voice.volume]);
+  }, [runtime.isListening, runtime.isSpeaking, runtime.volume]);
 
-  // Auto-speak when speakText changes
-  useEffect(() => {
-    if (autoSpeak && speakText) {
-      voice.speak(speakText);
-    }
-  }, [speakText, autoSpeak]);
+  // Replying out loud is the runtime's decision, not this component's: it reads
+  // a spoken turn back automatically and leaves a typed one silent. Nothing is
+  // auto-played from here.
 
   const handleMicClick = () => {
     if (disabled) return;
-    if (voice.isListening) {
-      voice.stopListening();
-    } else if (voice.isSpeaking) {
-      voice.stopSpeaking();
+    if (runtime.isListening) {
+      runtime.stopListening();
+    } else if (runtime.isSpeaking) {
+      runtime.stopSpeaking();
     } else {
-      voice.startListening();
+      void runtime.startListening();
     }
   };
 
-  const active = voice.isListening || voice.isSpeaking;
+  const active = runtime.isListening || runtime.isSpeaking;
 
   return (
     <div className="flex items-center gap-2 relative">
@@ -122,35 +111,39 @@ export default function VoiceEngine({
 
       {/* Interim transcript preview */}
       <AnimatePresence>
-        {voice.transcript && voice.isListening && (
+        {runtime.transcript && runtime.isListening && (
           <motion.div
             initial={{ opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
             className="absolute bottom-full left-0 mb-2 max-w-[220px] px-3 py-2 rounded-xl bg-slate-900/90 border border-white/10 text-xs text-white/60 truncate backdrop-blur-md shadow-xl"
           >
-            {voice.transcript}
+            {runtime.transcript}
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Error message */}
+      {/* Why voice stopped. Floated above the composer like the interim
+          transcript rather than sitting inside the row: these messages name a
+          cause and a way out, and the 140px sliver this used to be squeezed
+          them into an unreadable three-line smear that also shrank the input. */}
       <AnimatePresence>
-        {voice.error && voice.voiceState === "error" && (
+        {runtime.error && runtime.turnState === "ERROR" && (
           <motion.div
-            initial={{ opacity: 0, x: 4 }}
-            animate={{ opacity: 1, x: 0 }}
+            role="alert"
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
-            className="text-[10px] text-red-400 max-w-[140px] leading-tight"
+            className="absolute bottom-full left-0 mb-2 w-[min(22rem,70vw)] px-3 py-2 rounded-xl bg-slate-900/95 border border-red-500/30 text-xs leading-snug text-red-300 backdrop-blur-md shadow-xl"
           >
-            {voice.error}
+            {runtime.error}
           </motion.div>
         )}
       </AnimatePresence>
 
       {/* Main control button */}
       <AnimatePresence mode="wait">
-        {voice.voiceState === "requesting" ? (
+        {runtime.hardwareState === "requesting" ? (
           <motion.div
             key="requesting"
             initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}
@@ -159,29 +152,29 @@ export default function VoiceEngine({
             <Loader2 className="w-4 h-4 text-white/30 animate-spin" />
           </motion.div>
 
-        ) : voice.voiceState === "speaking" ? (
+        ) : runtime.isSpeaking ? (
           <motion.button
             key="speaking"
             initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}
-            onClick={() => voice.stopSpeaking()}
+            onClick={() => runtime.stopSpeaking()}
             title="Stop speaking"
             className="w-9 h-9 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-400 flex items-center justify-center hover:bg-rose-500/25 transition-colors"
           >
             <VolumeX className="w-4 h-4" />
           </motion.button>
 
-        ) : voice.voiceState === "error" ? (
+        ) : runtime.turnState === "ERROR" ? (
           <motion.button
             key="error"
             initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}
-            onClick={voice.retryAfterError}
+            onClick={runtime.reset}
             title="Retry microphone"
             className={`w-9 h-9 rounded-xl border flex items-center justify-center transition-colors ${accent.errBtn}`}
           >
             <RotateCcw className="w-4 h-4" />
           </motion.button>
 
-        ) : voice.isListening ? (
+        ) : runtime.isListening ? (
           <motion.button
             key="listening"
             initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}
@@ -215,14 +208,16 @@ export default function VoiceEngine({
         )}
       </AnimatePresence>
 
-      {/* Manual speak button (shown if not auto-speaking) */}
-      {!autoSpeak && speakText && !voice.isSpeaking && (
+      {/* Replay the last reply. Hidden while it is already playing, while the
+          mic is open, and while a turn is in flight — clicking it during a
+          dispatch would consume the transition the incoming reply needs. */}
+      {speakText && !runtime.isBusy && runtime.can("START_SPEAKING") && (
         <AnimatePresence>
           <motion.button
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0 }}
-            onClick={() => voice.speak(speakText)}
+            onClick={() => runtime.startSpeaking(speakText)}
             title="Play advisor response"
             className={`w-9 h-9 rounded-xl border flex items-center justify-center transition-all ${accent.btn}`}
           >
