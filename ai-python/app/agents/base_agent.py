@@ -13,6 +13,12 @@ from app.utils.prompt_safety import sanitize_profile_value
 from app.utils.customer_identity import derive_customer_id
 from app.utils.money import parse_amount
 from app.prompts.document_prompts import DOCUMENT_REQUEST_PROMPT
+from app.orchestrator.interrupt_detector import DOMAIN_KEYWORDS, PRODUCT_TERM_RE
+
+# A message no longer than this is nothing but the request itself, so it needs
+# no further evidence before a transfer is offered. InterruptDetector uses the
+# same threshold for the same reason; see _reads_as_a_request_to_switch.
+_BOUNDARY_SHORT_MESSAGE_WORDS = 5
 from app.middleware.conversation_middleware import (
     ConversationMiddleware,
     ConversationIntent,
@@ -189,20 +195,104 @@ class BaseInsuranceAgent(ABC):
 
     # ── Domain boundary ───────────────────────────────────────────────────────
 
+    @classmethod
+    def _forbidden_patterns(cls) -> Dict[str, List[Any]]:
+        """
+        FORBIDDEN_DOMAINS keywords compiled to word-boundary patterns, cached
+        per subclass.
+
+        Substring matching made short keywords fire from inside ordinary words,
+        and this check short-circuits the whole turn, so every hit abandoned the
+        consultation and offered a transfer. Sarah's motor list was the worst of
+        it: "car" fired from "care", "healthcare", "caregiver", "cardiac" and
+        "career", and "ev" — meant for electric vehicles — fired from "even",
+        "every", "never", "seven", "level", "severe" and "prevent". A customer
+        saying "I want the best care for my parents" was told to go and talk to
+        Alex about motor insurance.
+
+        `\\b` anchors each phrase so it matches only as a whole word. This is the
+        same fix IntentDetectionEngine._compiled_lexicon() already carries; the
+        two are kept deliberately alike.
+
+        Cached in `cls.__dict__` rather than via attribute lookup so each agent
+        compiles its own list instead of inheriting the first one to be built.
+        """
+        cache = cls.__dict__.get("_FORBIDDEN_RE")
+        if cache is None:
+            cache = {
+                domain_key: [
+                    re.compile(rf"\b{re.escape(kw)}\b", re.IGNORECASE)
+                    for kw in info.get("keywords", [])
+                ]
+                for domain_key, info in cls.FORBIDDEN_DOMAINS.items()
+            }
+            cls._FORBIDDEN_RE = cache
+        return cache
+
+    @classmethod
+    def _own_domain_pattern(cls):
+        """This agent's own vocabulary, compiled once per subclass."""
+        if "_OWN_DOMAIN_RE" not in cls.__dict__:
+            keywords = DOMAIN_KEYWORDS.get(cls.DOMAIN, [])
+            cls._OWN_DOMAIN_RE = (
+                re.compile(
+                    r"\b("
+                    + "|".join(re.escape(k) for k in sorted(keywords, key=len, reverse=True))
+                    + r")\b",
+                    re.IGNORECASE,
+                )
+                if keywords
+                else None
+            )
+        return cls._OWN_DOMAIN_RE
+
+    def _reads_as_a_request_to_switch(self, message: str) -> bool:
+        """
+        Whether another domain's keyword is the customer *asking for* that
+        product, rather than mentioning it while telling us about their life.
+
+        Finding the keyword is not enough. "I had a car accident and was
+        hospitalised for a week" is a health answer with a car in it, and
+        answering it by offering to hand the customer to Alex abandons the
+        consultation over a detail they only mentioned because we asked about
+        their medical history.
+
+        These are InterruptDetector's rules, deliberately — that module solved
+        the same problem for mid-workflow switches, down to citing this exact
+        car-accident sentence, and two gates that disagreed about what counts as
+        a request would be worse than either. Both now read the same vocabulary
+        from `interrupt_detector`.
+        """
+        if len(message.split()) <= _BOUNDARY_SHORT_MESSAGE_WORDS:
+            # Short enough to be nothing but the request: "car insurance please".
+            return True
+
+        own = self._own_domain_pattern()
+        if own is not None and own.search(message):
+            # Our own domain named alongside the other one means they are still
+            # on this topic: "I need health insurance, I had a car accident."
+            return False
+
+        # Otherwise the other domain has to read as shopping rather than
+        # scenery — "my brother drives a car to work" is neither.
+        return bool(PRODUCT_TERM_RE.search(message))
+
     def check_domain_violation(self, message: str) -> Optional[Dict[str, str]]:
         """
         Returns redirect info if message clearly belongs to a different domain.
         Returns None if message is within this agent's domain.
         """
-        msg_lower = message.lower()
+        patterns = self._forbidden_patterns()
         for domain_key, info in self.FORBIDDEN_DOMAINS.items():
-            keywords = info.get("keywords", [])
-            if any(kw in msg_lower for kw in keywords):
-                return {
-                    "target": info["target"],
-                    "target_name": info["target_name"],
-                    "detected_domain": domain_key,
-                }
+            if not any(p.search(message) for p in patterns.get(domain_key, [])):
+                continue
+            if not self._reads_as_a_request_to_switch(message):
+                return None
+            return {
+                "target": info["target"],
+                "target_name": info["target_name"],
+                "detected_domain": domain_key,
+            }
         return None
 
     def _build_soft_boundary_message(self, redirect_info: Dict[str, str], user_name: str = "") -> str:

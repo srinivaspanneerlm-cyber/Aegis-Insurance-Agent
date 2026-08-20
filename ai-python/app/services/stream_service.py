@@ -14,7 +14,8 @@ SSE event types:
 
 import asyncio
 import json
-from typing import AsyncGenerator, Dict, List, Optional, Any
+import re
+from typing import AsyncGenerator, Dict, List, Optional, Any, Tuple
 
 from app.orchestrator.central_orchestrator import CentralOrchestrator
 from app.utils.logger import logger
@@ -70,19 +71,28 @@ DEFAULT_THINKING = [
 _STEP_DURATION = 0.30
 
 
+# Word-boundary anchored, for the same reason the agent boundary check is (see
+# BaseAgent._forbidden_patterns): matched as substrings, "car" fired from
+# "care" and "healthcare", and "flat" from "inflation" — so a health question
+# was answered under the motor or property thinking-step animation.
+_QUICK_DOMAIN_RE: List[Tuple[str, Any]] = [
+    (domain, re.compile(r"\b(" + "|".join(re.escape(k) for k in keys) + r")\b", re.IGNORECASE))
+    for domain, keys in [
+        ("motor",         ["car", "bike", "vehicle", "motor", "idv", "auto", "creta", "enfield"]),
+        ("travel",        ["travel", "trip", "flight", "abroad", "international", "visa", "passport"]),
+        ("home-property", ["home", "house", "property", "apartment", "building", "flat", "landlord"]),
+        ("executive",     ["corporate", "business", "enterprise", "d&o", "directors", "liability"]),
+    ]
+]
+
+
 def _quick_domain(message: str, product_type: Optional[str]) -> str:
     """Lightweight domain detector used to pick the right thinking-step sequence."""
     if product_type and product_type in THINKING_STEPS:
         return product_type
-    msg = message.lower()
-    if any(k in msg for k in ["car", "bike", "vehicle", "motor", "idv", "auto", "creta", "enfield"]):
-        return "motor"
-    if any(k in msg for k in ["travel", "trip", "flight", "abroad", "international", "visa", "passport"]):
-        return "travel"
-    if any(k in msg for k in ["home", "house", "property", "apartment", "building", "flat", "landlord"]):
-        return "home-property"
-    if any(k in msg for k in ["corporate", "business", "enterprise", "d&o", "directors", "liability"]):
-        return "executive"
+    for domain, pattern in _QUICK_DOMAIN_RE:
+        if pattern.search(message):
+            return domain
     return "health"
 
 

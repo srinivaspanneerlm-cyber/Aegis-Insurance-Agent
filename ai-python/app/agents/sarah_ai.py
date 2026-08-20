@@ -47,17 +47,33 @@ class SarahAI(BaseInsuranceAgent):
 
     FORBIDDEN_DOMAINS = {
         "motor": {
-            "keywords": ["car", "bike", "vehicle", "auto", "creta", "enfield", "hyundai",
-                         "motor", "automobile", "two-wheeler", "scooter", "suv", "truck",
+            # Three words that used to sit here bare are qualified instead,
+            # because as whole words they are health vocabulary, not motor:
+            #   "auto"        → "auto-immune"
+            #   "motor"       → "motor neurone disease", "motor function"
+            #   "third party" → "third party administrator", the TPA who settles
+            #                   a cashless hospital claim
+            # A real motor question still lands: it says car, bike or vehicle.
+            # This mirrors the home-property list below, which has always been
+            # phrase-qualified and has never misfired because of it.
+            "keywords": ["car", "bike", "vehicle", "creta", "enfield", "hyundai",
+                         "automobile", "two-wheeler", "scooter", "suv", "truck",
                          "commercial vehicle", "ev", "electric vehicle", "roadside", "garage",
-                         "idv", "zero depreciation", "third party", "own damage"],
+                         "idv", "zero depreciation", "own damage",
+                         "auto insurance", "motor insurance", "motor policy", "motor cover",
+                         "third party insurance", "third party cover", "third party liability"],
             "target": "motor",
             "target_name": "Alex AI",
         },
         "travel": {
+            # "evacuation" is qualified for the same reason "motor" is above:
+            # emergency evacuation by road or air ambulance is a standard health
+            # benefit, so the bare word is a health question as often as a
+            # travel one. "medevac" stays — that one is only ever travel.
             "keywords": ["travel", "trip", "flight", "international", "abroad", "visa",
                          "germany", "usa", "uk", "france", "destination", "passport",
-                         "baggage loss", "trip cancellation", "medevac", "evacuation"],
+                         "baggage loss", "trip cancellation", "medevac",
+                         "overseas evacuation", "evacuation abroad"],
             "target": "travel",
             "target_name": "Ethan AI",
         },
