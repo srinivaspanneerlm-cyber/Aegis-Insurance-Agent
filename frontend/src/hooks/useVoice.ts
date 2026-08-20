@@ -1,5 +1,10 @@
 "use client";
 import { useState, useCallback, useRef, useEffect } from "react";
+import {
+  readBrowserVoiceFacts,
+  speechErrorMessage,
+  unsupportedBrowserMessage,
+} from "@/lib/voiceSupport";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -9,6 +14,13 @@ export interface VoiceOptions {
   language?: string;
   rate?: number;
   onTranscript?: (text: string, isFinal: boolean) => void;
+  /**
+   * Keep the recogniser open across pauses instead of letting the browser close
+   * the utterance on its own endpointing. Set when something else — the VAD in
+   * `lib/vad` — owns the end of the turn. Left off, the previous behaviour is
+   * unchanged.
+   */
+  continuous?: boolean;
   onSpeakEnd?: () => void;
 }
 
@@ -58,7 +70,7 @@ type SpeechRecognitionCtor = new () => SpeechRecognitionLike;
 // ── Hook ──────────────────────────────────────────────────────────────────────
 
 export function useVoice(options: VoiceOptions = {}): VoiceHook {
-  const { language = "en-IN", rate = 0.93, onTranscript, onSpeakEnd } = options;
+  const { language = "en-IN", rate = 0.93, continuous = false, onTranscript, onSpeakEnd } = options;
 
   const [voiceState, setVoiceState] = useState<VoiceState>("idle");
   const [transcript, setTranscript] = useState("");
@@ -118,7 +130,7 @@ export function useVoice(options: VoiceOptions = {}): VoiceHook {
     };
     const SR = w.SpeechRecognition || w.webkitSpeechRecognition;
     if (!SR) {
-      setError("Speech recognition is not supported in this browser. Try Chrome.");
+      setError(unsupportedBrowserMessage(readBrowserVoiceFacts()));
       setVoiceState("error");
       return;
     }
@@ -130,7 +142,7 @@ export function useVoice(options: VoiceOptions = {}): VoiceHook {
 
       const rec = new SR();
       rec.lang = language;
-      rec.continuous = false;
+      rec.continuous = continuous;
       rec.interimResults = true;
       rec.maxAlternatives = 1;
       recognitionRef.current = rec;
@@ -152,17 +164,10 @@ export function useVoice(options: VoiceOptions = {}): VoiceHook {
         // aborted fires when we call rec.stop() manually — not a real error
         if (e.error === "aborted") return;
 
-        const msg =
-          e.error === "not-allowed" || e.error === "service-not-allowed"
-            ? "Mic blocked — allow microphone in browser settings."
-            : e.error === "network"
-            ? "Voice needs internet. Check your connection and try again."
-            : e.error === "audio-capture"
-            ? "Microphone not found or in use by another app."
-            : e.error === "no-speech"
-            ? "No speech detected. Tap mic and speak."
-            : "Voice unavailable. Try again.";
-        setError(msg);
+        // `network` does not reliably mean the connection is down — see
+        // lib/voiceSupport. Blaming a working router here sent someone off to
+        // reset it while the real cause was the browser.
+        setError(speechErrorMessage(e.error, readBrowserVoiceFacts()));
         setVoiceState("error");
         _stopVolumeAnalysis();
         streamRef.current?.getTracks().forEach(t => t.stop());
@@ -189,7 +194,7 @@ export function useVoice(options: VoiceOptions = {}): VoiceHook {
       setError(msg);
       setVoiceState("error");
     }
-  }, [voiceState, language, onTranscript, _startVolumeAnalysis, _stopVolumeAnalysis]);
+  }, [voiceState, language, continuous, onTranscript, _startVolumeAnalysis, _stopVolumeAnalysis]);
 
   // ── Stop listening ─────────────────────────────────────────────────────────
   const stopListening = useCallback(() => {
