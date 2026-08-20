@@ -1,10 +1,23 @@
 // ── Advisor configuration ──────────────────────────────────────────────────────
 
+import type { BrandId } from "@/components/brand/geometry";
+
+// Each advisor owns one mark from the brand system (`components/brand`). The
+// letter in `avatar` stays as the fallback for surfaces that cannot draw an SVG
+// — and because a one-character tile still renders if a mark ever fails to.
+//
+// `nova` is deliberately unassigned: it exists in the master artwork but has no
+// agent behind it, so giving it to a real advisor would put a claims-and-fraud
+// mark on someone who does not do claims or fraud. The executive advisor gets
+// the Aegis shield instead, which is right for the agent that greets, routes,
+// and speaks for the platform rather than for one domain.
+
 export const ADVISORS = {
   motor: {
     name: "Alex AI",
     title: "Vehicle Protection Advisor",
     avatar: "A",
+    brand: "alex" as BrandId,
     emoji: "🚗",
     theme: "from-blue-600 to-cyan-500",
     glowColor: "rgba(6, 182, 212, 0.22)",
@@ -20,6 +33,7 @@ export const ADVISORS = {
     name: "Sarah AI",
     title: "Family Health Advisor",
     avatar: "S",
+    brand: "sarah" as BrandId,
     emoji: "❤️",
     theme: "from-emerald-600 to-teal-500",
     glowColor: "rgba(16, 185, 129, 0.22)",
@@ -35,6 +49,7 @@ export const ADVISORS = {
     name: "Ethan AI",
     title: "Travel Protection Advisor",
     avatar: "E",
+    brand: "ethan" as BrandId,
     emoji: "✈️",
     theme: "from-violet-600 to-purple-500",
     glowColor: "rgba(139, 92, 246, 0.22)",
@@ -50,6 +65,7 @@ export const ADVISORS = {
     name: "Emma AI",
     title: "Home Protection Advisor",
     avatar: "E",
+    brand: "emma" as BrandId,
     emoji: "🏡",
     theme: "from-amber-600 to-orange-500",
     glowColor: "rgba(245, 158, 11, 0.22)",
@@ -65,6 +81,7 @@ export const ADVISORS = {
     name: "Sri AI",
     title: "Executive Risk Advisor",
     avatar: "SR",
+    brand: "aegis" as BrandId,
     emoji: "💼",
     theme: "from-rose-600 to-pink-500",
     glowColor: "rgba(244, 63, 94, 0.35)",
@@ -117,4 +134,18 @@ export function resolveAdvisorKey(key: string): AdvisorKey | null {
 export function resolveAdvisorName(key: string, fallback: string): string {
   const advisorKey = resolveAdvisorKey(key);
   return advisorKey ? ADVISORS[advisorKey].name : fallback;
+}
+
+/**
+ * The advisor behind a chat message's `agentName`, falling back to whoever is
+ * currently on screen when the name belongs to no advisor we know.
+ *
+ * Chat surfaces need the whole advisor rather than one field of it. After a
+ * transfer the transcript holds messages from two agents at once, and looking
+ * up the mark, the theme and the letter separately is how a bubble ends up
+ * wearing Sarah's colour over Alex's logo.
+ */
+export function advisorForAgentName(agentName: string | undefined, fallback: Advisor): Advisor {
+  const key = AGENT_NAME_TO_CATEGORY[agentName || ""];
+  return key ? ADVISORS[key] : fallback;
 }

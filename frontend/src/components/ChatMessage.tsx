@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import { motion } from "framer-motion";
 import { Volume2, RefreshCw } from "lucide-react";
 
+import { AgentAvatar } from "./brand/AgentAvatar";
 import { parseRecommendation } from "./chat/parseRecommendation";
 import { FormattedText } from "./chat/FormattedText";
 import { StreamingCursor, TransferBadge, CopyButton } from "./chat/atoms";
@@ -51,6 +52,7 @@ const ChatMessage = memo(function ChatMessage({
   message,
   advisorAvatar = "S",
   advisorTheme = "from-emerald-600 to-teal-500",
+  advisorBrand,
   advisorName = "Sarah AI",
   onUIAction,
   onOptionClick,
@@ -86,10 +88,15 @@ const ChatMessage = memo(function ChatMessage({
       transition={{ duration: 0.22 }}
       className="flex items-start gap-3 w-full"
     >
-      {/* Avatar */}
-      <div className={`w-9 h-9 rounded-xl bg-gradient-to-tr ${advisorTheme} text-white font-black text-sm flex items-center justify-center flex-shrink-0 shadow-lg`}>
-        {advisorAvatar}
-      </div>
+      {/* Avatar — the mark of whoever sent this message, so a transferred
+          transcript keeps showing each agent beside their own words. */}
+      {advisorBrand ? (
+        <AgentAvatar brand={advisorBrand} size={36} />
+      ) : (
+        <div className={`w-9 h-9 rounded-xl bg-gradient-to-tr ${advisorTheme} text-white font-black text-sm flex items-center justify-center flex-shrink-0 shadow-lg`}>
+          {advisorAvatar}
+        </div>
+      )}
 
       <div className="flex-1 min-w-0 space-y-1.5">
         {/* Agent name + transfer badge */}

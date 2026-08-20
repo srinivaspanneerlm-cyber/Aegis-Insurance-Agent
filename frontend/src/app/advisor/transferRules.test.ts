@@ -137,6 +137,7 @@ describe("buildConnectingAgent", () => {
     expect(buildConnectingAgent("health", "Sarah AI")).toEqual({
       name: "Sarah AI",
       avatar: "S",
+      brand: "sarah",
       theme: "from-emerald-600 to-teal-500",
       emoji: "❤️",
     });

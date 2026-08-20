@@ -3,6 +3,7 @@ import React from "react";
 import Link from "next/link";
 import { Cpu, Lock, ChevronLeft, X } from "lucide-react";
 import EnvironmentBadge from "@/components/EnvironmentBadge";
+import { AgentAvatar } from "@/components/brand/AgentAvatar";
 import type { Advisor } from "@/lib/advisors";
 
 interface AdvisorHeaderProps {
@@ -36,9 +37,7 @@ export default function AdvisorHeader({
           </Link>
 
           <div className="flex items-center gap-3">
-            <div className={`w-9 h-9 rounded-xl bg-gradient-to-tr ${advisor.theme} text-white font-black text-xs flex items-center justify-center shadow-lg`}>
-              {advisor.avatar}
-            </div>
+            <AgentAvatar brand={advisor.brand} size={36} title={advisor.name} />
             <div className="text-left">
               <div className="flex items-center gap-2 leading-none flex-wrap">
                 <h2 className="text-xs sm:text-sm font-black text-white">{advisor.name}</h2>

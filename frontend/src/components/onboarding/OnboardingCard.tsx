@@ -5,6 +5,7 @@ import { ArrowRight, ChevronLeft } from "lucide-react";
 import { ADVISORS } from "@/lib/advisors";
 import { cn } from "@/lib/cn";
 import { Spinner } from "@/components/shared/Spinner";
+import { AgentAvatar } from "@/components/brand/AgentAvatar";
 import { LANGUAGE_OPTIONS, INTEREST_OPTIONS, type LanguageId } from "@/lib/onboarding";
 import { ChoiceCard } from "./ChoiceCard";
 import type { OnboardingFlow } from "./useOnboardingFlow";
@@ -41,15 +42,7 @@ export function OnboardingCard({ flow, customerName }: OnboardingCardProps) {
     >
       {/* Executive AI identity */}
       <div className="flex items-center gap-3">
-        <div
-          className={cn(
-            "flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-gradient-to-tr text-sm font-black text-white shadow-lg",
-            EXECUTIVE.theme
-          )}
-          aria-hidden
-        >
-          {EXECUTIVE.avatar}
-        </div>
+        <AgentAvatar brand={EXECUTIVE.brand} size={48} className="shadow-lg" />
         <div className="min-w-0">
           <p className="text-[15px] font-black text-slate-900 dark:text-white">
             {EXECUTIVE.name}

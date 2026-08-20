@@ -10,12 +10,14 @@
 import type { TransferRequest } from "@/components/TransferDialog";
 import type { InterruptRequest } from "@/components/InterruptDialog";
 import type { TransferSuggestion, InterruptSuggestion } from "@/hooks/useStreaming";
+import type { BrandId } from "@/components/brand/geometry";
 import { ADVISORS, PYTHON_DOMAIN_TO_CATEGORY, resolveAdvisorName, type AdvisorKey } from "@/lib/advisors";
 
 /** Agent identity shown in the "Establishing Secure Channel" overlay. */
 export interface ConnectingAgent {
   name: string;
   avatar: string;
+  brand: BrandId;
   theme: string;
   emoji: string;
 }
@@ -50,11 +52,13 @@ export function buildTransferRequest(
   return {
     fromName: info.fromAgentName,
     fromAvatar: fromAdv.avatar,
+    fromBrand: fromAdv.brand,
     fromTheme: fromAdv.theme,
     fromEmoji: fromAdv.emoji,
     fromDomain: info.fromDomain,
     toName: info.transferToName || toAdv.name,
     toAvatar: toAdv.avatar,
+    toBrand: toAdv.brand,
     toTheme: toAdv.theme,
     toEmoji: toAdv.emoji,
     toDomain: info.transferTo,
@@ -84,12 +88,14 @@ export function buildInterruptRequest(
   return {
     fromName: info.fromAgentName,
     fromAvatar: fromAdv.avatar,
+    fromBrand: fromAdv.brand,
     fromTheme: fromAdv.theme,
     fromEmoji: fromAdv.emoji,
     fromDomain: info.fromDomain,
     fromLabel: info.fromLabel,
     toName: info.transferToName || toAdv.name,
     toAvatar: toAdv.avatar,
+    toBrand: toAdv.brand,
     toTheme: toAdv.theme,
     toEmoji: toAdv.emoji,
     toDomain: info.transferTo,
@@ -106,7 +112,13 @@ export function buildConnectingAgent(toDomain: string, toName: string): Connecti
   const toCat = PYTHON_DOMAIN_TO_CATEGORY[toDomain];
   if (!toCat) return null;
   const toAdv = ADVISORS[toCat];
-  return { name: toName, avatar: toAdv.avatar, theme: toAdv.theme, emoji: toAdv.emoji };
+  return {
+    name: toName,
+    avatar: toAdv.avatar,
+    brand: toAdv.brand,
+    theme: toAdv.theme,
+    emoji: toAdv.emoji,
+  };
 }
 
 /**

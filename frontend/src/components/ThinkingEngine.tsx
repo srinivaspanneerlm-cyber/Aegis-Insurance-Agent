@@ -5,6 +5,8 @@ import {
   CheckCircle2, Cpu, BookOpen, MapPin, Globe, Home, Car,
 } from "lucide-react";
 import type { ThinkingStep } from "@/hooks/useStreaming";
+import { AgentAvatar } from "./brand/AgentAvatar";
+import type { BrandId } from "./brand/geometry";
 
 // ── Step icon map ──────────────────────────────────────────────────────────────
 const STEP_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -55,6 +57,8 @@ interface ThinkingEngineProps {
   agentDomain?: string;
   advisorAvatar?: string;
   advisorTheme?: string;
+  /** Mark of the agent doing the thinking. Falls back to the letter tile. */
+  advisorBrand?: BrandId;
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -67,6 +71,7 @@ export default function ThinkingEngine({
   agentDomain = "health",
   advisorAvatar = "S",
   advisorTheme = "from-emerald-600 to-teal-500",
+  advisorBrand,
 }: ThinkingEngineProps) {
   if (!active) return null;
 
@@ -84,9 +89,13 @@ export default function ThinkingEngine({
           className="flex items-start gap-3 w-full"
         >
           {/* Agent avatar */}
-          <div className={`w-9 h-9 rounded-xl bg-gradient-to-tr ${advisorTheme} text-white font-black text-sm flex items-center justify-center flex-shrink-0 shadow-lg`}>
-            {advisorAvatar}
-          </div>
+          {advisorBrand ? (
+            <AgentAvatar brand={advisorBrand} size={36} />
+          ) : (
+            <div className={`w-9 h-9 rounded-xl bg-gradient-to-tr ${advisorTheme} text-white font-black text-sm flex items-center justify-center flex-shrink-0 shadow-lg`}>
+              {advisorAvatar}
+            </div>
+          )}
 
           {/* Thinking bubble */}
           <div className={`flex-1 min-w-0`}>

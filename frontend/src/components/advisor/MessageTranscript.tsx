@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 import ChatMessage, { type ChatMsg, type RecommendationData } from "@/components/ChatMessage";
 import ThinkingEngine from "@/components/ThinkingEngine";
-import { ADVISORS, AGENT_NAME_TO_CATEGORY, type Advisor } from "@/lib/advisors";
+import { advisorForAgentName, type Advisor } from "@/lib/advisors";
 import type { StreamState } from "@/hooks/useStreaming";
 import type { ConnectingAgent } from "@/app/advisor/transferRules";
 import { useStickyScroll } from "@/hooks/useStickyScroll";
@@ -52,20 +52,19 @@ export function MessageTranscript({
         <ConnectingOverlay connectingTo={connectingTo} />
 
         {/* Finalized messages */}
-        {messages.map(m => (
+        {messages.map(m => {
+          // Whose message this is. A user message carries no agent of its own,
+          // so it inherits the advisor on screen — it renders no avatar anyway.
+          const sender =
+            m.sender === "advisor" ? advisorForAgentName(m.agentName, advisor) : advisor;
+
+          return (
           <div key={m.id} className="space-y-3">
           <ChatMessage
             message={transformText ? { ...m, text: transformText(m.text) } : m}
-            advisorAvatar={
-              m.sender === "advisor"
-                ? (AGENT_NAME_TO_CATEGORY[m.agentName || ""] ? ADVISORS[AGENT_NAME_TO_CATEGORY[m.agentName || ""]].avatar : advisor.avatar)
-                : advisor.avatar
-            }
-            advisorTheme={
-              m.sender === "advisor"
-                ? (AGENT_NAME_TO_CATEGORY[m.agentName || ""] ? ADVISORS[AGENT_NAME_TO_CATEGORY[m.agentName || ""]].theme : advisor.theme)
-                : advisor.theme
-            }
+            advisorAvatar={sender.avatar}
+            advisorTheme={sender.theme}
+            advisorBrand={sender.brand}
             advisorName={advisor.name}
             onUIAction={onUIAction}
             onOptionClick={onOptionClick}
@@ -74,7 +73,8 @@ export function MessageTranscript({
           />
           {renderAfterMessage?.(m)}
           </div>
-        ))}
+          );
+        })}
 
         {/* ThinkingEngine — shown during thinking phase */}
         <ThinkingEngine
@@ -85,6 +85,7 @@ export function MessageTranscript({
           agentDomain={streamState.agentDomain || advisor.pythonDomain}
           advisorAvatar={streamingAdvisor.avatar}
           advisorTheme={streamingAdvisor.theme}
+          advisorBrand={streamingAdvisor.brand}
         />
 
         {/* Streaming message — shown during streaming phase */}
@@ -102,6 +103,7 @@ export function MessageTranscript({
             }}
             advisorAvatar={streamingAdvisor.avatar}
             advisorTheme={streamingAdvisor.theme}
+            advisorBrand={streamingAdvisor.brand}
             advisorName={streamingAdvisor.name}
             onUIAction={onUIAction}
             onOptionClick={onOptionClick}

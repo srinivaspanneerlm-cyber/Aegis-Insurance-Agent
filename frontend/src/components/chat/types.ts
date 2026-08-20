@@ -1,3 +1,5 @@
+import type { BrandId } from "@/components/brand/geometry";
+
 export interface RecommendationData {
   planName: string;
   coverage: string;
@@ -191,6 +193,11 @@ export interface ChatMessageProps {
   message: ChatMsg;
   advisorAvatar?: string;
   advisorTheme?: string;
+  /**
+   * Mark of the agent who sent this message. Optional so the letter tile stays
+   * the fallback for any caller that has not been given a brand to draw.
+   */
+  advisorBrand?: BrandId;
   /** Name shown for an advisor message that carries no agentName of its own. */
   advisorName?: string;
   onUIAction?: (action: string, planData: RecommendationData) => void;
