@@ -16,14 +16,14 @@ describe("idleStateAt", () => {
   });
 
   it("stays quiet through most of the idle window", () => {
-    // 20 minutes idle out of 30 — nothing to say yet.
-    expect(idleStateAt(0, 20 * MINUTE).phase).toBe("active");
+    // Well inside the idle window — nothing to say yet.
+    expect(idleStateAt(0, IDLE_TIMEOUT_MS / 2).phase).toBe("active");
   });
 
   it("warns for the last minute, not before", () => {
-    // 28:59 idle — still silent.
+    // A second before the warning window opens — still silent.
     expect(idleStateAt(0, IDLE_TIMEOUT_MS - IDLE_WARNING_MS - 1000).phase).toBe("active");
-    // 29:00 idle — exactly one minute left, the warning starts.
+    // Exactly one minute left — the warning starts.
     expect(idleStateAt(0, IDLE_TIMEOUT_MS - IDLE_WARNING_MS).phase).toBe("warning");
   });
 
