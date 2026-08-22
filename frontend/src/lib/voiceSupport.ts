@@ -57,6 +57,29 @@ function braveMessage(): string {
 }
 
 /**
+ * When the browser cannot *record* — the only hard stop left once transcription
+ * moved to the server.
+ *
+ * This is a much smaller door than the recogniser was. `MediaRecorder` and
+ * `getUserMedia` are present in every current browser, including the three that
+ * could never do voice before, so reaching this message means something
+ * unusual: a very old WebView, or a page served over plain HTTP, where the
+ * browser withholds the microphone entirely. The insecure-context case is
+ * called out because it is the one an engineer can actually fix, and because
+ * "your browser cannot record" would send them looking in the wrong place.
+ */
+export function recordingUnavailableMessage(): string {
+  const insecure =
+    typeof window !== "undefined" &&
+    window.isSecureContext === false;
+
+  if (insecure) {
+    return "Voice needs a secure (https) connection. Please type your question instead.";
+  }
+  return "This browser cannot record audio. Please update it, or type your question instead.";
+}
+
+/**
  * Turn a recogniser error code into something the customer can act on.
  *
  * `facts` decides what `network` really means, which is the only code whose

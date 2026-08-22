@@ -37,6 +37,10 @@
       "description": "Customer document upload."
     },
     {
+      "name": "Voice",
+      "description": "Speech-to-text for a spoken turn. Audio in, transcript out — the recording is held in memory and never stored."
+    },
+    {
       "name": "Company",
       "description": "Insurers — shared reference data across tenants."
     },
@@ -6709,6 +6713,44 @@
         ],
         "summary": "Upload documents.",
         "description": "Bounded in count and size; files are scanned before they are stored.",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed; the offending parameter is named."
+          },
+          "401": {
+            "description": "No valid session."
+          },
+          "403": {
+            "description": "Authenticated, but not permitted."
+          }
+        }
+      }
+    },
+    "/api/v1/voice/transcribe": {
+      "post": {
+        "tags": [
+          "Voice"
+        ],
+        "summary": "Transcribe one recorded voice turn.",
+        "description": "Multipart, field `audio`. Accepts the containers browsers actually produce — WebM and Ogg (Opus), MP4 (AAC) — with the declared type checked against the real bytes. Rate-limited alongside the other AI paths, since transcription spends paid provider quota. The recording is never written to disk and never logged; the transcript is returned and dropped.",
         "security": [
           {
             "cookieAuth": []

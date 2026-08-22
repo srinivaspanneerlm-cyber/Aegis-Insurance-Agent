@@ -34,7 +34,7 @@ const getChatHistory = catchAsync(async (req, res) => {
  * handles. Kept in the controller — it is the protected streaming path.
  */
 const streamChatMessage = async (req: Request, res: Response): Promise<void> => {
-  const { message, history, product_type, session_id, force_transfer_to, declined_domains } = req.body;
+  const { message, history, product_type, session_id, force_transfer_to, declined_domains, voice } = req.body;
 
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
@@ -60,6 +60,9 @@ const streamChatMessage = async (req: Request, res: Response): Promise<void> => 
       sessionId: session_id,
       forceTransferTo: force_transfer_to,
       declinedDomains: declined_domains,
+      // How the customer spoke this turn, when they spoke it. Narrowed in
+      // ai.service before it leaves this process; it controls phrasing only.
+      voice,
       signal: upstreamAbort.signal,
       requestId: req.id as string,
     });

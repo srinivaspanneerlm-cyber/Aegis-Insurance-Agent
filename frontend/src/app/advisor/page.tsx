@@ -9,6 +9,9 @@ import InterruptDialog from "@/components/InterruptDialog";
 import { useStreaming, type ChatHistoryItem } from "@/hooks/useStreaming";
 import { useVoiceRuntime, type VoiceRuntime } from "@/hooks/useVoiceRuntime";
 import { uiActionService } from "@/services/api";
+import { VOICE_TRANSCRIPTION } from "@/lib/config";
+import { toRequestMeta } from "@/lib/voiceStyle";
+import { logger } from "@/lib/logger";
 
 // ── Advisor roster (shared) & page-local helpers ─────────────────────────────
 import {
@@ -59,6 +62,13 @@ function AdvisorChat() {
   const [inputVal, setInputVal] = useState("");
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [speakText, setSpeakText] = useState<string | null>(null);
+  // Where the engine's conversation middleware put the last spoken turn. Read
+  // from the stream, never computed here — the 9-state machine lives in Python
+  // and a second copy would only be a second thing to get wrong.
+  const [voiceStage, setVoiceStage] = useState<{ state: string | null; intent: string | null }>({
+    state: null,
+    intent: null,
+  });
   const [pingSpeed, setPingSpeed] = useState("45ms");
   const [activeHandshakes, setActiveHandshakes] = useState(128);
   const [envResponseTimeMs, setEnvResponseTimeMs] = useState<number | undefined>(undefined);
@@ -150,6 +160,11 @@ function AdvisorChat() {
     if (!userMsg.trim()) return;
     lastUserMsgRef.current = userMsg;
 
+    // Which turn this reply answers. Captured now and carried into every
+    // callback below, so a reply the customer has since cut into cannot speak
+    // or close a turn that has already moved on.
+    const turnId = voiceRuntimeRef.current?.turnId;
+
     const msgId = makeId();
     const ts = now();
     streamingTimestampRef.current = ts;
@@ -204,6 +219,15 @@ function AdvisorChat() {
           onAgentInfo: (info) => {
             transfer.dismissConnecting(); // stream is live — dismiss connecting overlay
             streamingTimestampRef.current = now();
+            // The engine's own conversation stage, when it sent one. Recorded
+            // rather than recomputed — there is one state machine and it is
+            // the middleware's.
+            if (info.conversationState !== undefined || info.intent !== undefined) {
+              setVoiceStage({
+                state: info.conversationState ?? null,
+                intent: info.intent ?? null,
+              });
+            }
             if (info.sessionId && typeof window !== "undefined") {
               localStorage.setItem("aegis_session_id", info.sessionId);
             }
@@ -217,6 +241,18 @@ function AdvisorChat() {
           onInterruptSuggested: (info) => {
             // Mid-workflow domain switch detected — show specialized dialog
             transfer.suggestInterrupt(info, activeCategory);
+          },
+          onToken: (accumulated) => {
+            // Speak each sentence as it completes, rather than the whole reply
+            // once the turn is over. Silent for a typed message: the runtime is
+            // IDLE then, and this returns without doing anything.
+            voiceRuntimeRef.current?.pushStreamedText(accumulated, turnId);
+          },
+          onReplace: (corrected) => {
+            // The stream was retracted — an LLM that failed part-way, answered
+            // by the agent's own fallback. Whatever was already being said is
+            // no longer what this turn says.
+            voiceRuntimeRef.current?.replaceStreamedText(corrected, turnId);
           },
           onDone: (result) => {
             if (result.sessionId && typeof window !== "undefined") {
@@ -269,11 +305,25 @@ function AdvisorChat() {
             // PROCESSING is only ever reached through `submitTurn`, so it *is*
             // the record that this reply answers something the customer spoke;
             // a typed turn leaves the runtime IDLE and stays silent, exactly as
-            // it did before. If there is nothing to read out, the turn is still
-            // closed — a refused `startSpeaking` would otherwise strand it.
+            // it did before.
+            //
+            // SPEAKING is now also a legitimate state to arrive here in: with
+            // real streaming the advisor is usually already part-way through
+            // the answer by the time the turn completes. `finishStreamedTurn`
+            // speaks whatever is left; a false return means there was nothing
+            // worth saying, and the turn is closed rather than left stranded —
+            // the same contract the refused `startSpeaking` had before.
             const voice = voiceRuntimeRef.current;
-            if (voice?.turnState === "PROCESSING" && !voice.startSpeaking(result.text)) {
-              voice.reset();
+            const turn = voice?.turnState;
+            if (voice && (turn === "PROCESSING" || turn === "SPEAKING")) {
+              if (!voice.finishStreamedTurn(result.text, turnId)) voice.reset();
+            }
+
+            if (result.latency?.streamed) {
+              logger.debug(
+                `advisor: streamed turn — first token ${result.latency.firstTokenMs}ms, ` +
+                `total ${result.latency.totalMs}ms`
+              );
             }
           },
           onTransferSuggested: (info) => {
@@ -283,6 +333,11 @@ function AdvisorChat() {
         },
         forceTransferTo,
         transfer.getDeclinedDomains(),
+        // Present only when the customer spoke this turn. It reaches the
+        // engine's prompt to choose how the reply is *worded*, and nothing that
+        // decides what the reply says — see `lib/voiceStyle`. A typed message
+        // sends nothing here and behaves exactly as it always has.
+        toRequestMeta(voiceRuntimeRef.current?.voiceContext ?? null),
       );
     } catch {
       addErrorMsg();
@@ -298,6 +353,31 @@ function AdvisorChat() {
   const voiceRuntime = useVoiceRuntime({
     onSubmit: sendToAdvisor,
     stream: streamState,
+    // The same id `sendToAdvisor` reads for every turn — surfaced on
+    // `voiceRuntime.session` so a caller recovering after a reload can tell
+    // whether it is still the same conversation. Read fresh on every render
+    // rather than cached, so a session id minted mid-page-life (the first
+    // turn's `agent_info`) shows up here too.
+    sessionId:
+      (typeof window !== "undefined" && localStorage.getItem("aegis_session_id")) || "",
+    // Observed, not owned: the advisor and the conversation stage are decided
+    // by the orchestrator and the middleware. The runtime reads them so it can
+    // decide how to deliver a reply without a second state machine.
+    agent: {
+      name: streamState.agentName,
+      domain: streamState.agentDomain,
+      conversationState: voiceStage.state,
+      intent: voiceStage.intent,
+    },
+    // Server-side transcription by default — see `lib/config`. The advisor
+    // path below is identical either way: a transcript, whoever produced it,
+    // goes through `sendToAdvisor` like a typed message.
+    transcription: VOICE_TRANSCRIPTION,
+    // Abandon the reply the customer just cut into. Only the reply: the
+    // orchestrator's turn completes server-side, so the session, the agent and
+    // everything it wrote to memory are untouched — the next thing they say
+    // continues the same conversation.
+    onCancelResponse: cancelStream,
     onSpeakEnd: () => setSpeakText(null),
   });
   voiceRuntimeRef.current = voiceRuntime;

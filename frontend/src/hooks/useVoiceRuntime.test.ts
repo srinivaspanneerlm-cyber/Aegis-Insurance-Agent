@@ -40,6 +40,8 @@ vi.mock("./useVoice", () => ({
       volume: 0,
       startListening: async () => {},
       stopListening: () => {},
+      flushRecording: () => {},
+      discardRecording: () => {},
       speak: () => {},
       stopSpeaking: () => {},
       retryAfterError: () => {},
@@ -62,6 +64,8 @@ function makeVoice(overrides: Partial<VoiceHook> = {}): VoiceHook {
     volume: 0,
     startListening: vi.fn(async () => {}),
     stopListening: vi.fn(),
+    flushRecording: vi.fn(),
+    discardRecording: vi.fn(),
     speak: vi.fn(),
     stopSpeaking: vi.fn(),
     retryAfterError: vi.fn(),
@@ -308,21 +312,68 @@ describe("useVoiceRuntime", () => {
     expect(result.current.error).toMatch(/mic blocked/i);
   });
 
-  it("does not strand a turn in PROCESSING when the stream dies", async () => {
-    const { result, rerender, initialProps } = mount({
-      stream: { phase: "streaming", error: null },
-    });
-    await process(result);
-
-    act(() => {
-      rerender({
-        ...initialProps,
-        stream: { phase: "error", error: "Please sign in to continue this conversation." },
+  it("does not strand a turn in PROCESSING when the stream dies — and recovers on its own", async () => {
+    vi.useFakeTimers();
+    try {
+      const { result, rerender, initialProps } = mount({
+        stream: { phase: "streaming", error: null },
       });
-    });
+      await process(result);
 
-    expect(result.current.turnState).toBe("ERROR");
-    expect(result.current.error).toMatch(/sign in/i);
+      act(() => {
+        rerender({
+          ...initialProps,
+          stream: { phase: "error", error: "Please sign in to continue this conversation." },
+        });
+      });
+
+      // A dropped stream is not the customer's mic — it clears itself rather
+      // than sitting in a bare ERROR waiting for reset().
+      expect(result.current.turnState).toBe("RECOVERING");
+      expect(result.current.isRecovering).toBe(true);
+      expect(result.current.error).toMatch(/sign in/i);
+
+      act(() => {
+        vi.runAllTimers();
+      });
+
+      expect(result.current.turnState).toBe("IDLE");
+      expect(result.current.isRecovering).toBe(false);
+      expect(result.current.error).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("gives up and hard-fails when a second failure lands during recovery", async () => {
+    vi.useFakeTimers();
+    try {
+      const { result, rerender, initialProps } = mount({
+        stream: { phase: "streaming", error: null },
+      });
+      await process(result);
+
+      act(() => {
+        rerender({ ...initialProps, stream: { phase: "error", error: "network blip" } });
+      });
+      expect(result.current.turnState).toBe("RECOVERING");
+
+      const blocked = makeVoice({ error: "Mic blocked.", voiceState: "error" });
+      act(() => {
+        rerender({ ...initialProps, voice: blocked, stream: { phase: "error", error: "network blip" } });
+      });
+
+      expect(result.current.turnState).toBe("ERROR");
+
+      // The recovery timer from the first failure must not fire a stray
+      // RECOVERY_DONE into the hard error that replaced it.
+      act(() => {
+        vi.runAllTimers();
+      });
+      expect(result.current.turnState).toBe("ERROR");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("recovers only through reset", async () => {

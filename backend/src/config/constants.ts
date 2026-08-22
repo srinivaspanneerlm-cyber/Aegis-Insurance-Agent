@@ -62,6 +62,23 @@ export const UPLOADS = {
   MAX_FILES: num("UPLOAD_MAX_FILES", 5),
 };
 
+// ── Voice / speech-to-text ───────────────────────────────────────────────────
+// A spoken turn, not a file upload: the recording is held in memory, sent for
+// transcription and dropped. Kept well under the document limits because
+// nothing here is worth 50 MB — a customer asking a question speaks for seconds.
+export const VOICE = {
+  // ~8 MB is minutes of Opus at the bitrate MediaRecorder picks. Generous for a
+  // question, small enough that concurrent uploads cannot exhaust the process.
+  MAX_AUDIO_BYTES: num("VOICE_MAX_AUDIO_BYTES", 8 * 1024 * 1024),
+  // Below this a recording is a container header and no speech. Refused here so
+  // an empty turn never becomes a paid provider call.
+  MIN_AUDIO_BYTES: num("VOICE_MIN_AUDIO_BYTES", 1200),
+  // The customer is sitting in silence waiting. Slightly above the engine's own
+  // STT timeout so the engine's specific error wins the race and reaches them,
+  // rather than this timer firing first and replacing it with a generic one.
+  TIMEOUT_MS: num("VOICE_STT_TIMEOUT_MS", 25000),
+};
+
 // ── Onboarding ───────────────────────────────────────────────────────────────
 // What a first-time customer is asked once, right after their first sign-in.
 // Bounded server-side: these are the only values that will ever be stored, so a

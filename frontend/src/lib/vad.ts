@@ -72,6 +72,60 @@ export const START_DEBOUNCE_MS = 120;
 /** How often the level is sampled. Fine enough for the timings above. */
 export const VAD_SAMPLE_MS = 50;
 
+// ── Barge-in ──────────────────────────────────────────────────────────────────
+//
+// Detecting that the customer has started talking *while the advisor is
+// talking* is a different problem from detecting the end of their turn, and it
+// wants different numbers.
+//
+// The microphone is open beside an active loudspeaker, so the browser's echo
+// cancellation is doing the heavy lifting — it removes most of what Aegis is
+// saying from what the microphone hears, but not all of it, and how much
+// residue is left depends on the room, the volume and whether the customer is
+// on speakerphone. That residue is the thing these thresholds have to sit
+// above.
+//
+// The cost of the two mistakes is asymmetric, and that is what sets the
+// direction. Missing a real interruption is annoying: the customer says
+// "wait" and repeats themselves a second later. Firing on residue is much
+// worse — the advisor cuts itself off mid-sentence for no reason, which is
+// indistinguishable from a broken product and happens on *every* reply.
+//
+// So barge-in asks for more evidence than an ordinary turn does: a louder
+// sound, held for longer. A cough, a door, or a syllable of Aegis's own voice
+// leaking through does not clear both bars.
+
+/** Louder than the level that merely starts an ordinary turn. */
+export const BARGE_IN_START_THRESHOLD = 0.3;
+
+/** ...and held for this long before it is believed. Two and a half samples. */
+export const BARGE_IN_DEBOUNCE_MS = 300;
+
+/**
+ * How much real speech barge-in needs before it counts.
+ *
+ * Shorter than a normal turn's `minSpeechMs`, because the trigger is different:
+ * an ordinary turn is submitted after the customer *stops*, so it can afford to
+ * wait and see. Barge-in has to act while they are still speaking, and by the
+ * time this has elapsed they are already a word in.
+ */
+export const BARGE_IN_MIN_SPEECH_MS = 250;
+
+/**
+ * The profile used while the advisor is speaking or thinking.
+ *
+ * Deliberately the same state machine as an ordinary turn — hysteresis, an
+ * onset debounce, a floor on real speech — with the bars raised. A second
+ * detector would be a second thing to tune and a second thing to get wrong.
+ */
+export const BARGE_IN_VAD_CONFIG: VadConfig = {
+  startThreshold: BARGE_IN_START_THRESHOLD,
+  endThreshold: BARGE_IN_START_THRESHOLD * 0.7,
+  silenceTimeoutMs: SILENCE_TIMEOUT_MS,
+  minSpeechMs: BARGE_IN_MIN_SPEECH_MS,
+  startDebounceMs: BARGE_IN_DEBOUNCE_MS,
+};
+
 export const DEFAULT_VAD_CONFIG: VadConfig = {
   startThreshold: VAD_START_THRESHOLD,
   endThreshold: VAD_END_THRESHOLD,

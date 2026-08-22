@@ -47,7 +47,7 @@ export default function VoiceEngine({
 
   // Animate waveform bars when listening or speaking
   useEffect(() => {
-    const active = runtime.isListening || runtime.isSpeaking;
+    const active = (runtime.isListening && !runtime.isTranscribing) || runtime.isSpeaking;
     if (active) {
       barTimerRef.current = setInterval(() => {
         setBars(prev =>
@@ -66,7 +66,7 @@ export default function VoiceEngine({
       setBars(Array(BAR_COUNT).fill(0));
     }
     return () => { if (barTimerRef.current) clearInterval(barTimerRef.current); };
-  }, [runtime.isListening, runtime.isSpeaking, runtime.volume]);
+  }, [runtime.isListening, runtime.isSpeaking, runtime.isTranscribing, runtime.volume]);
 
   // Replying out loud is the runtime's decision, not this component's: it reads
   // a spoken turn back automatically and leaves a typed one silent. Nothing is
@@ -75,7 +75,12 @@ export default function VoiceEngine({
   const handleMicClick = () => {
     if (disabled) return;
     if (runtime.isListening) {
-      runtime.stopListening();
+      // "I'm done", not "cancel". In browser mode `endTurn` *is* `stopListening`
+      // — the recogniser owns its own utterance boundaries there — so this is
+      // unchanged for Chrome. With the server transcribing, it is what sends
+      // the recording, and tapping stop discarding a whole sentence would be
+      // the wrong reading of that button.
+      runtime.endTurn();
     } else if (runtime.isSpeaking) {
       runtime.stopSpeaking();
     } else {
@@ -83,7 +88,7 @@ export default function VoiceEngine({
     }
   };
 
-  const active = runtime.isListening || runtime.isSpeaking;
+  const active = (runtime.isListening && !runtime.isTranscribing) || runtime.isSpeaking;
 
   return (
     <div className="flex items-center gap-2 relative">
@@ -111,7 +116,7 @@ export default function VoiceEngine({
 
       {/* Interim transcript preview */}
       <AnimatePresence>
-        {runtime.transcript && runtime.isListening && (
+        {runtime.transcript && runtime.isListening && !runtime.isTranscribing && (
           <motion.div
             initial={{ opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
@@ -128,7 +133,7 @@ export default function VoiceEngine({
           cause and a way out, and the 140px sliver this used to be squeezed
           them into an unreadable three-line smear that also shrank the input. */}
       <AnimatePresence>
-        {runtime.error && runtime.turnState === "ERROR" && (
+        {runtime.error && (runtime.turnState === "ERROR" || runtime.isRecovering) && (
           <motion.div
             role="alert"
             initial={{ opacity: 0, y: 4 }}
@@ -143,7 +148,22 @@ export default function VoiceEngine({
 
       {/* Main control button */}
       <AnimatePresence mode="wait">
-        {runtime.hardwareState === "requesting" ? (
+        {runtime.isTranscribing ? (
+          <motion.div
+            key="transcribing"
+            initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}
+            role="status"
+            aria-label="Transcribing what you said"
+            title="Transcribing…"
+            className={`w-9 h-9 rounded-xl border flex items-center justify-center ${accent.btn}`}
+          >
+            {/* The seconds an upload takes are silent and invisible otherwise,
+                and a customer who sees nothing happen assumes the mic failed
+                and speaks again — which is how one question becomes two. */}
+            <Loader2 className="w-4 h-4 animate-spin" />
+          </motion.div>
+
+        ) : runtime.hardwareState === "requesting" ? (
           <motion.div
             key="requesting"
             initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}
@@ -152,12 +172,31 @@ export default function VoiceEngine({
             <Loader2 className="w-4 h-4 text-white/30 animate-spin" />
           </motion.div>
 
+        ) : runtime.isRecovering ? (
+          <motion.div
+            key="recovering"
+            initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}
+            role="status"
+            aria-label="Reconnecting"
+            title="Reconnecting…"
+            className={`w-9 h-9 rounded-xl border flex items-center justify-center ${accent.errBtn}`}
+          >
+            {/* A transient failure clearing itself — no button, nothing for the
+                customer to acknowledge, unlike the hard `ERROR` state below. */}
+            <Loader2 className="w-4 h-4 animate-spin" />
+          </motion.div>
+
         ) : runtime.isSpeaking ? (
           <motion.button
             key="speaking"
             initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}
-            onClick={() => runtime.stopSpeaking()}
-            title="Stop speaking"
+            // Cutting in, not just stopping. Tapping the microphone while the
+            // advisor is talking is a customer saying "wait — let me speak",
+            // and making them tap twice for that is the friction voice was
+            // supposed to remove. The advisor is silenced before the mic
+            // opens, never alongside it.
+            onClick={() => void runtime.interruptAndListen()}
+            title="Interrupt and speak"
             className="w-9 h-9 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-400 flex items-center justify-center hover:bg-rose-500/25 transition-colors"
           >
             <VolumeX className="w-4 h-4" />

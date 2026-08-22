@@ -18,6 +18,7 @@ import leadRoutes from "./routes/lead.routes";
 import policyRoutes from "./routes/policy.routes";
 import chatRoutes from "./routes/chat.routes";
 import uploadRoutes from "./routes/upload.routes";
+import voiceRoutes from "./routes/voice.routes";
 import companyRoutes from "./routes/company.routes";
 import employeeRoutes from "./routes/employee.routes";
 import enterpriseRoutes from "./routes/enterprise.routes";
@@ -168,6 +169,9 @@ registerWorkflowCommunication();
 apiRouter.use("/policies", policyRoutes);
 apiRouter.use("/chat", chatRoutes);
 apiRouter.use("/upload", uploadRoutes);
+// Voice turns: audio in, transcript out. Behind the same auth and the same AI
+// rate limit as the chat routes, because it spends the same paid quota.
+apiRouter.use("/voice", voiceRoutes);
 apiRouter.use("/company", companyRoutes);
 apiRouter.use("/admin", adminRoutes);
 apiRouter.use("/ui-action", uiActionRoutes);

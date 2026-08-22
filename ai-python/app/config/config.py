@@ -46,6 +46,37 @@ class Settings:
     # credentials is skipped, so this default is inert until a key is set.
     LLM_FALLBACK_PROVIDERS: str = os.getenv("LLM_FALLBACK_PROVIDERS", "gemini,openai")
 
+    # ── Speech-to-text ────────────────────────────────────────────────────
+    # Which service turns recorded audio into words. Named here and nowhere
+    # else: no route, controller or component may mention a vendor, so moving
+    # from Gemini to Whisper or Groq is this one line plus a class in
+    # `app/services/stt_service.py`.
+    STT_PROVIDER: str = os.getenv("STT_PROVIDER", "gemini").lower()
+
+    # The model that provider uses. Defaults to whatever the chat path already
+    # runs on, so a deployment that has Gemini working has voice working too
+    # without a second thing to configure — and a deployment that wants a
+    # cheaper or faster transcription model can say so without touching chat.
+    _STT_MODEL: str = os.getenv("STT_MODEL", "")
+
+    # A recording longer than about a minute is not a conversational turn, and
+    # accepting one means holding it in memory twice (request body, then SDK
+    # payload) per concurrent caller. ~8 MB is roughly ten minutes of Opus at
+    # the bitrate MediaRecorder picks — generous for a spoken question, small
+    # enough that a flood of them cannot exhaust the process.
+    STT_MAX_BYTES: int = int(os.getenv("STT_MAX_BYTES", str(8 * 1024 * 1024)))
+
+    # Below this a recording is a container header and nothing else. Refused
+    # before any provider is called, because an empty upload that reaches a
+    # paid API costs money to be told there was no speech.
+    STT_MIN_BYTES: int = int(os.getenv("STT_MIN_BYTES", "1200"))
+
+    # A customer is sitting in silence waiting for this, so it is deliberately
+    # tighter than the chat timeout. Past ~20s they have already concluded the
+    # microphone is broken, and an answer that lands after that is worse than
+    # an error that lands before it.
+    STT_TIMEOUT_SECONDS: float = float(os.getenv("STT_TIMEOUT_SECONDS", "20"))
+
     # Deployment environment — controls docs exposure and CORS strictness.
     ENVIRONMENT: str = os.getenv("ENVIRONMENT", "development").lower()
 
@@ -88,6 +119,11 @@ class Settings:
             "http://127.0.0.1:3000",
             "http://127.0.0.1:5000",
         ]
+
+    @property
+    def stt_model(self) -> str:
+        """The transcription model: STT_MODEL if set, else the chat model."""
+        return self._STT_MODEL or self.GEMINI_MODEL
 
     @property
     def active_provider(self) -> str:

@@ -50,6 +50,17 @@ LLM_CALL_LATENCY = Histogram(
     buckets=_LATENCY_BUCKETS,
 )
 
+# Time to first token, which is the number a customer actually experiences on
+# the voice path: it is how long they sit in silence after they stop speaking.
+# Separate from LLM_CALL_LATENCY, which measures the whole generation — the two
+# used to be the same thing, and the point of streaming is that they are not.
+LLM_STREAM_TTFT = Histogram(
+    "aegis_ai_llm_stream_ttft_seconds",
+    "Time from an LLM streaming call starting to its first token, by provider.",
+    labelnames=("provider",),
+    buckets=_LATENCY_BUCKETS,
+)
+
 LLM_TOKENS = Counter(
     "aegis_ai_llm_tokens_total",
     "LLM tokens consumed on the reasoning path, by provider and kind.",
@@ -82,6 +93,14 @@ def observe_llm_call(provider: str | None, outcome: str, seconds: float) -> None
         LLM_CALL_LATENCY.labels(provider=provider or "unknown", outcome=outcome).observe(seconds)
     except Exception as e:  # pragma: no cover
         logger.debug(f"[metrics] observe_llm_call failed: {e}")
+
+
+def observe_stream_ttft(provider: str | None, seconds: float) -> None:
+    """Record how long a streamed turn took to say its first word."""
+    try:
+        LLM_STREAM_TTFT.labels(provider=provider or "unknown").observe(seconds)
+    except Exception as e:  # pragma: no cover — metrics must never break a reply
+        logger.debug(f"[metrics] observe_stream_ttft failed: {e}")
 
 
 def record_llm_tokens(provider: str | None, prompt_tokens: int = 0, completion_tokens: int = 0) -> None:

@@ -20,6 +20,7 @@ export const TAGS = [
   { name: "Policies", description: "The public product catalogue." },
   { name: "Chat", description: "The customer-facing AI conversation, including the streaming path." },
   { name: "Upload", description: "Customer document upload." },
+  { name: "Voice", description: "Speech-to-text for a spoken turn. Audio in, transcript out — the recording is held in memory and never stored." },
   { name: "Company", description: "Insurers — shared reference data across tenants." },
   { name: "Admin", description: "Aggregate figures for administrators." },
   { name: "UI Action", description: "Structured actions the AI asks the interface to take." },
@@ -105,6 +106,14 @@ export const ROUTE_META = {
   // ── Upload ─────────────────────────────────────────────────────────────────
   "POST /api/v1/upload": { tag: "Upload", summary: "Upload documents.", description: "Bounded in count and size; files are scanned before they are stored." },
   "GET /api/v1/upload": { tag: "Upload", summary: "Documents this account may see.", query: paginated },
+
+  // ── Voice ──────────────────────────────────────────────────────────────────
+  "POST /api/v1/voice/transcribe": {
+    tag: "Voice",
+    summary: "Transcribe one recorded voice turn.",
+    description:
+      "Multipart, field `audio`. Accepts the containers browsers actually produce — WebM and Ogg (Opus), MP4 (AAC) — with the declared type checked against the real bytes. Rate-limited alongside the other AI paths, since transcription spends paid provider quota. The recording is never written to disk and never logged; the transcript is returned and dropped.",
+  },
 
   // ── Company ────────────────────────────────────────────────────────────────
   "GET /api/v1/company": { tag: "Company", summary: "Insurers, paginated.", query: paginated },
