@@ -333,6 +333,26 @@ describe("server transcription — audio that must go nowhere", () => {
     expect(voice.flushRecording).toHaveBeenCalledTimes(1);
     expect(result.current.lastRejected?.reason).toMatch(/already being transcribed/i);
   });
+
+  it("aborts an upload still in flight when the page is left", async () => {
+    // Production-hardening finding: `reset()` already aborts a pending
+    // upload, but it is only ever called from an effect keyed on the active
+    // advisor category — never on unmount. Navigating away mid-transcription
+    // used to leave that request running unobserved.
+    transcribeAudio.mockReturnValue(new Promise(() => {}));
+    const { result, unmount } = mount();
+    await listen(result);
+    act(() => { result.current.endTurn(); });
+    await deliverAudio();
+
+    expect(transcribeAudio).toHaveBeenCalled();
+    const signal = transcribeAudio.mock.calls[0][1].signal as AbortSignal;
+    expect(signal.aborted).toBe(false);
+
+    unmount();
+
+    expect(signal.aborted).toBe(true);
+  });
 });
 
 describe("browser mode is untouched", () => {

@@ -286,3 +286,28 @@ describe("a duplicate done event", () => {
     expect(result.current.state.phase).toBe("done");
   });
 });
+
+describe("unmount", () => {
+  it("aborts an in-flight stream when the component unmounts", async () => {
+    // Production-hardening finding: nothing previously stopped an SSE
+    // request that outlived the page — `cancel`/`reset` are only called from
+    // explicit user actions or a new turn starting, never from unmount.
+    const body = new ReadableStream<Uint8Array>({ start() {} }); // never closes
+    const fetchMock = vi.fn(async () => ({ ok: true, status: 200, body })) as unknown as typeof fetch;
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { result, unmount } = renderHook(() => useStreaming());
+    act(() => {
+      void result.current.stream("hello", [], "health", "s-1", {});
+    });
+    await act(async () => { await Promise.resolve(); });
+
+    const call = (fetchMock as unknown as { mock: { calls: [string, RequestInit][] } }).mock.calls[0];
+    const signal = call[1].signal as AbortSignal;
+    expect(signal.aborted).toBe(false);
+
+    unmount();
+
+    expect(signal.aborted).toBe(true);
+  });
+});

@@ -56,11 +56,16 @@ class FakeOrchestrator:
         self.raises = raises
         self.delay = delay
         self.seen_kwargs = None
+        # Set only once the artificial delay has actually elapsed — a
+        # cancelled dispatch (the generator was abandoned) never reaches
+        # this, which is what a cancellation test asserts against.
+        self.delay_completed = False
 
     async def dispatch(self, **kwargs):
         self.seen_kwargs = kwargs
         if self.delay:
             await asyncio.sleep(self.delay)
+            self.delay_completed = True
         if self.raises:
             raise self.raises
 
@@ -211,6 +216,62 @@ class TestFailure:
         assert replace["text"].startswith("I hit a technical problem")
         # And nothing was appended after it that would restate the retraction.
         assert kinds.index("replace") > kinds.index("token")
+
+
+class TestAbandonedTurnStopsTheOrchestrator:
+    """
+    A customer who leaves mid-turn must not leave the LLM call running.
+
+    Production-hardening finding: before this fix, closing the generator
+    early (what happens when a disconnected client's SSE connection is torn
+    down) left `orch_task` running to completion in the background — the
+    paid LLM call kept going for a customer who was no longer there to
+    receive it. `FakeOrchestrator.delay` stands in for that call; if it is
+    genuinely cancelled, the code after the delay never runs.
+    """
+
+    def test_closing_the_generator_early_cancels_the_in_flight_dispatch(self):
+        async def scenario():
+            orchestrator = FakeOrchestrator(pieces=["Hello"], delay=0.2)
+            original = stream_service._orchestrator
+            stream_service._orchestrator = orchestrator
+            try:
+                generator = stream_service.stream_chat(
+                    message="I need health cover",
+                    history=[],
+                    user_name="Sri",
+                    product_type="health",
+                    session_id="session-123",
+                )
+                # One frame — the first "thinking" step — then a beat for
+                # `orch_task` to actually be scheduled and enter `dispatch()`
+                # (creating a task only schedules it; it has not necessarily
+                # run yet), then the client leaves.
+                await generator.__anext__()
+                await asyncio.sleep(0.05)
+                await generator.aclose()
+                # Long enough to outlast the delay if it were still running
+                # uncancelled, short enough to keep the test fast.
+                await asyncio.sleep(0.4)
+            finally:
+                stream_service._orchestrator = original
+            return orchestrator
+
+        orchestrator = asyncio.run(scenario())
+        # `dispatch()` was entered (kwargs recorded) but never reached the
+        # code after its delay — the cancellation reached it before the 0.4s
+        # wait elapsed. If `orch_task` had been left running in the
+        # background, this would be True.
+        assert orchestrator.seen_kwargs is not None
+        assert orchestrator.delay_completed is False
+
+    def test_a_turn_that_finished_normally_is_unaffected(self):
+        # `.cancel()` on an already-done task is a documented no-op — this
+        # pins that the ordinary path (Phase 3 already awaited orch_task) is
+        # not disturbed by the new cleanup line.
+        parsed = collect(FakeOrchestrator(pieces=["All good."]))
+        assert text_of(parsed) == "All good."
+        assert types(parsed)[-1] == "done"
 
 
 class TestLatencyReporting:

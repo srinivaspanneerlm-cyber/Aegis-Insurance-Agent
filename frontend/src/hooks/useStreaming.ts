@@ -1,6 +1,6 @@
 "use client";
 import { logger } from "@/lib/logger";
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import type { VoiceRequestMeta } from "@/lib/voiceStyle";
 
 // The advisor stream is proxied by the Node backend, which authenticates the
@@ -457,6 +457,18 @@ export function useStreaming() {
     generationRef.current += 1;
     textRef.current = "";
     setState(IDLE);
+  }, []);
+
+  // An in-flight SSE request had nothing that stopped it if the page
+  // unmounted mid-stream (navigating away, a hard refresh triggered from
+  // elsewhere) — `cancel`/`reset` are only ever called from explicit user
+  // actions or a new turn starting, never from unmount. No `setState` here:
+  // the component is gone, so there is nothing left to paint the abort into.
+  useEffect(() => {
+    return () => {
+      abortRef.current?.abort();
+      generationRef.current += 1;
+    };
   }, []);
 
   return { state, stream, cancel, reset };

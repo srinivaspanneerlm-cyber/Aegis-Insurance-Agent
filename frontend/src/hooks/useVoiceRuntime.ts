@@ -1502,6 +1502,17 @@ export function useVoiceRuntime(options: VoiceRuntimeOptions): VoiceRuntime {
   // A pending recovery timer must not fire into an unmounted component.
   useEffect(() => clearRecoveryTimer, [clearRecoveryTimer]);
 
+  // A transcription upload in flight when the customer navigates away must
+  // not keep running unobserved. `reset()` already aborts it, but reset is
+  // only ever called from an effect keyed on `activeCategory` (agent
+  // switch) — never on unmount, so leaving this page mid-upload had nothing
+  // that stopped it.
+  useEffect(() => {
+    return () => {
+      transcribeAbortRef.current?.abort();
+    };
+  }, []);
+
   // ── End-of-turn detection ─────────────────────────────────────────────────
   // Runs only while the microphone is open, and only off the level the waveform
   // analyser already produces — no second AudioContext and no second stream.

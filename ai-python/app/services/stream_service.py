@@ -367,3 +367,14 @@ async def stream_chat(
             # Read the outcome, so a future that completed while nobody was
             # waiting is not reported as unhandled either.
             next_token.exception()
+
+        # A customer who leaves mid-turn — closing the tab, or barge-in
+        # abandoning this reply — used to leave `orch_task` running to
+        # completion regardless: the generator exits, but the LLM call inside
+        # `dispatch()` keeps going in the background and the paid call is
+        # spent on a customer who is no longer there to receive it. Cancelling
+        # here is a no-op when the turn already finished normally (Phase 3
+        # already awaited it, so `.cancel()` on a done task does nothing) and
+        # stops real work only when it was genuinely abandoned.
+        if not orch_task.done():
+            orch_task.cancel()

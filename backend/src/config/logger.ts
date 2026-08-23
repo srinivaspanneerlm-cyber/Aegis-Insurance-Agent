@@ -10,7 +10,10 @@
 import pino from "pino";
 import env from "./env";
 
-const logger = pino({
+// Exported separately from the singleton below so a test can build its own
+// pino instance against a capturable stream with the exact same redaction
+// config, rather than trying to intercept the real logger's stdout.
+const loggerOptions: pino.LoggerOptions = {
   level: env.LOG_LEVEL,
   base: { service: "aegis-backend" },
   timestamp: pino.stdTimeFunctions.isoTime,
@@ -31,8 +34,10 @@ const logger = pino({
     ],
     remove: true,
   },
-});
+};
+
+const logger = pino(loggerOptions);
 
 const audit = logger.child({ category: "audit" });
 
-export { logger, audit };
+export { logger, audit, loggerOptions };

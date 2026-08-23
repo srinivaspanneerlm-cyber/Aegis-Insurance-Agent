@@ -114,6 +114,22 @@ describe("POST /api/v1/chat/stream — the happy path", () => {
     );
     assert.equal(events[1].text + events[2].text, "Hello there");
   });
+
+  test("is never gzip-compressed, even when the client asks for it", async () => {
+    // Regression guard for the Step 10 perf fix: compression buffers
+    // internally and nothing here calls res.flush() after each write, so a
+    // compressed SSE reply arrives on the browser in one lump at the end
+    // instead of token-by-token — proven with a timing repro at the time,
+    // not previously pinned by an assertion in this suite.
+    const agent = await signIn();
+    const res = await agent
+      .post("/api/v1/chat/stream")
+      .set("Accept-Encoding", "gzip, deflate, br")
+      .send(streamBody);
+
+    assert.equal(res.status, 200);
+    assert.equal(res.headers["content-encoding"], undefined);
+  });
 });
 
 describe("POST /api/v1/chat/stream — when the engine fails", () => {

@@ -3,6 +3,7 @@ import { chatService } from "../services/chat.service";
 import aiService = require("../services/ai.service");
 import catchAsync from "../utils/catchAsync";
 import { sendSuccess } from "../utils/apiResponse";
+import { logger } from "../config/logger";
 
 const createChatMessage = catchAsync(async (req, res) => {
   const result = await chatService.createMessage({
@@ -71,7 +72,13 @@ const streamChatMessage = async (req: Request, res: Response): Promise<void> => 
     upstream.pipe(res);
   } catch (err) {
     if (upstreamAbort.signal.aborted) return; // customer left; nothing to report
-    console.error("[AI Stream] Upstream failed:", (err as Error).message);
+    // Structured, not console — carries the request id for cross-service
+    // correlation and a `kind` so a voice-originated failure can be told
+    // apart from a typed one without reading the request body.
+    logger.error(
+      { requestId: req.id, kind: voice ? "voice" : "chat", err: (err as Error).message },
+      "[AI Stream] Upstream failed"
+    );
     // Generic in-band error — never echo the upstream's message to the client.
     res.write(`data: ${JSON.stringify({ type: "error", message: "The advisor is unavailable right now. Please try again." })}\n\n`);
     res.end();
