@@ -65,11 +65,24 @@ app.use(requestId);
 // Response compression (gzip/deflate) for large JSON/text payloads — a major
 // bandwidth win at scale. Loaded defensively so the app runs with or without
 // the optional dependency installed; toggle via FEATURE_COMPRESSION.
+//
+// Exempted: text/event-stream. gzip is a block codec — it holds output in its
+// internal buffer until enough accumulates (or the stream ends) unless the app
+// calls `res.flush()` after every write, which the SSE proxy does not. Left
+// compressed, an advisor reply stops arriving token-by-token and instead lands
+// on the browser in one burst at the end of the turn, which is silence on the
+// voice path and a frozen bubble on the typed one — exactly what streaming was
+// built to avoid. Every other response type is compressed exactly as before.
 if (FEATURES.COMPRESSION) {
   try {
     // eslint-disable-next-line @typescript-eslint/no-var-requires, global-require
     const compression = require("compression");
-    app.use(compression());
+    app.use(
+      compression({
+        filter: (req: express.Request, res: express.Response) =>
+          res.getHeader("Content-Type") === "text/event-stream" ? false : compression.filter(req, res),
+      })
+    );
   } catch {
     console.warn("[app] 'compression' not installed — running uncompressed. Run `npm install` to enable.");
   }

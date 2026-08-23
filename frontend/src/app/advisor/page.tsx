@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback, Suspense } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { Shield, Heart, Car, Plane, Home as HomeIcon } from "lucide-react";
 import { type ChatMsg, type RecommendationData } from "@/components/ChatMessage";
@@ -503,15 +503,22 @@ function AdvisorChat() {
   });
 
   // Names come from the roster; the icon and sub-label are sidebar-only copy.
-  const sidebarAdvisors: { id: AdvisorKey; icon: React.ReactNode; label: string; sub: string }[] = (
-    [
-      { id: "miscellaneous", icon: <Shield className="w-4 h-4" />,   sub: "Executive Risk" },
-      { id: "motor",         icon: <Car className="w-4 h-4" />,      sub: "Vehicle Asset"  },
-      { id: "health",        icon: <Heart className="w-4 h-4" />,    sub: "Health Floater" },
-      { id: "travel",        icon: <Plane className="w-4 h-4" />,    sub: "Global Passage" },
-      { id: "property",      icon: <HomeIcon className="w-4 h-4" />, sub: "Real Estate"    },
-    ] as const
-  ).map(a => ({ ...a, label: ADVISORS[a.id].name }));
+  // Memoized so `AdvisorSidebar`'s `React.memo` isn't defeated by a fresh
+  // array every render — a streamed reply updates this page on every token,
+  // and the channel list never actually changes with it.
+  const sidebarAdvisors: { id: AdvisorKey; icon: React.ReactNode; label: string; sub: string }[] = useMemo(
+    () =>
+      (
+        [
+          { id: "miscellaneous", icon: <Shield className="w-4 h-4" />,   sub: "Executive Risk" },
+          { id: "motor",         icon: <Car className="w-4 h-4" />,      sub: "Vehicle Asset"  },
+          { id: "health",        icon: <Heart className="w-4 h-4" />,    sub: "Health Floater" },
+          { id: "travel",        icon: <Plane className="w-4 h-4" />,    sub: "Global Passage" },
+          { id: "property",      icon: <HomeIcon className="w-4 h-4" />, sub: "Real Estate"    },
+        ] as const
+      ).map(a => ({ ...a, label: ADVISORS[a.id].name })),
+    []
+  );
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (

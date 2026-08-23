@@ -16,7 +16,11 @@ interface AdvisorHeaderProps {
   pingSpeed: string | number;
 }
 
-export default function AdvisorHeader({
+// Memoized: a streamed reply updates `streamState.text` on every token, and
+// none of this header's props change with it (agent, phase and the telemetry
+// figures move far less often) — without this, every token re-rendered the
+// whole header for nothing.
+const AdvisorHeader = React.memo(function AdvisorHeader({
   advisor,
   isStreaming,
   streamAgentName,
@@ -84,4 +88,6 @@ export default function AdvisorHeader({
         </Link>
       </header>
   );
-}
+});
+
+export default AdvisorHeader;
