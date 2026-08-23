@@ -101,7 +101,9 @@ async def metrics():
 )
 async def root_chat_endpoint(request: ChatRequest):
     """Direct root POST endpoint — routes through multi-agent orchestrator."""
-    logger.info(f"Received request on POST /ai-chat: '{request.message[:60]}...'")
+    # Shape only, never content — see app/routes/chat_routes.py for the same
+    # policy on its sibling endpoints.
+    logger.info(f"Received request on POST /ai-chat: chars={len(request.message)}")
     try:
         from app.routes.chat_routes import get_chat_service, _result_to_response
         service = get_chat_service()

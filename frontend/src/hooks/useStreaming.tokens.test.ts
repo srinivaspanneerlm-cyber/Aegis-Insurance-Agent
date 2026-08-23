@@ -230,3 +230,59 @@ describe("a cancelled stream", () => {
     expect(result.current.state.text).toBe("second turn.");
   });
 });
+
+describe("a stream that fails mid-body (not a cancellation)", () => {
+  it("does not leave the customer staring at a stuck phase forever", async () => {
+    // A real network drop after SSE has already started successfully — the
+    // reader throws mid-read, distinct from an AbortError (the customer
+    // cancelling) and distinct from a graceful close. Voice safety audit
+    // gap: before the fix this went uncaught by `sseSucceeded && return`,
+    // silently leaving `phase` on whatever it last was.
+    const encoder = new TextEncoder();
+    const body = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify(INFO({ streaming: true }))}\n\n`));
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify(TOKEN("Partway through"))}\n\n`));
+      },
+      pull(controller) {
+        controller.error(new Error("network drop"));
+      },
+    });
+
+    vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true, status: 200, body })));
+    const { result } = renderHook(() => useStreaming());
+    const onError = vi.fn();
+
+    await act(async () => {
+      await result.current.stream("hello", [], "health", "s-1", { onError });
+    });
+
+    // The customer must be told something ended the turn — not left on
+    // "thinking"/"streaming" with no error and no way to know to retry.
+    expect(result.current.state.phase).toBe("error");
+    expect(onError).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("a duplicate done event", () => {
+  it("only fires onDone once, and a transfer suggestion only once", async () => {
+    // The handler returns on the first "done" it parses, which structurally
+    // prevents a second one in the same body from ever being read — this
+    // pins that invariant rather than assuming it from reading the source.
+    const onDone = vi.fn();
+    const onTransferSuggested = vi.fn();
+    const result = await run(
+      [
+        INFO({ streaming: true, suggest_transfer: true, transfer_to: "motor", transfer_to_name: "Alex AI" }),
+        TOKEN("Sure, connecting you."),
+        DONE({ session_id: "s-1" }),
+        DONE({ session_id: "s-1" }),
+      ],
+      { onDone, onTransferSuggested }
+    );
+
+    expect(onDone).toHaveBeenCalledTimes(1);
+    expect(onTransferSuggested).toHaveBeenCalledTimes(1);
+    expect(result.current.state.phase).toBe("done");
+  });
+});

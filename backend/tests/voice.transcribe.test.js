@@ -19,6 +19,9 @@ process.env.VOICE_MIN_AUDIO_BYTES = "64";
 // The AI limiter is not what this suite is about; raised so a full run of
 // legitimate requests cannot trip it and make the file order-dependent.
 process.env.RL_AI_MAX = "500";
+// Small so the timeout path (below) resolves in well under a second rather
+// than waiting out the real 25s default.
+process.env.VOICE_STT_TIMEOUT_MS = "150";
 
 const path = require("path");
 const os = require("os");
@@ -296,5 +299,19 @@ describe("POST /api/v1/voice/transcribe — when transcription fails", () => {
     // transcript cannot be guessed — so the honest answer is the way out.
     assert.equal(res.status, 503);
     assert.match(res.body.message, /type your question/i);
+  });
+
+  test("times out rather than hanging when the engine never answers", async () => {
+    const agent = await signIn();
+    // Never calls res.end()/res.write() — the request just sits open past
+    // VOICE_STT_TIMEOUT_MS (150ms in this suite), the one failure branch in
+    // voiceService.transcribe (ECONNABORTED/ETIMEDOUT) nothing else here
+    // exercises.
+    engineReply = () => {};
+
+    const res = await send(agent, WEBM(), "turn.webm", "audio/webm");
+    assert.equal(res.status, 504);
+    assert.equal(res.body.code, "VOICE_TRANSCRIPTION_TIMEOUT");
+    assert.match(res.body.message, /took too long|try again|type your question/i);
   });
 });

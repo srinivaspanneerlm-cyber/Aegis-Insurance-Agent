@@ -412,7 +412,21 @@ export function useStreaming() {
 
     } catch (err) {
       if ((err as Error)?.name === "AbortError") return;
-      // SSE failed — fall through to simulated streaming below
+      if (sseSucceeded) {
+        // The stream had already started — the customer may already have
+        // partial text on screen (or be hearing it, on the voice path).
+        // Falling through to the simulated/non-streaming path below would
+        // restart the turn from scratch and risk answering it twice, so a
+        // genuine mid-body failure ends the turn with an error instead —
+        // found by test to otherwise leave the phase stuck on "thinking" or
+        // "streaming" forever, with nothing on screen telling the customer
+        // to retry.
+        const msg = "The advisor's connection dropped. Please try again.";
+        setState(prev => ({ ...prev, phase: "error", error: msg }));
+        callbacks?.onError?.(msg);
+        return;
+      }
+      // SSE failed before producing anything — fall through to simulated streaming below
     }
 
     if (sseSucceeded) return; // SSE ran but ended without "done" — rare; treat as complete

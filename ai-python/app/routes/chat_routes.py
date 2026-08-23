@@ -38,7 +38,11 @@ def _result_to_response(result: dict) -> ChatResponse:
 @router.post("/ai-chat", response_model=ChatResponse, summary="Submit query to Aegis AI Advisor")
 async def chat_endpoint(request: ChatRequest):
     """Routes message through the multi-agent orchestrator."""
-    logger.info(f"[/api/ai/ai-chat] '{request.message[:60]}...'")
+    # Shape only, never content — a customer's message can carry a medical
+    # condition, an income or a family situation, and it has no business in a
+    # log line that outlives the request. Mirrors the policy `stt_service`
+    # already follows for a spoken turn's transcript.
+    logger.info(f"[/api/ai/ai-chat] chars={len(request.message)}")
     try:
         service = get_chat_service()
         result = await service.dispatch(
@@ -61,7 +65,8 @@ async def chat_endpoint(request: ChatRequest):
 @router.post("", response_model=ChatResponse, summary="Direct backend integration endpoint at /api/ai")
 async def direct_integration_endpoint(request: ChatRequest):
     """Backward-compatible endpoint for Node.js backend proxy."""
-    logger.info(f"[/api/ai] '{request.message[:60]}...'")
+    # Shape only, never content — see the note on the sibling route above.
+    logger.info(f"[/api/ai] chars={len(request.message)}")
     try:
         service = get_chat_service()
         result = await service.dispatch(
