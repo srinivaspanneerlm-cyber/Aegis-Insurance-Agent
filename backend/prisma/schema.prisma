@@ -2022,6 +2022,19 @@ model RenewalLead {
   /// same question as which channels they consented to.
   preferredChannel String
 
+  /// The number to reach them on, when they asked to be called or messaged.
+  ///
+  /// Stored here rather than on `User` deliberately. An account has no phone
+  /// number — sign-up asks for an email — and adding one to the identity model
+  /// would make a contact detail into an account attribute that every part of
+  /// the platform can read. This is the number they gave for *this request*,
+  /// which is also the honest scope of what they agreed to.
+  ///
+  /// Null when they chose email, and required by the service when they did not:
+  /// a queue row saying "contact by WhatsApp" with no number is a row nobody
+  /// can work.
+  contactPhone String?
+
   /// The urgency band and expiry date at the moment the request was raised.
   ///
   /// Snapshots, not lookups. A lead raised at eleven days to expiry was urgent

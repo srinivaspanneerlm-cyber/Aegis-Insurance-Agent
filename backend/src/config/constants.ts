@@ -103,6 +103,22 @@ export const ONBOARDING = {
 // `src/consumer/renewalStatus.ts` where a test pins every boundary.
 export const CONSUMER = {
   TIMEZONE: process.env.CONSUMER_TIMEZONE || "Asia/Kolkata",
+
+  /**
+   * The size ceiling on a policy document, separate from `UPLOADS.MAX_BYTES`.
+   *
+   * Lower than the platform's 50 MB on purpose, and not a tightening of it. That
+   * ceiling exists for motor walkaround *videos*, which this flow does not
+   * accept at all: a customer here sends one certificate — a PDF or a photo of a
+   * page — and 10 MB is generous for both. A single number for the two would
+   * have to be the larger one, which on a phone connection means somebody waits
+   * four minutes to be told their video was not wanted.
+   *
+   * Configurable because a deployment on slower infrastructure may want it
+   * lower, and lowering it is safe: the file is rejected at the door, before it
+   * is read, hashed or stored.
+   */
+  DOCUMENT_MAX_BYTES: num("CONSUMER_DOCUMENT_MAX_BYTES", 10 * 1024 * 1024),
 };
 
 export const JOBS = {

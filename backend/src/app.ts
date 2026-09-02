@@ -24,6 +24,8 @@ import employeeRoutes from "./routes/employee.routes";
 import enterpriseRoutes from "./routes/enterprise.routes";
 import platformRoutes from "./routes/platform.routes";
 import documentRoutes from "./routes/documents.routes";
+import consumerRoutes from "./routes/consumer.routes";
+import renewalLeadRoutes from "./routes/renewalLead.routes";
 import intelligenceRoutes from "./routes/intelligence.routes";
 import communicationRoutes from "./routes/communication.routes";
 import knowledgeRoutes from "./routes/knowledge.routes";
@@ -171,6 +173,14 @@ apiRouter.use("/platform", platformRoutes);
 // The document platform. Scoped by caller rather than realm-walled — a customer
 // legitimately manages their own documents. See documents.routes.ts.
 apiRouter.use("/documents", documentRoutes);
+// Aegis Consumer. Scoped to the caller alone — the narrowest surface on the
+// platform: no permission opens it wider, because nothing here belongs to
+// anybody but the person asking. See consumer.routes.ts.
+apiRouter.use("/consumer", consumerRoutes);
+// The other half of Aegis Consumer: the queue staff work the renewal requests
+// from. Permission-walled with the existing `lead.*` capabilities rather than
+// scope-walled — these are other people's requests. See renewalLead.routes.ts.
+apiRouter.use("/renewal-leads", renewalLeadRoutes);
 apiRouter.use("/intelligence", intelligenceRoutes);
 apiRouter.use("/communication", communicationRoutes);
 apiRouter.use("/knowledge", knowledgeRoutes);

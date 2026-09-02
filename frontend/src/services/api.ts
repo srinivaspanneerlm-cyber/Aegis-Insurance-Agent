@@ -387,6 +387,422 @@ export interface InsuranceProfileResponse {
 }
 
 // ---------------------------------------------------------------------------
+// Aegis Consumer — the caller's own vehicles and motor policies
+// ---------------------------------------------------------------------------
+
+/** The renewal engine's answer, as the API sends it. */
+export type RenewalAssessment =
+  | {
+      ok: true;
+      status:
+        | "ACTIVE"
+        | "RENEWAL_COMING_SOON"
+        | "ACTION_SOON"
+        | "URGENT_RENEWAL"
+        | "POLICY_MAY_BE_EXPIRED";
+      daysRemaining: number;
+      urgency: "NONE" | "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+      displayLabel: string;
+      messageKey: string;
+      nextActionKey: string;
+      evaluatedOn: string;
+      expiresOn: string;
+      timeZone: string;
+    }
+  | {
+      ok: false;
+      reason: "MISSING_EXPIRY" | "INVALID_EXPIRY" | "UNKNOWN_TIMEZONE";
+      messageKey: string;
+      nextActionKey: string;
+    };
+
+/**
+ * The status copy, already in the customer's language.
+ *
+ * Resolved by the API rather than here, so the wording of a renewal warning has
+ * one source. The disclaimer travels with it — a screen cannot render a status
+ * without it by simply forgetting to ask.
+ */
+export interface RenewalCopy {
+  status: string;
+  nextAction: string;
+  disclaimer: string;
+  copyVersion: string;
+}
+
+export interface ConsumerVehicle {
+  id: string;
+  registrationNumber: string;
+  vehicleType: string;
+  make: string | null;
+  model: string | null;
+}
+
+/** The four things Aegis can currently say about a policy — see the API's `trustStatus`. */
+export type TrustState =
+  | "UPLOADED"
+  | "NEEDS_CONFIRMATION"
+  | "CONSISTENCY_VERIFIED"
+  | "VERIFICATION_REQUIRED";
+
+export interface TrustAssessment {
+  state: TrustState;
+  reasonKey: string;
+  actionKey: string;
+  /** Whether a readable certificate is attached. Reported by the API, not derived here. */
+  hasDocument: boolean;
+  checks: {
+    detailsComplete: boolean;
+    coverTypeKnown: boolean;
+    expiryInFuture: boolean;
+    documentAttached: boolean;
+    documentFormatAccepted: boolean;
+    documentUniqueToThisPolicy: boolean;
+    policyNumberUniqueToThisPolicy: boolean;
+  };
+}
+
+/**
+ * The trust copy, already in the customer's language.
+ *
+ * `scopeNote` travels with the rest for the same reason the guidance disclaimer
+ * does: "Details check out" read on its own could be taken as the insurer having
+ * confirmed the cover, and no screen should be able to show the badge without
+ * the sentence that says what was actually checked.
+ */
+export interface TrustCopy {
+  label: string;
+  reason: string;
+  action: string;
+  scopeNote: string;
+  copyVersion: string;
+}
+
+// ── Aegis Kural Lite ───────────────────────────────────────────────────────
+
+export type KuralTopic =
+  | "POLICY_EXPIRY"
+  | "COVER_TYPES"
+  | "IDV"
+  | "NCB"
+  | "ZERO_DEPRECIATION"
+  | "RENEWAL_STEPS";
+
+/** Why the answer is what it is. Drawn differently for each — see the panel. */
+export type KuralOutcome = "ANSWERED" | "NO_MATCH" | "UNREADABLE";
+
+export interface KuralSuggestion {
+  topic: KuralTopic;
+  title: string;
+}
+
+export interface KuralTopics {
+  intro: string;
+  topics: KuralSuggestion[];
+  scopeNote: string;
+  humanCta: string;
+  disclaimer: string;
+  copyVersion: string;
+}
+
+export interface KuralAnswer {
+  outcome: KuralOutcome;
+  topic: KuralTopic | null;
+  /** Already in the customer's language, and never assembled in the browser. */
+  answer: string;
+  /**
+   * The renewal engine's verdict on the policy they named, when they named one
+   * and asked about expiry. Absent for every other question.
+   */
+  aboutYourPolicy: { status: string; nextAction: string; expiryDate: string | null } | null;
+  /** Where the answer came from, so provenance can be shown rather than implied. */
+  source: { kind: string; reference: string } | null;
+  scopeNote: string;
+  disclaimer: string;
+  humanCta: string;
+  suggestions: KuralSuggestion[];
+  copyVersion: string;
+}
+
+// ── Help me renew ──────────────────────────────────────────────────────────
+
+export type ContactChannel = "CALL" | "WHATSAPP" | "EMAIL";
+
+export type RenewalRequestStatus =
+  | "NEW"
+  | "CONTACTED"
+  | "QUOTE_REQUESTED"
+  | "PARTNER_HANDOFF"
+  | "CLOSED";
+
+export interface RenewalRequest {
+  id: string;
+  status: RenewalRequestStatus;
+  /** Already in words. The capitals are the database's business, not a screen's. */
+  statusLabel: string;
+  preferredChannel: ContactChannel;
+  policyId: string | null;
+  urgencyAtCreation: string;
+  expiryAtCreation: string | null;
+  createdAt: string;
+  updatedAt: string;
+  closedReason: string | null;
+}
+
+export interface RenewalRequestResult {
+  request: RenewalRequest;
+  /** True when a request was already open, so nothing new was created. */
+  alreadyOpen: boolean;
+  message: string;
+  disclaimer: string;
+}
+
+/** A permission to make contact, live or withdrawn. */
+export interface ConsentRecord {
+  id: string;
+  channel: ContactChannel;
+  purpose: "RENEWAL_ASSISTANCE" | "RENEWAL_REMINDER";
+  grantedAt: string;
+  withdrawnAt: string | null;
+  active: boolean;
+  textVersion: string;
+  policyId: string | null;
+}
+
+/** One of the caller's own policy documents. */
+export interface ConsumerDocument {
+  id: string;
+  filename: string;
+  mimeType: string | null;
+  sizeBytes: number | null;
+  uploadedAt: string;
+  policyId: string | null;
+  /** First eight characters of the SHA-256. The whole digest never leaves the API. */
+  fingerprint: string | null;
+}
+
+export interface ConsumerPolicy {
+  id: string;
+  insurer: string | null;
+  /** Last four characters only. The full number is never sent to the browser. */
+  policyNumberMasked: string | null;
+  policyType: "THIRD_PARTY" | "COMPREHENSIVE" | "OWN_DAMAGE" | "UNKNOWN" | null;
+  startDate: string | null;
+  expiryDate: string | null;
+  idv: number | null;
+  ncbPercent: number | null;
+  verificationState: string;
+  verificationNote: string | null;
+  enteredVia: string;
+  vehicle: ConsumerVehicle | null;
+  renewal: RenewalAssessment;
+  copy: RenewalCopy;
+  trust: TrustAssessment;
+  trustCopy: TrustCopy;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Every call is scoped to the signed-in customer by the server.
+ *
+ * There is no user id to pass and no way for this client to ask for somebody
+ * else's policy — the API accepts none, which is what makes that guarantee
+ * something other than a convention here.
+ */
+export const consumerService = {
+  getPolicies: async (
+    locale?: string
+  ): Promise<{ policies: ConsumerPolicy[]; disclaimer: string; locale: string }> => {
+    const res = await apiClient.get("/consumer/policies", {
+      params: locale ? { locale } : {},
+    });
+    return res.data.data;
+  },
+
+  getPolicy: async (
+    id: string,
+    locale?: string
+  ): Promise<{ policy: ConsumerPolicy; disclaimer: string; locale: string }> => {
+    const res = await apiClient.get(`/consumer/policies/${id}`, {
+      params: locale ? { locale } : {},
+    });
+    return res.data.data;
+  },
+
+  createPolicy: async (
+    payload: Record<string, unknown>,
+    locale?: string
+  ): Promise<{ policy: ConsumerPolicy; disclaimer: string }> => {
+    const res = await apiClient.post("/consumer/policies", payload, {
+      params: locale ? { locale } : {},
+    });
+    return res.data.data;
+  },
+
+  updatePolicy: async (
+    id: string,
+    payload: Record<string, unknown>,
+    locale?: string
+  ): Promise<{ policy: ConsumerPolicy; disclaimer: string }> => {
+    const res = await apiClient.patch(`/consumer/policies/${id}`, payload, {
+      params: locale ? { locale } : {},
+    });
+    return res.data.data;
+  },
+
+  deletePolicy: async (id: string): Promise<{ deleted: boolean }> => {
+    const res = await apiClient.delete(`/consumer/policies/${id}`);
+    return res.data.data;
+  },
+
+  getVehicles: async (): Promise<{ vehicles: ConsumerVehicle[] }> => {
+    const res = await apiClient.get("/consumer/vehicles");
+    return res.data.data;
+  },
+
+  /**
+   * Correct a vehicle in place.
+   *
+   * Separate from `updatePolicy` on purpose. Sending changed vehicle details
+   * nested inside a policy update matches them by registration number, so a
+   * customer fixing a typo in their plate would get a second vehicle rather than
+   * a corrected one, and the original would be left behind with nothing on it.
+   */
+  updateVehicle: async (
+    id: string,
+    payload: Record<string, unknown>
+  ): Promise<{ vehicle: ConsumerVehicle }> => {
+    const res = await apiClient.patch(`/consumer/vehicles/${id}`, payload);
+    return res.data.data;
+  },
+
+  /**
+   * Attach a certificate to a policy.
+   *
+   * Answers with the whole policy rather than the document, because what the
+   * customer is waiting to see is what changed about their policy — the trust
+   * state — and a screen that had to fetch it again would show the old badge in
+   * between.
+   */
+  uploadPolicyDocument: async (
+    policyId: string,
+    file: File,
+    locale?: string,
+    onUploadProgress?: (progressEvent: AxiosProgressEvent) => void
+  ): Promise<{ policy: ConsumerPolicy; disclaimer: string }> => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const res = await apiClient.post(`/consumer/policies/${policyId}/document`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+      params: locale ? { locale } : {},
+      ...(onUploadProgress ? { onUploadProgress } : {}),
+    });
+    return res.data.data;
+  },
+
+  getDocuments: async (policyId?: string): Promise<{ documents: ConsumerDocument[] }> => {
+    const res = await apiClient.get("/consumer/documents", {
+      params: policyId ? { policyId } : {},
+    });
+    return res.data.data;
+  },
+
+  // ── Help me renew ────────────────────────────────────────────────────────
+
+  /**
+   * Ask a person for help renewing one policy.
+   *
+   * `agreed` is sent explicitly rather than implied by calling this at all. The
+   * API refuses anything but a literal `true`, and passing it through the same
+   * shape the consent screen produced keeps the agreement visible in the code
+   * that sends it rather than buried in a default.
+   */
+  requestRenewalHelp: async (
+    policyId: string,
+    payload: {
+      preferredChannel: ContactChannel;
+      contactPhone?: string | null;
+      alsoRemind?: boolean;
+      agreed: true;
+    },
+    locale?: string
+  ): Promise<RenewalRequestResult> => {
+    const res = await apiClient.post(
+      `/consumer/policies/${policyId}/renewal-request`,
+      payload,
+      { params: locale ? { locale } : {} }
+    );
+    return res.data.data;
+  },
+
+  getRenewalRequests: async (): Promise<{ requests: RenewalRequest[] }> => {
+    const res = await apiClient.get("/consumer/renewal-requests");
+    return res.data.data;
+  },
+
+  getConsents: async (): Promise<{ consents: ConsentRecord[] }> => {
+    const res = await apiClient.get("/consumer/consents");
+    return res.data.data;
+  },
+
+  /**
+   * Stop a permission.
+   *
+   * `DELETE` in the HTTP sense only. The record survives with the date it was
+   * withdrawn, which is the thing anybody asking afterwards actually needs.
+   */
+  withdrawConsent: async (
+    consentId: string,
+    locale?: string
+  ): Promise<{ consent: ConsentRecord; message: string }> => {
+    const res = await apiClient.delete(`/consumer/consents/${consentId}`, {
+      params: locale ? { locale } : {},
+    });
+    return res.data.data;
+  },
+
+  // ── Aegis Kural Lite ─────────────────────────────────────────────────────
+
+  getKuralTopics: async (locale?: string): Promise<KuralTopics> => {
+    const res = await apiClient.get("/consumer/kural/topics", {
+      params: locale ? { locale } : {},
+    });
+    return res.data.data;
+  },
+
+  /**
+   * Ask a motor question.
+   *
+   * Always resolves on a 200, including when the answer is "I do not know that
+   * one" — that is an outcome rather than an error, and treating it as a
+   * rejection here would put it through the catch block that shows a red box.
+   */
+  askKural: async (
+    question: string,
+    options: { policyId?: string | null; locale?: string } = {}
+  ): Promise<KuralAnswer> => {
+    const res = await apiClient.post(
+      "/consumer/kural/ask",
+      { question, ...(options.policyId ? { policyId: options.policyId } : {}) },
+      { params: options.locale ? { locale: options.locale } : {} }
+    );
+    return res.data.data;
+  },
+
+  /**
+   * Where the file itself is served from.
+   *
+   * A URL rather than a fetch: a preview is an `<a>` or an `<img>`, and the
+   * session cookie travels with it. Nothing about the document is in the path
+   * beyond its id, so a link that is shared is still useless to anybody else —
+   * the API answers only for the row's owner.
+   */
+  documentFileUrl: (documentId: string): string =>
+    `${apiClient.defaults.baseURL ?? ""}/consumer/documents/${documentId}/file`,
+};
+
+// ---------------------------------------------------------------------------
 // Leads
 // ---------------------------------------------------------------------------
 export const leadService = {

@@ -1,13 +1,13 @@
 import express from "express";
 import multer, { MulterError, type FileFilterCallback } from "multer";
 import path from "path";
-import fs from "fs";
 import type { NextFunction, Request, Response } from "express";
 import * as uploadController from "../controllers/upload.controller";
 import { protect } from "../middleware/auth.middleware";
 import { validateQuery } from "../middleware/validate.middleware";
 import { paginationQuerySchema } from "../validations/schemas";
 import { UPLOADS } from "../config/constants";
+import { ensureUploadDir } from "../config/uploadDir";
 import { ALLOWED_EXTENSIONS, ALLOWED_MIMES, extensionOf } from "../utils/fileTypes";
 import { auditService } from "../services/audit.service";
 import { formatBytes } from "../utils/formatBytes";
@@ -15,11 +15,9 @@ import AppError from "../utils/appError";
 
 const router = express.Router();
 
-// Auto-manage upload directory
-const uploadDir = path.join(__dirname, "../uploads");
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
+// Auto-manage upload directory. The path itself lives in config/uploadDir so
+// this route and the consumer upload cannot end up writing to two places.
+const uploadDir = ensureUploadDir();
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
