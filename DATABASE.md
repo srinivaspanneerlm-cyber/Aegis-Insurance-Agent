@@ -209,6 +209,97 @@ npm run db:studio             # inspect data
 **Rule:** every schema change is a migration under source control, updates this
 document, and is verified against a data-populated database.
 
+### 7.1 `20260901153156_add_consumer_renewal`
+
+Aegis Consumer Phase 1, milestone M1. Adds the renewal-readiness entities and
+the motor facts a renewal decision needs.
+
+**What it does**
+
+| Change | Detail |
+|---|---|
+| `CREATE TABLE Vehicle` | Owner-scoped. `@@unique([ownerId, registrationNorm])`; `registrationNorm` is indexed alone for a count-only global duplicate probe. |
+| `CREATE TABLE RenewalLead` | `NEW → CONTACTED → QUOTE_REQUESTED → PARTNER_HANDOFF → CLOSED`. Snapshots `urgencyAtCreation` and `expiryAtCreation`. |
+| `CREATE TABLE RenewalConsent` | Channel × purpose, with `textVersion` + `textHash`. Withdrawal sets `withdrawnAt`; rows are never deleted. |
+| `HeldPolicy` + 10 columns | `vehicleId`, `policyType`, `idv`, `ncbPercent`, `documentId`, `verificationState`, `verificationNote`, `policyNumberNorm`, `enteredVia`, `deletedAt`. |
+| `HeldPolicy` + 4 indexes | `[profileId, deletedAt]`, `[policyNumberNorm]`, `[vehicleId]`, `[verificationState]`. |
+
+**Reuse, and what was deliberately not created.** No `ConsumerPolicy`,
+`ConsumerProfile`, `ConsumerDocument` or `ConsumerAuditEvent` table exists.
+A consumer policy *is* a `HeldPolicy` — the model already means "cover this
+customer holds" and is what the intelligence engine, the coverage-gap analysis
+and the customer's own policy list read; a parallel table would have given one
+customer two policy lists that disagree. The profile is `InsuranceProfile`, the
+document is `UploadedDocument`, and the audit trail is `AuditLog`.
+
+**Migration impact.** Additive only. Nothing is renamed or dropped, and every
+added column is nullable or defaulted, so every pre-existing row stays valid and
+every existing Prisma query keeps working unchanged. No application code reads
+the new columns as of M1.
+
+`HeldPolicy.deletedAt` is present but **not enforced anywhere**, and nothing
+writes it yet. Enforcing it means adding a `deletedAt: null` filter to
+`intelligence.service.ts`, which feeds the recommendation and renewal-forecast
+paths — a separately-reviewed change to a protected workflow, deferred until the
+consumer delete endpoint exists to write the column.
+
+**On SQLite, this migration rebuilds `HeldPolicy`.** SQLite cannot
+`ALTER TABLE … ADD COLUMN` with a foreign key, so Prisma emits create-new →
+`INSERT … SELECT` → `DROP TABLE` → rename, under `PRAGMA defer_foreign_keys`.
+The copy names all 16 pre-existing columns, so it is non-destructive — but the
+`DROP TABLE` means **`HeldPolicy` must be backed up before this runs on any
+database whose contents matter** (`scripts/backup-db.sh`). On PostgreSQL the
+same schema change is plain `ADD COLUMN` and no rebuild occurs.
+
+**Rollback**
+
+```bash
+npx prisma migrate resolve --rolled-back 20260901153156_add_consumer_renewal
+```
+
+then, against the database:
+
+```sql
+-- 1. Drop the leads first: RenewalLead references both RenewalConsent and
+--    HeldPolicy, so removing it first leaves no dangling constraint.
+DROP TABLE IF EXISTS "RenewalLead";
+DROP TABLE IF EXISTS "RenewalConsent";
+
+-- 2. Remove the HeldPolicy columns. This must come BEFORE dropping Vehicle,
+--    because HeldPolicy.vehicleId still references it.
+--    PostgreSQL:
+ALTER TABLE "HeldPolicy"
+  DROP COLUMN "vehicleId",        DROP COLUMN "policyType",
+  DROP COLUMN "idv",              DROP COLUMN "ncbPercent",
+  DROP COLUMN "documentId",       DROP COLUMN "verificationState",
+  DROP COLUMN "verificationNote", DROP COLUMN "policyNumberNorm",
+  DROP COLUMN "enteredVia",       DROP COLUMN "deletedAt";
+
+--    SQLite <3.35 has no DROP COLUMN: repeat the rebuild in reverse — create a
+--    table with the original 16 columns, INSERT … SELECT those columns across,
+--    DROP the current table, rename, and recreate the four original indexes
+--    (organizationId; profileId+domain; renewalDate; status).
+
+-- 3. Now the vehicle table has no referrers.
+DROP TABLE IF EXISTS "Vehicle";
+```
+
+**Data loss on rollback** is confined to Phase-1-only rows: vehicles, renewal
+leads and consents, plus the motor facts on any policy. **No pre-existing field
+loses data**, because nothing was renamed or dropped going forward.
+
+The `deletedAt` resurrection hazard that a soft-delete column normally carries —
+rolling back makes deleted rows visible again to the intelligence engine — does
+**not** apply to M1: no row can hold a non-null `deletedAt` yet, because nothing
+writes it. That hazard returns with the milestone that adds the delete endpoint,
+and the rollback note there must include
+`DELETE FROM "HeldPolicy" WHERE "deletedAt" IS NOT NULL;` before the column is
+removed.
+
+**Verification performed.** Applied to a populated `dev.db` (6 users) with row
+counts checked either side; applied from scratch by the test harness, which
+rebuilds a throwaway database from every migration on each `npm test` run.
+
 ---
 
 ## 8. Backups & Data Safety

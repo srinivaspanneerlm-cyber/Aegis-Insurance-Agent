@@ -124,6 +124,13 @@ model User {
   customerWork     WorkItem[]        @relation("CustomerWork")
   documentRequests DocumentRequest[] @relation("DocumentRequests")
 
+  // Consumer renewal (Aegis Consumer, Phase 1). Owned by the customer
+  // themselves rather than assigned to them, which is what distinguishes these
+  // from `leads` above — that relation is the sales pipeline an employee works.
+  vehicles        Vehicle[]        @relation("ConsumerVehicles")
+  renewalLeads    RenewalLead[]    @relation("ConsumerRenewalLeads")
+  renewalConsents RenewalConsent[] @relation("ConsumerRenewalConsents")
+
   // Which tenant this person belongs to. Null for customers, who are the
   // platform's users rather than any organisation's staff.
   organizationId String?
@@ -1282,7 +1289,71 @@ model HeldPolicy {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
+  // ── Consumer renewal (Aegis Consumer, Phase 1) ─────────────────────────────
+  // Motor-specific facts a renewal decision needs, added here rather than in a
+  // parallel `ConsumerPolicy` table. This model already means "cover this
+  // customer holds", and it is what the intelligence engine, the coverage-gap
+  // analysis and the customer's own policy list all read. A second table would
+  // have given one customer two policy lists that disagree.
+  //
+  // Every column below is nullable or defaulted, so every row that predates
+  // this change stays valid and every existing query keeps working.
+
+  /// The vehicle this policy covers. Null for the non-motor domains.
+  vehicleId String?
+  vehicle   Vehicle? @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
+
+  /// THIRD_PARTY | COMPREHENSIVE | OWN_DAMAGE | UNKNOWN
+  ///
+  /// UNKNOWN is a first-class value, not a missing one. A customer who does not
+  /// know what they bought is the single most common case this product exists
+  /// to serve, and forcing a guess would put a fiction on their record.
+  policyType String?
+
+  /// Insured Declared Value, and the no-claim bonus already earned. Both
+  /// optional: a customer who cannot find them on their certificate still gets
+  /// a renewal status, which is the whole point of the flow.
+  idv        Float?
+  ncbPercent Int?
+
+  /// The upload these details were read from, if any. Not a foreign key: the
+  /// document may be soft-deleted by its owner while the policy they confirmed
+  /// from it remains, and a cascade would take the policy with it.
+  documentId String?
+
+  /// UPLOADED | NEEDS_CONFIRMATION | CONSISTENCY_VERIFIED | VERIFICATION_REQUIRED
+  ///
+  /// What the platform can currently say about these details — never a verdict
+  /// on the customer. There is deliberately no "REJECTED" and no "FRAUD": this
+  /// vocabulary is shown to the person who typed the details, and an accusation
+  /// is both unactionable and usually wrong.
+  verificationState String  @default("UPLOADED")
+  /// The customer-facing sentence explaining that state. Must say what to do.
+  verificationNote  String?
+
+  /// `policyNumber` with case and punctuation removed — see
+  /// `src/consumer/normalize.ts`, which is the only thing permitted to produce
+  /// it. Stored rather than computed so a duplicate lookup is an index hit
+  /// instead of a scan over every policy on the platform.
+  policyNumberNorm String?
+
+  /// MANUAL | DOCUMENT_CONFIRMED — how these details reached us. Extraction
+  /// never writes a policy on its own; DOCUMENT_CONFIRMED means a person read
+  /// the extracted fields and agreed with them.
+  enteredVia String @default("MANUAL")
+
+  /// Soft delete. A customer removing a policy must not remove the record that
+  /// it existed, because the audit trail of what they were advised, and when,
+  /// outlives the row.
+  ///
+  /// NOT yet enforced in any query — nothing writes this column until the
+  /// consumer delete endpoint exists, and adding a filter to the intelligence
+  /// engine's reads is a separately-reviewed change to a protected workflow.
+  deletedAt DateTime?
+
   profile InsuranceProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  renewalLeads RenewalLead[]
 
   /// Which tenant owns this record.
   ///
@@ -1296,6 +1367,13 @@ model HeldPolicy {
   @@index([profileId, domain])
   @@index([renewalDate])
   @@index([status])
+  // The customer's own policy list, once soft delete is enforced.
+  @@index([profileId, deletedAt])
+  // "Has this policy number been entered before?" — answered as a count, never
+  // as a row, so one customer can never be shown another's record.
+  @@index([policyNumberNorm])
+  @@index([vehicleId])
+  @@index([verificationState])
 }
 
 ///
@@ -1840,4 +1918,188 @@ model ConversationMemory {
   @@index([userId, createdAt])
   @@index([expiresAt])
   @@index([sessionRef, pinned])
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// AEGIS CONSUMER — RENEWAL READINESS (Phase 1)
+//
+// A free, Tamil-first guidance flow for people whose motor policy is about to
+// lapse. Three tables, because three things exist here that nothing else in
+// this schema already means:
+//
+//   • a Vehicle, which is the thing insured and the thing a duplicate check is
+//     actually about — `InsuranceProfile.vehicleOwnership` is a JSON sketch for
+//     recommendation arithmetic, not a record you can index or point a policy at;
+//   • a RenewalLead, which is a customer asking for help with *their own* cover
+//     and has its own five-state lifecycle — distinct from `Lead`, which is a
+//     sales enquiry an employee works through pending → won/lost;
+//   • a RenewalConsent, which is proof of what somebody agreed to and when —
+//     `NotificationPreference` records a setting, which is a different thing and
+//     cannot be produced in an audit.
+//
+// Everything else is reused. The policy itself is `HeldPolicy`, the document is
+// `UploadedDocument`, the customer is `InsuranceProfile`, and the audit trail is
+// `AuditLog`.
+// ═════════════════════════════════════════════════════════════════════════════
+
+/// A vehicle somebody owns.
+///
+/// Separate from the policy because the two have different lifetimes: a bike
+/// outlives the policies on it, and a customer renewing for the third year is
+/// describing the same vehicle each time. Keeping it separate is also what lets
+/// "have these details been entered before?" be an index lookup instead of a
+/// scan over free text on every policy row.
+model Vehicle {
+  id      String @id @default(uuid())
+  ownerId String
+  owner   User   @relation("ConsumerVehicles", fields: [ownerId], references: [id], onDelete: Cascade)
+
+  /// Exactly as the customer typed it, spacing and all. Shown back to them —
+  /// a plate reformatted into something they do not recognise reads as an error.
+  registrationNumber String
+  /// The same value with case and punctuation removed, produced only by
+  /// `src/consumer/normalize.ts`. "TN 09 AB 1234", "tn09ab1234" and
+  /// "TN-09-AB-1234" are one vehicle, and only this column knows that.
+  registrationNorm   String
+
+  /// BIKE | CAR | SCOOTER
+  vehicleType String
+  /// Optional throughout. A customer who cannot name their model still gets a
+  /// renewal status, and refusing to store the rest until they can is how the
+  /// flow loses the person it was built for.
+  make        String?
+  model       String?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now()) @updatedAt
+  /// Soft delete, for the same reason as HeldPolicy.deletedAt.
+  deletedAt DateTime?
+
+  policies HeldPolicy[]
+
+  /// One vehicle per person per plate. This is the constraint that stops the
+  /// same bike being added four times across four renewal attempts.
+  @@unique([ownerId, registrationNorm])
+  /// "Has this plate been registered by anyone?" — answered as a count only.
+  /// Two people can legitimately hold the same plate across a sale, so this
+  /// informs a confirmation prompt and must never block or accuse.
+  @@index([registrationNorm])
+  @@index([ownerId, deletedAt])
+}
+
+/// A customer asking for help renewing their own policy.
+///
+/// Deliberately not `Lead`. That model is a sales enquiry — created by the
+/// platform about a prospect, worked pending → contacted → qualified → won/lost,
+/// and moved along by an auto-qualify job. This is a person who already holds
+/// cover, raising their hand about a policy they entered themselves, and its
+/// five states are an operations hand-off rather than a sales funnel. Sharing
+/// one `status` column between the two would have meant one vocabulary that is
+/// wrong for both.
+///
+/// No `organizationId`, and that is deliberate rather than an omission: a
+/// customer's `organizationId` is null by design (see `User.organizationId`), so
+/// a tenant column here would be null on every row and invisible to every
+/// tenant-scoped read. These leads belong to the Aegis consumer funnel. Adding
+/// tenant partitioning later is an additive change, the same as this one.
+model RenewalLead {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation("ConsumerRenewalLeads", fields: [userId], references: [id], onDelete: Cascade)
+
+  /// The policy this is about. Nullable and `SetNull`: a customer may delete
+  /// the policy after asking for help, and the request still has to be honoured.
+  policyId String?
+  policy   HeldPolicy? @relation(fields: [policyId], references: [id], onDelete: SetNull)
+
+  /// NEW | CONTACTED | QUOTE_REQUESTED | PARTNER_HANDOFF | CLOSED
+  ///
+  /// Forward-only. The allowed transitions live in the service rather than here,
+  /// because a column cannot express "NEW may not jump to CLOSED".
+  status String @default("NEW")
+
+  /// CALL | WHATSAPP | EMAIL — how they asked to be reached, which is not the
+  /// same question as which channels they consented to.
+  preferredChannel String
+
+  /// The urgency band and expiry date at the moment the request was raised.
+  ///
+  /// Snapshots, not lookups. A lead raised at eleven days to expiry was urgent
+  /// when it was raised, and an operations queue that silently re-sorts itself
+  /// as dates pass makes "why was this not called?" unanswerable afterwards.
+  urgencyAtCreation String
+  expiryAtCreation  DateTime?
+
+  /// The consent this request was made under. Nullable only so a consent row
+  /// may be replaced without destroying the lead; the service refuses to create
+  /// a lead without one.
+  consentId String?
+  consent   RenewalConsent? @relation(fields: [consentId], references: [id], onDelete: SetNull)
+
+  /// Who in operations picked it up, and why it ended.
+  assignedToId String?
+  closedReason String?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now()) @updatedAt
+  deletedAt DateTime?
+  version   Int       @default(1)
+
+  @@index([status, createdAt])
+  @@index([userId, createdAt])
+  /// The operations queue: urgent work first, filtered by where it has reached.
+  @@index([urgencyAtCreation, status])
+  @@index([assignedToId])
+  @@index([deletedAt])
+  @@index([createdAt])
+}
+
+/// Proof of what somebody agreed to, and when.
+///
+/// Separate from account creation on purpose: agreeing to hold an account is
+/// not agreeing to be telephoned, and a consent that was bundled into a sign-up
+/// is one nobody can defend afterwards.
+///
+/// Never hard-deleted. Withdrawal sets `withdrawnAt`, because the question a
+/// regulator asks is not "do they consent now" but "what did they agree to, in
+/// which words, on which date, and when did they stop" — and a deleted row
+/// cannot answer any of it.
+model RenewalConsent {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation("ConsumerRenewalConsents", fields: [userId], references: [id], onDelete: Cascade)
+
+  /// CALL | WHATSAPP | EMAIL — one row per channel, so withdrawing consent to
+  /// calls does not silently withdraw consent to email.
+  channel String
+  /// RENEWAL_ASSISTANCE | RENEWAL_REMINDER — being helped once and being
+  /// reminded repeatedly are different asks and are consented to separately.
+  purpose String
+
+  /// Which wording they were shown, and its hash.
+  ///
+  /// The version alone is not enough: it identifies the copy we *believe* was
+  /// on screen, while the hash proves it, and the two disagree the moment
+  /// somebody edits a string without bumping the version.
+  textVersion String
+  textHash    String
+
+  grantedAt   DateTime  @default(now())
+  withdrawnAt DateTime?
+
+  /// The policy the consent was given in the context of, when there was one.
+  policyId String?
+
+  /// Recorded because consent is a claim about a person's action, and the
+  /// circumstances of that action are part of the proof.
+  ipAddress String?
+  userAgent String?
+
+  leads RenewalLead[]
+
+  /// "Does a live consent exist for this channel and purpose?" — the question
+  /// every send has to ask before it sends.
+  @@index([userId, purpose, withdrawnAt])
+  @@index([userId, channel, withdrawnAt])
+  @@index([grantedAt])
 }

@@ -91,6 +91,20 @@ export const ONBOARDING = {
   MAX_INTERESTS: 5,
 };
 
+// ── Aegis Consumer (renewal readiness) ───────────────────────────────────────
+// The zone a customer's calendar day is read in. India-first, because "how many
+// days until my policy expires" is a question about the date on their wall, not
+// about UTC — and a server in another region must not answer it differently.
+//
+// The renewal *bands* are deliberately absent from here. They are the product
+// specification rather than a deployment knob: a threshold widened in one
+// environment would tell two customers with identical policies different
+// things, with nothing in the record to explain why. They live in
+// `src/consumer/renewalStatus.ts` where a test pins every boundary.
+export const CONSUMER = {
+  TIMEZONE: process.env.CONSUMER_TIMEZONE || "Asia/Kolkata",
+};
+
 export const JOBS = {
   // Retry a failed job this many times (total attempts) with exponential backoff
   // before it is dead-lettered. Applies to both queue backings.
