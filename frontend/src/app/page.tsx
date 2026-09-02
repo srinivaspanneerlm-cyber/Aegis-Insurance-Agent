@@ -5,7 +5,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import Testimonials from "@/components/Testimonials";
 import { AmbientBackground } from "@/components/shared/AmbientBackground";
-import { HeroSection, StatsBar, AdvisorEcosystem, LoginModal } from "@/components/home";
+import { HeroSection, StatsBar, AdvisorEcosystem, LoginModal, VoiceGreeting } from "@/components/home";
 
 export default function Home() {
   const [isLoginOpen, setIsLoginOpen] = useState(false);
@@ -25,6 +25,7 @@ export default function Home() {
       <LoginModal isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)} />
       </main>
       <Footer />
+      <VoiceGreeting />
     </div>
   );
 }

@@ -10,7 +10,8 @@ import { useStreaming, type ChatHistoryItem } from "@/hooks/useStreaming";
 import { useVoiceRuntime, type VoiceRuntime } from "@/hooks/useVoiceRuntime";
 import { uiActionService } from "@/services/api";
 import { VOICE_TRANSCRIPTION } from "@/lib/config";
-import { toRequestMeta } from "@/lib/voiceStyle";
+import { toRequestMeta, detectSpeakingStyle, type VoiceRequestMeta } from "@/lib/voiceStyle";
+import { STORAGE_KEYS } from "@/lib/storage-keys";
 import { logger } from "@/lib/logger";
 
 // ── Advisor roster (shared) & page-local helpers ─────────────────────────────
@@ -39,7 +40,10 @@ import { LeadFormModal } from "@/components/advisor/LeadFormModal";
 import { UploadModal } from "@/components/documents";
 import { DocumentRequestBlock } from "@/components/advisor/DocumentRequestBlock";
 import { stripDocumentRequestTag } from "@/lib/documents/parseDocumentRequest";
+import { truncateAtStructuredTag } from "@/lib/speech";
 import { useDocumentWorkflow } from "./useDocumentWorkflow";
+import { CallView } from "@/components/advisor/CallView";
+import { Phone } from "lucide-react";
 
 // ── Component ──────────────────────────────────────────────────────────────────
 
@@ -58,6 +62,15 @@ function AdvisorChat() {
   };
 
   const [activeCategory, setActiveCategory] = useState<AdvisorKey>(getInitialCategory());
+  // A conversation that started with "Hello Aegis" on the home page opens
+  // here as a call, not a chat screen — landing in a transcript-and-sidebar
+  // UI is what made the handoff feel like being dropped into a chatbot
+  // instead of continuing the conversation that was already happening.
+  // Nothing this flips changes: same messages, same session, same send path
+  // — it only swaps which of two views renders them.
+  const [callMode, setCallMode] = useState(
+    () => searchParams.get("voiceHandoff") === "1"
+  );
   const [messages, setMessages] = useState<ChatMsg[]>([]);
   const [inputVal, setInputVal] = useState("");
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
@@ -156,7 +169,7 @@ function AdvisorChat() {
   }, [inputVal]);
 
   // ── Core send ─────────────────────────────────────────────────────────────
-  const sendToAdvisor = useCallback(async (userMsg: string) => {
+  const sendToAdvisor = useCallback(async (userMsg: string, voiceMeta?: VoiceRequestMeta) => {
     if (!userMsg.trim()) return;
     lastUserMsgRef.current = userMsg;
 
@@ -315,7 +328,16 @@ function AdvisorChat() {
             // the same contract the refused `startSpeaking` had before.
             const voice = voiceRuntimeRef.current;
             const turn = voice?.turnState;
-            if (voice && (turn === "PROCESSING" || turn === "SPEAKING")) {
+            if (voice && voiceMeta && turn === "IDLE") {
+              // A handed-off turn: this page's runtime was never told to
+              // listen, so it has no live turn to close — but the customer
+              // still spoke this, and the reply still has to be read back.
+              // `startSpeaking` from IDLE is exactly the replay button's own
+              // path (VoiceEngine's 🔊 control), reused here for the same
+              // reason: reading a finished reply aloud outside a live turn is
+              // already a sanctioned move, not a new one.
+              voice.startSpeaking(result.text);
+            } else if (voice && (turn === "PROCESSING" || turn === "SPEAKING")) {
               if (!voice.finishStreamedTurn(result.text, turnId)) voice.reset();
             }
 
@@ -337,12 +359,61 @@ function AdvisorChat() {
         // engine's prompt to choose how the reply is *worded*, and nothing that
         // decides what the reply says — see `lib/voiceStyle`. A typed message
         // sends nothing here and behaves exactly as it always has.
-        toRequestMeta(voiceRuntimeRef.current?.voiceContext ?? null),
+        //
+        // `voiceMeta` overrides the live runtime's own context for exactly one
+        // caller: the home-page voice handoff below, whose turn was spoken on
+        // a *different* `useVoiceRuntime` instance (the home page's), so this
+        // page's own `voiceContext` — still at its IDLE default — would
+        // otherwise read as a typed message and lose the "write for the ear"
+        // adaptation entirely.
+        voiceMeta ?? toRequestMeta(voiceRuntimeRef.current?.voiceContext ?? null),
       );
     } catch {
       addErrorMsg();
     }
   }, [activeCategory, stream]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Voice handoff from the home page ──────────────────────────────────────
+  // The home page's wake mic ("Hello Aegis, I need motor insurance...") never
+  // talks to the orchestrator itself — it carries the transcript here and
+  // navigates in, so the turn still goes through this page's own
+  // `sendToAdvisor`, on the same `aegis_session_id`, exactly like a typed or
+  // spoken turn started here would. Consumed once per navigation; the ref
+  // (not just the URL flag) is what stops StrictMode's double-invoke or a
+  // later re-render from sending the same turn twice.
+  const voiceHandoffConsumedRef = useRef(false);
+  useEffect(() => {
+    if (voiceHandoffConsumedRef.current) return;
+    if (searchParams.get("voiceHandoff") !== "1") return;
+    voiceHandoffConsumedRef.current = true;
+    if (typeof window === "undefined") return;
+    let raw: string | null = null;
+    try {
+      raw = sessionStorage.getItem(STORAGE_KEYS.VOICE_HANDOFF);
+      sessionStorage.removeItem(STORAGE_KEYS.VOICE_HANDOFF);
+    } catch {
+      raw = null;
+    }
+    if (!raw) return;
+    let text = "";
+    let tamil = false;
+    try {
+      const parsed = JSON.parse(raw) as { text?: unknown; tamil?: unknown };
+      text = typeof parsed.text === "string" ? parsed.text : "";
+      tamil = parsed.tamil === true;
+    } catch {
+      // Defensive only — the writer always sends JSON. A malformed payload
+      // costs this one turn its voice framing, never the whole page.
+      text = raw;
+    }
+    if (!text.trim()) return;
+    const voiceMeta: VoiceRequestMeta = {
+      style: detectSpeakingStyle(text),
+      spoken: true,
+      ...(tamil ? { language: "ta-IN" } : {}),
+    };
+    void sendToAdvisor(text.trim(), voiceMeta);
+  }, [searchParams, sendToAdvisor]);
 
   // ── Voice turn machine ────────────────────────────────────────────────────
   // Composed over the same two hooks the page already uses: it owns `useVoice`
@@ -520,6 +591,19 @@ function AdvisorChat() {
     []
   );
 
+  // The call view's two captions: whatever each side last said, cleaned the
+  // same way the reply is cleaned before it is spoken — a plan card's raw
+  // `[RECOMMENDATION:{...}]` JSON is exactly as unfit to read on screen here
+  // as it would be to read aloud.
+  const lastUserText = useMemo(() => {
+    const last = [...messages].reverse().find((m) => m.sender === "user");
+    return last ? last.text : null;
+  }, [messages]);
+  const lastAdvisorText = useMemo(() => {
+    const last = [...messages].reverse().find((m) => m.sender === "advisor");
+    return last ? truncateAtStructuredTag(stripDocumentRequestTag(last.text)) : null;
+  }, [messages]);
+
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="fixed inset-0 h-screen w-screen overflow-hidden bg-slate-950 flex flex-col z-50 select-none touch-none">
@@ -550,8 +634,30 @@ function AdvisorChat() {
         />
 
         {/* ── CHAT PANEL ───────────────────────────────────────────────────── */}
-        <div className={`flex-1 flex flex-col rounded-[32px] border overflow-hidden h-full transition-all duration-500 bg-slate-900/40 backdrop-blur-3xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] border-white/8 ${advisor.borderGlow} pointer-events-auto`}>
+        <div className={`relative flex-1 flex flex-col rounded-[32px] border overflow-hidden h-full transition-all duration-500 bg-slate-900/40 backdrop-blur-3xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] border-white/8 ${advisor.borderGlow} pointer-events-auto`}>
 
+          {!callMode && (
+            <button
+              onClick={() => setCallMode(true)}
+              title="Switch to a voice call"
+              className="absolute top-4 right-4 z-10 flex items-center gap-2 px-3 py-2 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-xs font-semibold text-white/60 hover:text-white/90 transition-colors"
+            >
+              <Phone className="w-3.5 h-3.5" />
+              Voice call
+            </button>
+          )}
+
+          {callMode ? (
+            <CallView
+              advisor={streamingAdvisor}
+              runtime={voiceRuntime}
+              streamPhase={streamState.phase}
+              lastUserText={lastUserText}
+              lastAdvisorText={lastAdvisorText}
+              onSwitchToChat={() => setCallMode(false)}
+            />
+          ) : (
+          <>
           <MessageTranscript
             connectingTo={connectingTo}
             messages={messages}
@@ -604,6 +710,8 @@ function AdvisorChat() {
             placeholder={advisor.placeholder}
             onAttach={documents.openForSource}
           />
+          </>
+          )}
         </div>
       </div>
 
