@@ -12,8 +12,14 @@
  * the ones we are here for. So they are told, in words, with a way to stay.
  */
 
-/** How long a session may sit untouched before it ends. */
-export const IDLE_TIMEOUT_MS = 30 * 60 * 1000;
+/**
+ * How long a session may sit untouched before it ends.
+ *
+ * Two hours, matched to the access-token lifetime so the two clocks do not
+ * disagree. Longer than the shared-device risk above would argue for on its
+ * own — worth revisiting before this ships to customers on public machines.
+ */
+export const IDLE_TIMEOUT_MS = 2 * 60 * 60 * 1000;
 
 /** How much of that is spent warning them first. */
 export const IDLE_WARNING_MS = 60 * 1000;

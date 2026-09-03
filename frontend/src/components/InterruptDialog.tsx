@@ -3,16 +3,20 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowRight, X, CheckCircle2, Loader2 } from "lucide-react";
+import { AgentAvatar } from "./brand/AgentAvatar";
+import type { BrandId } from "./brand/geometry";
 
 export interface InterruptRequest {
   fromName: string;
   fromAvatar: string;
+  fromBrand: BrandId;
   fromTheme: string;
   fromEmoji: string;
   fromDomain: string;
   fromLabel: string;
   toName: string;
   toAvatar: string;
+  toBrand: BrandId;
   toTheme: string;
   toEmoji: string;
   toDomain: string;
@@ -106,11 +110,7 @@ export default function InterruptDialog({ request, onConfirm, onDecline }: Props
                 className="flex-1 p-3.5 rounded-2xl text-center opacity-70"
                 style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)" }}
               >
-                <div
-                  className={`w-10 h-10 rounded-xl bg-gradient-to-tr ${request.fromTheme} text-white font-black text-sm flex items-center justify-center mx-auto shadow-lg mb-2`}
-                >
-                  {request.fromAvatar}
-                </div>
+                <AgentAvatar brand={request.fromBrand} size={40} className="mx-auto mb-2" />
                 <p className="text-[11px] font-black text-slate-400">{request.fromName}</p>
                 <p className="text-[9px] font-semibold text-slate-600 mt-0.5">{request.fromLabel}</p>
               </div>
@@ -131,11 +131,7 @@ export default function InterruptDialog({ request, onConfirm, onDecline }: Props
                 className="flex-1 p-3.5 rounded-2xl text-center"
                 style={{ background: "rgba(139,92,246,0.05)", border: "1px solid rgba(139,92,246,0.18)" }}
               >
-                <div
-                  className={`w-10 h-10 rounded-xl bg-gradient-to-tr ${request.toTheme} text-white font-black text-sm flex items-center justify-center mx-auto shadow-lg mb-2`}
-                >
-                  {request.toAvatar}
-                </div>
+                <AgentAvatar brand={request.toBrand} size={40} className="mx-auto mb-2" />
                 <p className="text-[11px] font-black text-violet-200">{request.toName}</p>
                 <p className="text-[9px] font-semibold text-violet-400/60 mt-0.5">{request.toLabel}</p>
               </div>

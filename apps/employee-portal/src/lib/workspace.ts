@@ -69,6 +69,14 @@ export const NAVIGATION: readonly NavGroup[] = [
         permission: "customer.read",
       },
       { label: "Leads", href: "/leads", icon: "users", permission: "lead.read" },
+      // Customers who already hold cover and asked for help renewing it. A
+      // different queue from Leads above — see the page for why they are not one.
+      {
+        label: "Renewal Requests",
+        href: "/renewal-requests",
+        icon: "refresh",
+        permission: "lead.read",
+      },
       {
         label: "Customer Support",
         href: "/support",

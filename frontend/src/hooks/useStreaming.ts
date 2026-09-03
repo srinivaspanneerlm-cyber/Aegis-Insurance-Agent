@@ -1,6 +1,7 @@
 "use client";
 import { logger } from "@/lib/logger";
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
+import type { VoiceRequestMeta } from "@/lib/voiceStyle";
 
 // The advisor stream is proxied by the Node backend, which authenticates the
 // customer and tells the AI engine who they are. The browser never addresses
@@ -34,6 +35,22 @@ export interface StreamState {
   error: string | null;
 }
 
+/**
+ * What the turn cost, measured where it is actually felt.
+ *
+ * `firstTokenMs` is the number that matters on the voice path: it is how long
+ * the customer sits in silence after they stop speaking. Before real streaming
+ * it was not a separate number from `totalMs` — there was nothing to say until
+ * everything had been said.
+ */
+export interface StreamLatency {
+  /** Whether real model tokens were streamed, or the reply was replayed. */
+  streamed: boolean;
+  totalMs: number;
+  firstTokenMs: number | null;
+  droppedTokens: number;
+}
+
 export interface TransferSuggestion {
   fromAgentName: string;
   fromDomain: string;
@@ -65,8 +82,26 @@ export interface StreamCallbacks {
     transferReason: string | null;
     previousAgent: string | null;
     sessionId: string;
+    /**
+     * Where the middleware put this turn, on a spoken turn only.
+     *
+     * The engine's existing 9-state conversation machine, read rather than
+     * duplicated — there is no second state machine in the browser to keep in
+     * sync with it. Null on a typed turn, which sends no voice context.
+     */
+    conversationState?: string | null;
+    intent?: string | null;
   }) => void;
   onToken?: (accumulated: string) => void;
+  /**
+   * The turn diverged from what was already streamed, and this is the truth.
+   *
+   * Raised when the model died part-way and the agent answered in its own voice
+   * instead, so the words already on screen are no longer what this turn says.
+   * A caller that is only rendering text can ignore it — `text` is corrected
+   * either way — but a caller that is *speaking* has to stop and start again.
+   */
+  onReplace?: (text: string) => void;
   onDone?: (result: {
     text: string;
     agentName: string;
@@ -79,6 +114,8 @@ export interface StreamCallbacks {
     transferReason: string | null;
     previousAgent: string | null;
     sessionId: string;
+    /** How the turn actually performed. Absent on the fallback path. */
+    latency?: StreamLatency | null;
   }) => void;
   onTransferSuggested?: (info: TransferSuggestion) => void;
   onInterruptSuggested?: (info: InterruptSuggestion) => void;
@@ -88,6 +125,24 @@ export interface StreamCallbacks {
 export interface ChatHistoryItem {
   role: "user" | "assistant";
   content: string;
+}
+
+/**
+ * The latency block off a `done` event, read defensively.
+ *
+ * The field is additive and an older engine will not send it, so its absence is
+ * ordinary rather than an error — and a measurement that arrived malformed must
+ * never be the thing that breaks a reply the customer already has.
+ */
+function readLatency(raw: unknown): StreamLatency | null {
+  if (!raw || typeof raw !== "object") return null;
+  const value = raw as Record<string, unknown>;
+  return {
+    streamed: value.streamed === true,
+    totalMs: typeof value.total_ms === "number" ? value.total_ms : 0,
+    firstTokenMs: typeof value.first_token_ms === "number" ? value.first_token_ms : null,
+    droppedTokens: typeof value.dropped_tokens === "number" ? value.dropped_tokens : 0,
+  };
 }
 
 const IDLE: StreamState = {
@@ -157,7 +212,20 @@ export function useStreaming() {
     transferFrom: null as string | null, transferTo: null as string | null,
     transferToName: null as string | null, transferReason: null as string | null,
     previousAgent: null as string | null, sessionId: "",
+    // The engine's own conversation stage, echoed back on a spoken turn only.
+    conversationState: null as string | null, intent: null as string | null,
   });
+
+  /**
+   * Which request the reader is allowed to speak for.
+   *
+   * `cancel()` aborts the fetch, but a chunk already decoded and sitting in a
+   * microtask still runs its handlers, and a new turn started in the same tick
+   * would have its state overwritten by the old one's tokens. Abort stops the
+   * *transport*; this stops the *events*, which is the half that reaches the
+   * customer.
+   */
+  const generationRef = useRef(0);
 
   const stream = useCallback(async (
     message: string,
@@ -167,16 +235,28 @@ export function useStreaming() {
     callbacks?: StreamCallbacks,
     forceTransferTo?: string,
     declinedDomains?: string[],
+    /**
+     * How the customer spoke this turn, when they spoke it.
+     *
+     * Absent for every typed message, which is what keeps typed chat provably
+     * unchanged: no block, no adaptation, the same request body as before. It
+     * controls how the reply is worded and reaches nothing that decides what
+     * the reply says.
+     */
+    voice?: VoiceRequestMeta | null,
   ) => {
     // Cancel any in-progress request
     abortRef.current?.abort();
     abortRef.current = new AbortController();
+    const generation = generationRef.current + 1;
+    generationRef.current = generation;
     textRef.current = "";
     agentRef.current = {
       agentName: "Sarah AI", agentDomain: productType || "health",
       transferred: false, suggestTransfer: false, isInterrupt: false,
       transferFrom: null, transferTo: null, transferToName: null,
       transferReason: null, previousAgent: null, sessionId,
+      conversationState: null, intent: null,
     };
 
     setState({ ...IDLE, phase: "thinking", thinkingStep: { step: "init", label: "Connecting to advisor..." }, sessionId });
@@ -199,6 +279,7 @@ export function useStreaming() {
           session_id: sessionId,
           force_transfer_to: forceTransferTo || null,
           declined_domains: declinedDomains || [],
+          ...(voice ? { voice } : {}),
         }),
         signal: abortRef.current.signal,
       });
@@ -216,6 +297,10 @@ export function useStreaming() {
         const raw = decoder.decode(value, { stream: true });
         for (const line of raw.split("\n")) {
           if (!line.startsWith("data: ")) continue;
+          // Superseded or cancelled while this batch was being decoded. The
+          // events are dropped here rather than at the reader, because by the
+          // time a chunk has been parsed the abort has already lost the race.
+          if (generationRef.current !== generation) return;
           try {
             const ev = JSON.parse(line.slice(6));
 
@@ -242,11 +327,19 @@ export function useStreaming() {
                 transferReason: ev.transfer_reason || null,
                 previousAgent:  ev.previous_agent || null,
                 sessionId:      ev.session_id || sessionId,
+                conversationState: ev.conversation_state ?? null,
+                intent:            ev.intent ?? null,
               };
               setState(prev => ({
                 ...prev,
                 phase: "streaming",
-                text: "",
+                // Clearing the bubble is right when this event is what starts
+                // the reply — which it always was, because metadata only
+                // existed once the whole turn had finished. With real
+                // streaming the authoritative metadata arrives *after* the
+                // words, and wiping the text there would blank a reply the
+                // customer is already reading, and already hearing.
+                ...(textRef.current ? {} : { text: "" }),
                 ...agentRef.current,
               }));
               callbacks?.onAgentInfo?.(agentRef.current);
@@ -257,6 +350,15 @@ export function useStreaming() {
               setState(prev => ({ ...prev, text: t }));
               callbacks?.onToken?.(t);
 
+            } else if (ev.type === "replace") {
+              // Not an append. What was streamed is being retracted, so the
+              // accumulator is replaced rather than added to — otherwise the
+              // retracted half stays on screen above its own correction.
+              const corrected = ev.text || "";
+              textRef.current = corrected;
+              setState(prev => ({ ...prev, text: corrected }));
+              callbacks?.onReplace?.(corrected);
+
             } else if (ev.type === "done") {
               const finalSessionId = ev.session_id || agentRef.current.sessionId;
               agentRef.current.sessionId = finalSessionId;
@@ -265,6 +367,7 @@ export function useStreaming() {
                 text: textRef.current,
                 ...agentRef.current,
                 sessionId: finalSessionId,
+                latency: readLatency(ev.latency),
               });
               // Fire suggestion callbacks AFTER done so dialog appears post-stream
               if (agentRef.current.suggestTransfer && agentRef.current.transferTo) {
@@ -309,7 +412,21 @@ export function useStreaming() {
 
     } catch (err) {
       if ((err as Error)?.name === "AbortError") return;
-      // SSE failed — fall through to simulated streaming below
+      if (sseSucceeded) {
+        // The stream had already started — the customer may already have
+        // partial text on screen (or be hearing it, on the voice path).
+        // Falling through to the simulated/non-streaming path below would
+        // restart the turn from scratch and risk answering it twice, so a
+        // genuine mid-body failure ends the turn with an error instead —
+        // found by test to otherwise leave the phase stuck on "thinking" or
+        // "streaming" forever, with nothing on screen telling the customer
+        // to retry.
+        const msg = "The advisor's connection dropped. Please try again.";
+        setState(prev => ({ ...prev, phase: "error", error: msg }));
+        callbacks?.onError?.(msg);
+        return;
+      }
+      // SSE failed before producing anything — fall through to simulated streaming below
     }
 
     if (sseSucceeded) return; // SSE ran but ended without "done" — rare; treat as complete
@@ -329,13 +446,29 @@ export function useStreaming() {
 
   const cancel = useCallback(() => {
     abortRef.current?.abort();
+    // Orphan the events as well as the socket. Without this, a reply the
+    // customer has just cut into can still paint itself onto the screen.
+    generationRef.current += 1;
     setState(prev => ({ ...prev, phase: "idle" }));
   }, []);
 
   const reset = useCallback(() => {
     abortRef.current?.abort();
+    generationRef.current += 1;
     textRef.current = "";
     setState(IDLE);
+  }, []);
+
+  // An in-flight SSE request had nothing that stopped it if the page
+  // unmounted mid-stream (navigating away, a hard refresh triggered from
+  // elsewhere) — `cancel`/`reset` are only ever called from explicit user
+  // actions or a new turn starting, never from unmount. No `setState` here:
+  // the component is gone, so there is nothing left to paint the abort into.
+  useEffect(() => {
+    return () => {
+      abortRef.current?.abort();
+      generationRef.current += 1;
+    };
   }, []);
 
   return { state, stream, cancel, reset };

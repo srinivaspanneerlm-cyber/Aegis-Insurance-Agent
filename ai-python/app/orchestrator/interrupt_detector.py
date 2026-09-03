@@ -39,7 +39,7 @@ from typing import Dict, List, Optional
 
 # ── Domain vocabulary ─────────────────────────────────────────────────────────
 
-_DOMAIN_KW: Dict[str, List[str]] = {
+DOMAIN_KEYWORDS: Dict[str, List[str]] = {
     "motor": [
         "motor insurance", "motor", "vehicle insurance", "vehicle",
         "car insurance", "car", "bike insurance", "bike",
@@ -48,7 +48,8 @@ _DOMAIN_KW: Dict[str, List[str]] = {
     ],
     "health": [
         "health insurance", "health", "medical insurance", "medical",
-        "family floater", "mediclaim", "hospital cover", "hospitaliz",
+        "family floater", "mediclaim", "hospital cover",
+        "hospitalization", "hospitalisation", "hospitalized", "hospitalised",
         "critical illness", "health cover", "family health",
     ],
     "travel": [
@@ -72,7 +73,7 @@ _DOMAIN_KW: Dict[str, List[str]] = {
 
 # Sorted longest-first so regex matches the most specific phrase first
 _SORTED_KW: Dict[str, List[str]] = {
-    d: sorted(kws, key=len, reverse=True) for d, kws in _DOMAIN_KW.items()
+    d: sorted(kws, key=len, reverse=True) for d, kws in DOMAIN_KEYWORDS.items()
 }
 
 # Abandon / redirect signals
@@ -106,7 +107,7 @@ _PRODUCT_TERMS: List[str] = [
     "insurance", "policy", "cover", "coverage", "plan", "premium", "quote",
 ]
 
-_PRODUCT_RE = re.compile(
+PRODUCT_TERM_RE = re.compile(
     r"(?<!\w)(" + "|".join(_PRODUCT_TERMS) + r")", re.IGNORECASE
 )
 
@@ -205,7 +206,7 @@ class InterruptDetector:
             # Otherwise the other domain still has to read as shopping rather
             # than scenery — "my brother drives a car to work" is neither a
             # request nor about us.
-            if not _PRODUCT_RE.search(msg_lower):
+            if not PRODUCT_TERM_RE.search(msg_lower):
                 return InterruptResult(detected=False)
 
         # Confidence scoring

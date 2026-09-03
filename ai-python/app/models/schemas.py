@@ -24,6 +24,44 @@ class ChatHistoryMessage(BaseModel):
         return {"sender": self.get_sender(), "message": self.get_message()}
 
 
+class VoiceTurnMeta(BaseModel):
+    """
+    How a turn was spoken, when it was spoken at all.
+
+    Optional and absent on every typed turn, which is what makes typed chat
+    provably unchanged: no block, no adaptation, the same prompt as before.
+
+    Nothing here reaches a decision. It is read once, in
+    `BaseInsuranceAgent._voice_style_context`, to choose a block of phrasing
+    guidance — see `app/prompts/voice_style_prompts`. Bounded like every other
+    external field: `style` is validated against a known set on the way in, and
+    an unrecognised value becomes `normal` rather than an error, because voice
+    adaptation failing must never cost a customer their answer.
+    """
+
+    style: Optional[str] = Field(
+        None,
+        max_length=32,
+        description=(
+            "How the message was worded: normal | confused | frustrated | "
+            "urgent | brief. A description of the wording, never a claim about "
+            "the customer. Unknown values fall back to 'normal'."
+        ),
+    )
+    language: Optional[str] = Field(
+        None,
+        max_length=16,
+        description=(
+            "What the transcription service heard — 'en-IN', 'ta-IN', 'ta-en'. "
+            "Metadata only. Aegis answers in English unless the customer asks "
+            "for another language in words; speaking Tamil is not asking for it."
+        ),
+    )
+    spoken: bool = Field(
+        True, description="False disables every adaptation, as on a typed turn."
+    )
+
+
 class ChatRequest(BaseModel):
     """AI chat request schema."""
     # Bounded input sizes — a single request can never carry an unbounded
@@ -56,6 +94,13 @@ class ChatRequest(BaseModel):
             "Force route to this domain agent, bypassing detection. "
             "Set ONLY when the user has explicitly approved the transfer in the UI."
         )
+    )
+    voice: Optional[VoiceTurnMeta] = Field(
+        None,
+        description=(
+            "Present only when the customer spoke this turn. Controls how the "
+            "reply is worded and never what it says."
+        ),
     )
     declined_domains: List[Annotated[str, StringConstraints(max_length=64)]] = Field(
         default_factory=list,

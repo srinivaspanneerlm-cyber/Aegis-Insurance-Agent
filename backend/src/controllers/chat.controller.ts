@@ -3,6 +3,7 @@ import { chatService } from "../services/chat.service";
 import aiService = require("../services/ai.service");
 import catchAsync from "../utils/catchAsync";
 import { sendSuccess } from "../utils/apiResponse";
+import { logger } from "../config/logger";
 
 const createChatMessage = catchAsync(async (req, res) => {
   const result = await chatService.createMessage({
@@ -34,7 +35,7 @@ const getChatHistory = catchAsync(async (req, res) => {
  * handles. Kept in the controller — it is the protected streaming path.
  */
 const streamChatMessage = async (req: Request, res: Response): Promise<void> => {
-  const { message, history, product_type, session_id, force_transfer_to, declined_domains } = req.body;
+  const { message, history, product_type, session_id, force_transfer_to, declined_domains, voice } = req.body;
 
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
@@ -60,6 +61,9 @@ const streamChatMessage = async (req: Request, res: Response): Promise<void> => 
       sessionId: session_id,
       forceTransferTo: force_transfer_to,
       declinedDomains: declined_domains,
+      // How the customer spoke this turn, when they spoke it. Narrowed in
+      // ai.service before it leaves this process; it controls phrasing only.
+      voice,
       signal: upstreamAbort.signal,
       requestId: req.id as string,
     });
@@ -68,7 +72,13 @@ const streamChatMessage = async (req: Request, res: Response): Promise<void> => 
     upstream.pipe(res);
   } catch (err) {
     if (upstreamAbort.signal.aborted) return; // customer left; nothing to report
-    console.error("[AI Stream] Upstream failed:", (err as Error).message);
+    // Structured, not console — carries the request id for cross-service
+    // correlation and a `kind` so a voice-originated failure can be told
+    // apart from a typed one without reading the request body.
+    logger.error(
+      { requestId: req.id, kind: voice ? "voice" : "chat", err: (err as Error).message },
+      "[AI Stream] Upstream failed"
+    );
     // Generic in-band error — never echo the upstream's message to the client.
     res.write(`data: ${JSON.stringify({ type: "error", message: "The advisor is unavailable right now. Please try again." })}\n\n`);
     res.end();

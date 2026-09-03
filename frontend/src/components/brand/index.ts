@@ -10,6 +10,7 @@
  */
 
 export { BrandMark, type BrandMarkProps, type MarkVariant } from "./BrandMark";
+export { AgentAvatar, type AgentAvatarProps } from "./AgentAvatar";
 export { AgentBadge, type AgentBadgeProps, type BadgeState } from "./AgentBadge";
 export { AgentConstellation, type AgentConstellationProps } from "./AgentConstellation";
 export { RoutingBeam } from "./RoutingBeam";

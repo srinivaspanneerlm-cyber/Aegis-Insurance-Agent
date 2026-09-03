@@ -17,28 +17,36 @@ jobs:
   frontend:
     name: Frontend (typecheck · lint · tests · bundle budget)
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: frontend
     steps:
       - uses: actions/checkout@v4
+      # `frontend` joined the pnpm workspace (root pnpm-workspace.yaml) and
+      # now depends on workspace:* packages under packages/* — plain `npm ci`
+      # cannot resolve that protocol at all. The install has to run at the
+      # repo root, where pnpm-lock.yaml actually lives, not inside frontend/.
+      - uses: pnpm/action-setup@v4
+        with:
+          version: "9.15.0" # matches "packageManager" in the root package.json
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
-      - run: npm ci
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
       # Dependency vulnerability scanning lives in security.yml (npm audit +
       # pip-audit + Trivy) so it runs once across both tiers, not per job.
       - name: Typecheck
+        working-directory: frontend
         run: npx tsc --noEmit
       - name: Lint
+        working-directory: frontend
         run: npx next lint
       - name: Unit tests
+        working-directory: frontend
         run: npx vitest run
       - name: Build
+        working-directory: frontend
         run: npx next build
       - name: Bundle budget
+        working-directory: frontend
         run: npm run bundle:budget
 
   backend:

@@ -3,15 +3,19 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ShieldCheck, Loader2, Sparkles } from "lucide-react";
+import { AgentAvatar } from "./brand/AgentAvatar";
+import type { BrandId } from "./brand/geometry";
 
 export interface TransferRequest {
   fromName: string;
   fromAvatar: string;
+  fromBrand: BrandId;
   fromTheme: string;
   fromEmoji: string;
   fromDomain: string;
   toName: string;
   toAvatar: string;
+  toBrand: BrandId;
   toTheme: string;
   toEmoji: string;
   toDomain: string;
@@ -150,11 +154,7 @@ export default function TransferDialog({ request, onConfirm, onDecline }: Props)
                 className="flex-1 flex flex-col items-center gap-2 py-3.5 px-3 rounded-2xl"
                 style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.06)" }}
               >
-                <div
-                  className={`w-11 h-11 rounded-2xl bg-gradient-to-tr ${request.fromTheme} text-white font-black text-sm flex items-center justify-center shadow-lg`}
-                >
-                  {request.fromAvatar}
-                </div>
+                <AgentAvatar brand={request.fromBrand} size={44} />
                 <div className="text-center">
                   <p className="text-[11px] font-black text-slate-300 leading-none">{request.fromName}</p>
                   <p className="text-[9px] text-slate-500 mt-1 capitalize leading-none">
@@ -187,11 +187,7 @@ export default function TransferDialog({ request, onConfirm, onDecline }: Props)
                     background: "radial-gradient(ellipse at 50% 0%, rgba(245,158,11,0.12), transparent 70%)",
                   }}
                 />
-                <div
-                  className={`w-11 h-11 rounded-2xl bg-gradient-to-tr ${request.toTheme} text-white font-black text-sm flex items-center justify-center shadow-xl relative z-10`}
-                >
-                  {request.toAvatar}
-                </div>
+                <AgentAvatar brand={request.toBrand} size={44} className="relative z-10" />
                 <div className="text-center relative z-10">
                   <p className="text-[11px] font-black text-amber-200 leading-none">{request.toName}</p>
                   <p className="text-[9px] text-amber-500/60 mt-1 capitalize leading-none">

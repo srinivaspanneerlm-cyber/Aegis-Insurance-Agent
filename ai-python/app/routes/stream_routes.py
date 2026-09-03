@@ -37,6 +37,8 @@ async def stream_chat_endpoint(request: ChatRequest):
         force_transfer_to=request.force_transfer_to,
         declined_domains=request.declined_domains,
         user_id=request.user_id,
+        # Absent on a typed turn, which adapts nothing.
+        voice=request.voice.model_dump() if request.voice else None,
     )
 
     return StreamingResponse(

@@ -1,6 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
+import { AgentAvatar } from "@/components/brand/AgentAvatar";
 import type { ConnectingAgent } from "@/app/advisor/transferRules";
 
 /**
@@ -49,11 +50,7 @@ export function ConnectingOverlay({ connectingTo }: { connectingTo: ConnectingAg
                 animate={{ scale: [1, 1.12, 1], opacity: [0.6, 0, 0.6] }}
                 transition={{ duration: 2, repeat: Infinity, ease: "easeInOut", delay: 0.3 }}
               />
-              <div
-                className={`w-14 h-14 rounded-[18px] bg-gradient-to-tr ${connectingTo.theme} text-white font-black text-lg flex items-center justify-center shadow-2xl relative z-10`}
-              >
-                {connectingTo.avatar}
-              </div>
+              <AgentAvatar brand={connectingTo.brand} size={56} className="relative z-10 shadow-2xl" />
             </div>
 
             {/* Label */}

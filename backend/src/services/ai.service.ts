@@ -356,6 +356,26 @@ function _buildFallbackReply(
   return introMessages[category] || introMessages.health;
 }
 
+/**
+ * How the customer spoke a turn, when they spoke it.
+ *
+ * Present only on a voice turn and read by the engine for one purpose: which
+ * block of phrasing guidance to append to the prompt. It reaches no
+ * recommendation, no premium and no eligibility rule. Passed through rather
+ * than interpreted here — this file is a transport, and the engine validates it
+ * against a known set on arrival, falling back to `normal` for anything else.
+ */
+// Not re-exported: this file uses `export =`, and mixing a named export into
+// that produces a module tsx cannot load. Callers pass the block through
+// untyped — it is a transport, and the engine is what validates it.
+interface VoiceTurnMeta {
+  /** normal | confused | frustrated | urgent | brief — a description of the wording. */
+  style?: string;
+  /** What the transcription heard: 'en-IN', 'ta-IN', 'ta-en'. Metadata only. */
+  language?: string;
+  spoken?: boolean;
+}
+
 interface OpenAIStreamParams {
   message: string;
   history?: unknown[];
@@ -365,9 +385,34 @@ interface OpenAIStreamParams {
   sessionId?: string;
   forceTransferTo?: string | null;
   declinedDomains?: string[];
+  voice?: VoiceTurnMeta | null;
   signal?: AbortSignal;
   requestId?: string;
 }
+
+/** The styles the engine recognises. Anything else is dropped rather than forwarded. */
+const VOICE_STYLES = new Set(["normal", "confused", "frustrated", "urgent", "brief"]);
+
+/**
+ * The voice block, reduced to fields we recognise, or null.
+ *
+ * Bounded here as well as at the engine because this is where browser-supplied
+ * data crosses a trust boundary, and because a value that ends up near a prompt
+ * should be narrowed by every hop that touches it, not just the last one.
+ */
+const sanitiseVoice = (voice: VoiceTurnMeta | null | undefined): VoiceTurnMeta | null => {
+  if (!voice || typeof voice !== "object") return null;
+  if (voice.spoken === false) return null;
+
+  const style = typeof voice.style === "string" ? voice.style.toLowerCase() : "";
+  const language = typeof voice.language === "string" ? voice.language.slice(0, 16) : undefined;
+
+  return {
+    style: VOICE_STYLES.has(style) ? style : "normal",
+    ...(language ? { language } : {}),
+    spoken: true,
+  };
+};
 
 /**
  * Open the AI engine's SSE stream on behalf of an authenticated customer.
@@ -392,6 +437,7 @@ const openAIStream = ({
   sessionId = "",
   forceTransferTo = null,
   declinedDomains = [],
+  voice = null,
   signal,
   requestId,
 }: OpenAIStreamParams): Promise<Readable> =>
@@ -407,6 +453,7 @@ const openAIStream = ({
         session_id: sessionId,
         force_transfer_to: forceTransferTo,
         declined_domains: declinedDomains,
+        voice: sanitiseVoice(voice),
       },
       { headers: headersFor(requestId), responseType: "stream", signal }
     )
@@ -418,6 +465,8 @@ const openAIStream = ({
 export = {
   getResponseFromAIService,
   openAIStream,
+  // Exported for unit testing of the voice-metadata narrowing.
+  _sanitiseVoice: sanitiseVoice,
   // Exported for unit testing of the offline fallback routing.
   _detectFallbackDomain,
   _detectFallbackAgent,

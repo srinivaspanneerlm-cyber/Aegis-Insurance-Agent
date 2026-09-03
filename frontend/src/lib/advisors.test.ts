@@ -1,5 +1,12 @@
 import { describe, it, expect } from "vitest";
-import { resolveAdvisorKey, resolveAdvisorName, ADVISORS, PYTHON_DOMAIN_TO_CATEGORY } from "./advisors";
+import {
+  resolveAdvisorKey,
+  resolveAdvisorName,
+  advisorForAgentName,
+  ADVISORS,
+  PYTHON_DOMAIN_TO_CATEGORY,
+} from "./advisors";
+import { AGENTS } from "@/components/brand/geometry";
 
 describe("resolveAdvisorKey", () => {
   it("accepts UI category keys", () => {
@@ -67,5 +74,46 @@ describe("resolveAdvisorName", () => {
   it("resolves the executive advisor, which the old map did not", () => {
     expect(resolveAdvisorName("executive", "Sarah AI")).toBe("Sri AI");
     expect(resolveAdvisorName("miscellaneous", "Sarah AI")).toBe("Sri AI");
+  });
+});
+
+describe("advisor marks", () => {
+  it("gives every advisor a mark that the brand system actually defines", () => {
+    for (const adv of Object.values(ADVISORS)) {
+      expect(AGENTS[adv.brand]).toBeDefined();
+    }
+  });
+
+  it("gives each advisor a different mark", () => {
+    const marks = Object.values(ADVISORS).map(a => a.brand);
+    expect(new Set(marks).size).toBe(marks.length);
+  });
+
+  it("pins each domain to its own mark", () => {
+    expect(ADVISORS.health.brand).toBe("sarah");
+    expect(ADVISORS.motor.brand).toBe("alex");
+    expect(ADVISORS.travel.brand).toBe("ethan");
+    expect(ADVISORS.property.brand).toBe("emma");
+  });
+
+  // Nova is in the master artwork as a claims-and-fraud agent, and no such
+  // agent exists. Handing its mark to a real advisor would label that advisor
+  // with work they do not do, so the executive wears the platform shield.
+  it("keeps the unassigned Nova mark off every advisor", () => {
+    expect(ADVISORS.miscellaneous.brand).toBe("aegis");
+    expect(Object.values(ADVISORS).map(a => a.brand)).not.toContain("nova");
+  });
+});
+
+describe("advisorForAgentName", () => {
+  // What makes a transferred transcript show each agent beside their own words.
+  it("finds the advisor who actually sent the message", () => {
+    expect(advisorForAgentName("Alex AI", ADVISORS.health).brand).toBe("alex");
+    expect(advisorForAgentName("Emma AI", ADVISORS.health).brand).toBe("emma");
+  });
+
+  it("falls back to the advisor on screen for an unknown or missing name", () => {
+    expect(advisorForAgentName("Nova AI", ADVISORS.motor)).toBe(ADVISORS.motor);
+    expect(advisorForAgentName(undefined, ADVISORS.motor)).toBe(ADVISORS.motor);
   });
 });

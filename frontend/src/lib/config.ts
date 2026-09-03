@@ -61,6 +61,21 @@ export const API_URL = resolveApiUrl(
   typeof window === "undefined" ? undefined : window.location.hostname
 );
 
+/**
+ * Who transcribes a spoken turn.
+ *
+ * `"server"` is the default because it is the only setting that works in every
+ * browser: `SpeechRecognition` exists in Chrome and Edge, is absent in Firefox
+ * and Safari, and in Brave is present but permanently broken by design. Server
+ * transcription needs nothing but a microphone.
+ *
+ * `NEXT_PUBLIC_VOICE_TRANSCRIPTION=browser` restores the old path. It is kept
+ * as an escape hatch for a deployment with no STT provider configured — there,
+ * Chrome-only voice beats no voice at all.
+ */
+export const VOICE_TRANSCRIPTION: "browser" | "server" =
+  process.env.NEXT_PUBLIC_VOICE_TRANSCRIPTION === "browser" ? "browser" : "server";
+
 // No AI-engine base here on purpose. The browser reaches the advisor stream
 // through the Node backend, which authenticates the customer and tells the
 // engine who they are; a constant pointing straight at the engine is an

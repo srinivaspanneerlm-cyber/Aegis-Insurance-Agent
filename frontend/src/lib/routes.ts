@@ -19,6 +19,20 @@ export const SESSION_COOKIE_NAME = "aegis_session";
 export const LOGIN_ROUTE = "/login";
 
 /**
+ * Aegis Consumer — the mobile-first guidance surface.
+ *
+ * Named here beside the other route constants so the nav, the tests and any
+ * later redirect all read the same string. Already covered by the protected
+ * prefixes below: `/consumer` was listed for the pages beneath it, and the
+ * index simply had nothing to serve until now.
+ *
+ * Not `CUSTOMER_HOME`. Where a customer lands after signing in is a product
+ * decision — `authRouting.ts` still sends them to the console — and changing it
+ * would move every existing customer off the surface they use today.
+ */
+export const CONSUMER_HOME = "/consumer";
+
+/**
  * Prefixes that require a session. A prefix covers the route and everything
  * beneath it, so a new sub-page is protected the day it is added.
  *

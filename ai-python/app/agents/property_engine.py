@@ -9,6 +9,46 @@ import re
 
 from .property_plans import PROPERTY_PLANS, PLANS_BY_SEGMENT, SEGMENT_THRESHOLDS, PROPERTY_CATEGORIES
 
+# Catalogue keyed the way a scored result refers to a plan.
+_PLAN_BY_ID: Dict[str, Dict[str, Any]] = {
+    plan["plan_id"]: plan for plan in PROPERTY_PLANS.values()
+}
+
+
+def _reason_codes(
+    plan: Dict[str, Any],
+    profile: Dict[str, Any],
+    scores: Dict[str, int],
+) -> List[str]:
+    """Why this plan won, traced back to what the customer actually said."""
+    codes: List[str] = []
+    prop_type = str(profile.get("property_type") or "").strip()
+    location  = str(profile.get("location") or "").strip()
+    value     = str(profile.get("property_value") or "").strip()
+    contents  = str(profile.get("contents_value") or "").strip()
+    security  = str(profile.get("security_system") or "").strip()
+    ownership = str(profile.get("ownership_type") or "").strip()
+
+    if prop_type:
+        codes.append(f"Matched to the property they described: {prop_type}.")
+    if value:
+        codes.append(f"Structure cover sized against the value they gave: {value}.")
+    if contents:
+        codes.append(f"Contents cover sized against what they said is inside: {contents}.")
+    if location:
+        codes.append(
+            f"Location drives the flood, cyclone and earthquake weighting — "
+            f"theirs is {location}."
+        )
+    if ownership:
+        codes.append(f"Rated for how the property is used: {ownership}.")
+    if security:
+        codes.append(f"Security in place was taken into account: \"{security}\".")
+    if not codes:
+        codes.append("Highest overall score against the requirements they confirmed.")
+    return codes
+
+
 
 # ── Parsers ───────────────────────────────────────────────────────────────────
 
@@ -523,14 +563,17 @@ def _build_plan_quality(
 
 # ── Top-3 recommendation ──────────────────────────────────────────────────────
 
-def get_top3_recommendations(
+def _rank_segment_plans(
     profile: Dict[str, Any],
-    risk: Optional[Dict[str, Any]] = None,
-) -> Dict[str, Any]:
-    segment = classify_segment(profile)
-    if risk is None:
-        risk = analyse_risk(profile)
+    risk: Dict[str, Any],
+    segment: str,
+) -> List[Dict[str, Any]]:
+    """Every plan in the customer's segment, scored and ranked best-first.
 
+    The single shared scoring pass behind both entry points below, so a
+    best-fit plan is by construction the plan that would have ranked #1 in the
+    shortlist — one engine, one ordering, two presentations of it.
+    """
     plan_keys = PLANS_BY_SEGMENT.get(segment, PLANS_BY_SEGMENT["standard"])
     scored: List[tuple] = []
 
@@ -601,6 +644,20 @@ def get_top3_recommendations(
             "limitations":       quality["limitations"],
         })
 
+    return plans_out
+
+
+def get_top3_recommendations(
+    profile: Dict[str, Any],
+    risk: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    """The full ranked shortlist for this profile."""
+    segment = classify_segment(profile)
+    if risk is None:
+        risk = analyse_risk(profile)
+
+    plans_out = _rank_segment_plans(profile, risk, segment)
+
     return {
         "type":         "multi_plan",
         "category":     "property",
@@ -610,4 +667,55 @@ def get_top3_recommendations(
         "plans":        plans_out,
         "total_plans":  len(plans_out),
         "recommended":  plans_out[0]["plan_name"] if plans_out else "",
+    }
+
+
+def get_best_fit_recommendation(
+    profile: Dict[str, Any],
+    risk: Optional[Dict[str, Any]] = None,
+    exclude_plan_ids: Optional[List[str]] = None,
+) -> Optional[Dict[str, Any]]:
+    """The single plan that best fits this profile.
+
+    The customer asked one question — what should I buy? — and a shortlist is
+    not an answer to it, it is the choosing handed back to them. The engine
+    already knows which plan scores highest; this returns that one with the
+    reasons it won, and keeps the rest available for a customer who explicitly
+    asks what else there is.
+
+    `exclude_plan_ids` skips plans already shown, which is how "can I see
+    another option?" is served without dumping the catalogue.
+    """
+    segment = classify_segment(profile)
+    if risk is None:
+        risk = analyse_risk(profile)
+
+    ranked = _rank_segment_plans(profile, risk, segment)
+    if not ranked:
+        return None
+
+    excluded  = set(exclude_plan_ids or [])
+    remaining = [p for p in ranked if p["plan_id"] not in excluded]
+    if not remaining:
+        return None
+
+    # Presented on its own, so it is not "rank 2 of 3" to the customer.
+    best = {**remaining[0], "rank": 1}
+
+    return {
+        "type":         "single_plan",
+        "category":     "property",
+        "segment":      segment.capitalize(),
+        "property_cat": classify_property(profile),
+        "risk_summary": risk,
+        "plans":        [best],
+        "total_plans":  1,
+        "recommended":  best["plan_name"],
+        "reason_codes": _reason_codes(
+            _PLAN_BY_ID[best["plan_id"]], profile, best["scores"]
+        ),
+        # There are others, and the customer is told so — but they are
+        # not sent until asked for.
+        "alternatives_available": len(remaining) > 1,
+        "considered_count":       len(ranked),
     }

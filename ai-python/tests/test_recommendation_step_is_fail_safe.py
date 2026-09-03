@@ -78,8 +78,17 @@ def test_no_plan_card_is_attached_when_the_engine_failed():
     assert "[RECOMMENDATION:" not in _answer("recommend")
 
 
-def test_the_happy_path_is_unchanged():
-    assert _answer(None) == REPLY
+def test_the_happy_path_keeps_the_reply_and_gains_a_card():
+    """The contrast that makes the tests above mean something.
+
+    When nothing explodes, the customer gets the advisor's words *and* the plan
+    the engine chose — the card is attached from the engine's result once the
+    consultation is complete. The degraded cases keep the words and lose only
+    the card.
+    """
+    answer = _answer(None)
+    assert answer.startswith(REPLY)
+    assert "[RECOMMENDATION:" in answer
 
 
 def test_an_llm_failure_is_reported_as_a_failed_turn():

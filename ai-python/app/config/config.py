@@ -18,6 +18,17 @@ class Settings:
     GEMINI_API_KEY: str  = os.getenv("GEMINI_API_KEY", "")
     OPENAI_API_KEY: str  = os.getenv("OPENAI_API_KEY", "")
 
+    # Gemini model names. Configurable because a hardcoded one is a time bomb:
+    # Google retires a model, the name that worked for a year starts returning
+    # 404 to new keys, and the only symptom is every Gemini call failing. A
+    # name in .env can be changed in the seconds before it matters; a name in
+    # the source cannot.
+    GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-3.5-flash")
+    # Embedding model for hybrid (semantic + keyword) knowledge retrieval.
+    # Set empty to skip embedding entirely and search on keywords alone —
+    # the same path taken when no Gemini key is configured.
+    GEMINI_EMBEDDING_MODEL: str = os.getenv("GEMINI_EMBEDDING_MODEL", "models/gemini-embedding-001")
+
     # Ollama settings — local or cloud-hosted
     OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
     OLLAMA_MODEL: str    = os.getenv("OLLAMA_MODEL", "llama3.2")
@@ -25,6 +36,46 @@ class Settings:
 
     # Provider Selection
     DEFAULT_PROVIDER: str = os.getenv("DEFAULT_PROVIDER", "ollama").lower()
+
+    # Providers to try, in order, when the active one fails mid-conversation.
+    # A single hosted provider is a single point of failure: when it rate
+    # limits or its endpoint is unreachable, the customer's turn dies and the
+    # conversation stops there. With a chain, the next provider answers the
+    # same turn with the same history, so the conversation continues instead
+    # — no restart, no lost context. Comma-separated; a provider without
+    # credentials is skipped, so this default is inert until a key is set.
+    LLM_FALLBACK_PROVIDERS: str = os.getenv("LLM_FALLBACK_PROVIDERS", "gemini,openai")
+
+    # ── Speech-to-text ────────────────────────────────────────────────────
+    # Which service turns recorded audio into words. Named here and nowhere
+    # else: no route, controller or component may mention a vendor, so moving
+    # from Gemini to Whisper or Groq is this one line plus a class in
+    # `app/services/stt_service.py`.
+    STT_PROVIDER: str = os.getenv("STT_PROVIDER", "gemini").lower()
+
+    # The model that provider uses. Defaults to whatever the chat path already
+    # runs on, so a deployment that has Gemini working has voice working too
+    # without a second thing to configure — and a deployment that wants a
+    # cheaper or faster transcription model can say so without touching chat.
+    _STT_MODEL: str = os.getenv("STT_MODEL", "")
+
+    # A recording longer than about a minute is not a conversational turn, and
+    # accepting one means holding it in memory twice (request body, then SDK
+    # payload) per concurrent caller. ~8 MB is roughly ten minutes of Opus at
+    # the bitrate MediaRecorder picks — generous for a spoken question, small
+    # enough that a flood of them cannot exhaust the process.
+    STT_MAX_BYTES: int = int(os.getenv("STT_MAX_BYTES", str(8 * 1024 * 1024)))
+
+    # Below this a recording is a container header and nothing else. Refused
+    # before any provider is called, because an empty upload that reaches a
+    # paid API costs money to be told there was no speech.
+    STT_MIN_BYTES: int = int(os.getenv("STT_MIN_BYTES", "1200"))
+
+    # A customer is sitting in silence waiting for this, so it is deliberately
+    # tighter than the chat timeout. Past ~20s they have already concluded the
+    # microphone is broken, and an answer that lands after that is worse than
+    # an error that lands before it.
+    STT_TIMEOUT_SECONDS: float = float(os.getenv("STT_TIMEOUT_SECONDS", "20"))
 
     # Deployment environment — controls docs exposure and CORS strictness.
     ENVIRONMENT: str = os.getenv("ENVIRONMENT", "development").lower()
@@ -43,6 +94,13 @@ class Settings:
     # Total attempts for a transient failure (timeout, connection drop, 5xx).
     # Never for input/auth errors, where a retry only delays the safe fallback.
     LLM_CALL_MAX_ATTEMPTS: int = int(os.getenv("LLM_CALL_MAX_ATTEMPTS", "2"))
+    # Wall-clock ceiling for one provider's whole turn — its bounded retry
+    # included — before the chain gives up on it and asks the next one.
+    # Applied only while another provider is still waiting behind it: the
+    # deadline exists to leave that provider room inside the backend's 45s
+    # envelope, and the last provider in the chain has nobody to leave room
+    # for, so it runs to its own timeout and retry policy as before.
+    LLM_PROVIDER_BUDGET_SECONDS: float = float(os.getenv("LLM_PROVIDER_BUDGET_SECONDS", "18"))
 
     @property
     def is_production(self) -> bool:
@@ -61,6 +119,11 @@ class Settings:
             "http://127.0.0.1:3000",
             "http://127.0.0.1:5000",
         ]
+
+    @property
+    def stt_model(self) -> str:
+        """The transcription model: STT_MODEL if set, else the chat model."""
+        return self._STT_MODEL or self.GEMINI_MODEL
 
     @property
     def active_provider(self) -> str:
@@ -85,6 +148,38 @@ class Settings:
 
         # Default to ollama if nothing else is configured
         return "ollama"
+
+    def provider_is_usable(self, provider: str) -> bool:
+        """Whether a provider has everything it needs to be called at all.
+
+        Ollama needs no key of its own (a local daemon accepts any string, and
+        a hosted one carries its key in OLLAMA_API_KEY, which has a default),
+        so it counts as usable whenever it is named. The two hosted providers
+        are only usable with their key present — calling them without one
+        raises on every attempt and would waste the fallback's turn.
+        """
+        if provider == "ollama":
+            return True
+        if provider == "gemini":
+            return bool(self.GEMINI_API_KEY)
+        if provider == "openai":
+            return bool(self.OPENAI_API_KEY)
+        return False
+
+    @property
+    def provider_chain(self) -> list:
+        """The active provider first, then each usable fallback after it.
+
+        Order is the order written in LLM_FALLBACK_PROVIDERS. The active
+        provider is never repeated later in the chain — retrying the provider
+        that just failed is not a fallback.
+        """
+        chain = [self.active_provider]
+        for name in self.LLM_FALLBACK_PROVIDERS.split(","):
+            provider = name.strip().lower()
+            if provider and provider not in chain and self.provider_is_usable(provider):
+                chain.append(provider)
+        return chain
 
 # Instantiated single settings object for global import
 settings = Settings()

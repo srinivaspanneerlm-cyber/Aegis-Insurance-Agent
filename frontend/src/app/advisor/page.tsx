@@ -1,13 +1,18 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback, Suspense } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { Shield, Heart, Car, Plane, Home as HomeIcon } from "lucide-react";
 import { type ChatMsg, type RecommendationData } from "@/components/ChatMessage";
 import TransferDialog from "@/components/TransferDialog";
 import InterruptDialog from "@/components/InterruptDialog";
 import { useStreaming, type ChatHistoryItem } from "@/hooks/useStreaming";
+import { useVoiceRuntime, type VoiceRuntime } from "@/hooks/useVoiceRuntime";
 import { uiActionService } from "@/services/api";
+import { VOICE_TRANSCRIPTION } from "@/lib/config";
+import { toRequestMeta, detectSpeakingStyle, type VoiceRequestMeta } from "@/lib/voiceStyle";
+import { STORAGE_KEYS } from "@/lib/storage-keys";
+import { logger } from "@/lib/logger";
 
 // ── Advisor roster (shared) & page-local helpers ─────────────────────────────
 import {
@@ -35,7 +40,10 @@ import { LeadFormModal } from "@/components/advisor/LeadFormModal";
 import { UploadModal } from "@/components/documents";
 import { DocumentRequestBlock } from "@/components/advisor/DocumentRequestBlock";
 import { stripDocumentRequestTag } from "@/lib/documents/parseDocumentRequest";
+import { truncateAtStructuredTag } from "@/lib/speech";
 import { useDocumentWorkflow } from "./useDocumentWorkflow";
+import { CallView } from "@/components/advisor/CallView";
+import { Phone } from "lucide-react";
 
 // ── Component ──────────────────────────────────────────────────────────────────
 
@@ -54,10 +62,26 @@ function AdvisorChat() {
   };
 
   const [activeCategory, setActiveCategory] = useState<AdvisorKey>(getInitialCategory());
+  // A conversation that started with "Hello Aegis" on the home page opens
+  // here as a call, not a chat screen — landing in a transcript-and-sidebar
+  // UI is what made the handoff feel like being dropped into a chatbot
+  // instead of continuing the conversation that was already happening.
+  // Nothing this flips changes: same messages, same session, same send path
+  // — it only swaps which of two views renders them.
+  const [callMode, setCallMode] = useState(
+    () => searchParams.get("voiceHandoff") === "1"
+  );
   const [messages, setMessages] = useState<ChatMsg[]>([]);
   const [inputVal, setInputVal] = useState("");
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [speakText, setSpeakText] = useState<string | null>(null);
+  // Where the engine's conversation middleware put the last spoken turn. Read
+  // from the stream, never computed here — the 9-state machine lives in Python
+  // and a second copy would only be a second thing to get wrong.
+  const [voiceStage, setVoiceStage] = useState<{ state: string | null; intent: string | null }>({
+    state: null,
+    intent: null,
+  });
   const [pingSpeed, setPingSpeed] = useState("45ms");
   const [activeHandshakes, setActiveHandshakes] = useState(128);
   const [envResponseTimeMs, setEnvResponseTimeMs] = useState<number | undefined>(undefined);
@@ -72,6 +96,9 @@ function AdvisorChat() {
   // Allow sendToAdvisor to read latest messages without stale closure
   const conversationRef = useRef<ChatMsg[]>([]);
   conversationRef.current = messages;
+  // The voice turn machine is created below, after the send path it drives.
+  // Effects and stream callbacks defined before it reach it through this ref.
+  const voiceRuntimeRef = useRef<VoiceRuntime | null>(null);
 
   const { state: streamState, stream, cancel: cancelStream } = useStreaming();
 
@@ -94,6 +121,10 @@ function AdvisorChat() {
   // ── Load agent history from localStorage on agent switch ──────────────────
   useEffect(() => {
     cancelStream();
+    // The turn that stream belonged to is gone too. Without this the runtime
+    // would sit in PROCESSING waiting for a reply that was just aborted, and
+    // the microphone stays locked out behind it.
+    voiceRuntimeRef.current?.reset();
     const domain = ADVISORS[activeCategory].pythonDomain;
     const adv = ADVISORS[activeCategory];
     const stored = loadAgentHistory(domain);
@@ -138,9 +169,14 @@ function AdvisorChat() {
   }, [inputVal]);
 
   // ── Core send ─────────────────────────────────────────────────────────────
-  const sendToAdvisor = useCallback(async (userMsg: string) => {
+  const sendToAdvisor = useCallback(async (userMsg: string, voiceMeta?: VoiceRequestMeta) => {
     if (!userMsg.trim()) return;
     lastUserMsgRef.current = userMsg;
+
+    // Which turn this reply answers. Captured now and carried into every
+    // callback below, so a reply the customer has since cut into cannot speak
+    // or close a turn that has already moved on.
+    const turnId = voiceRuntimeRef.current?.turnId;
 
     const msgId = makeId();
     const ts = now();
@@ -196,6 +232,15 @@ function AdvisorChat() {
           onAgentInfo: (info) => {
             transfer.dismissConnecting(); // stream is live — dismiss connecting overlay
             streamingTimestampRef.current = now();
+            // The engine's own conversation stage, when it sent one. Recorded
+            // rather than recomputed — there is one state machine and it is
+            // the middleware's.
+            if (info.conversationState !== undefined || info.intent !== undefined) {
+              setVoiceStage({
+                state: info.conversationState ?? null,
+                intent: info.intent ?? null,
+              });
+            }
             if (info.sessionId && typeof window !== "undefined") {
               localStorage.setItem("aegis_session_id", info.sessionId);
             }
@@ -209,6 +254,18 @@ function AdvisorChat() {
           onInterruptSuggested: (info) => {
             // Mid-workflow domain switch detected — show specialized dialog
             transfer.suggestInterrupt(info, activeCategory);
+          },
+          onToken: (accumulated) => {
+            // Speak each sentence as it completes, rather than the whole reply
+            // once the turn is over. Silent for a typed message: the runtime is
+            // IDLE then, and this returns without doing anything.
+            voiceRuntimeRef.current?.pushStreamedText(accumulated, turnId);
+          },
+          onReplace: (corrected) => {
+            // The stream was retracted — an LLM that failed part-way, answered
+            // by the agent's own fallback. Whatever was already being said is
+            // no longer what this turn says.
+            voiceRuntimeRef.current?.replaceStreamedText(corrected, turnId);
           },
           onDone: (result) => {
             if (result.sessionId && typeof window !== "undefined") {
@@ -256,6 +313,40 @@ function AdvisorChat() {
             ]);
 
             setSpeakText(result.text);
+
+            // Whether to say this out loud is answered by the turn state alone.
+            // PROCESSING is only ever reached through `submitTurn`, so it *is*
+            // the record that this reply answers something the customer spoke;
+            // a typed turn leaves the runtime IDLE and stays silent, exactly as
+            // it did before.
+            //
+            // SPEAKING is now also a legitimate state to arrive here in: with
+            // real streaming the advisor is usually already part-way through
+            // the answer by the time the turn completes. `finishStreamedTurn`
+            // speaks whatever is left; a false return means there was nothing
+            // worth saying, and the turn is closed rather than left stranded —
+            // the same contract the refused `startSpeaking` had before.
+            const voice = voiceRuntimeRef.current;
+            const turn = voice?.turnState;
+            if (voice && voiceMeta && turn === "IDLE") {
+              // A handed-off turn: this page's runtime was never told to
+              // listen, so it has no live turn to close — but the customer
+              // still spoke this, and the reply still has to be read back.
+              // `startSpeaking` from IDLE is exactly the replay button's own
+              // path (VoiceEngine's 🔊 control), reused here for the same
+              // reason: reading a finished reply aloud outside a live turn is
+              // already a sanctioned move, not a new one.
+              voice.startSpeaking(result.text);
+            } else if (voice && (turn === "PROCESSING" || turn === "SPEAKING")) {
+              if (!voice.finishStreamedTurn(result.text, turnId)) voice.reset();
+            }
+
+            if (result.latency?.streamed) {
+              logger.debug(
+                `advisor: streamed turn — first token ${result.latency.firstTokenMs}ms, ` +
+                `total ${result.latency.totalMs}ms`
+              );
+            }
           },
           onTransferSuggested: (info) => {
             transfer.suggestTransfer(info, activeCategory);
@@ -264,11 +355,103 @@ function AdvisorChat() {
         },
         forceTransferTo,
         transfer.getDeclinedDomains(),
+        // Present only when the customer spoke this turn. It reaches the
+        // engine's prompt to choose how the reply is *worded*, and nothing that
+        // decides what the reply says — see `lib/voiceStyle`. A typed message
+        // sends nothing here and behaves exactly as it always has.
+        //
+        // `voiceMeta` overrides the live runtime's own context for exactly one
+        // caller: the home-page voice handoff below, whose turn was spoken on
+        // a *different* `useVoiceRuntime` instance (the home page's), so this
+        // page's own `voiceContext` — still at its IDLE default — would
+        // otherwise read as a typed message and lose the "write for the ear"
+        // adaptation entirely.
+        voiceMeta ?? toRequestMeta(voiceRuntimeRef.current?.voiceContext ?? null),
       );
     } catch {
       addErrorMsg();
     }
   }, [activeCategory, stream]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Voice handoff from the home page ──────────────────────────────────────
+  // The home page's wake mic ("Hello Aegis, I need motor insurance...") never
+  // talks to the orchestrator itself — it carries the transcript here and
+  // navigates in, so the turn still goes through this page's own
+  // `sendToAdvisor`, on the same `aegis_session_id`, exactly like a typed or
+  // spoken turn started here would. Consumed once per navigation; the ref
+  // (not just the URL flag) is what stops StrictMode's double-invoke or a
+  // later re-render from sending the same turn twice.
+  const voiceHandoffConsumedRef = useRef(false);
+  useEffect(() => {
+    if (voiceHandoffConsumedRef.current) return;
+    if (searchParams.get("voiceHandoff") !== "1") return;
+    voiceHandoffConsumedRef.current = true;
+    if (typeof window === "undefined") return;
+    let raw: string | null = null;
+    try {
+      raw = sessionStorage.getItem(STORAGE_KEYS.VOICE_HANDOFF);
+      sessionStorage.removeItem(STORAGE_KEYS.VOICE_HANDOFF);
+    } catch {
+      raw = null;
+    }
+    if (!raw) return;
+    let text = "";
+    let tamil = false;
+    try {
+      const parsed = JSON.parse(raw) as { text?: unknown; tamil?: unknown };
+      text = typeof parsed.text === "string" ? parsed.text : "";
+      tamil = parsed.tamil === true;
+    } catch {
+      // Defensive only — the writer always sends JSON. A malformed payload
+      // costs this one turn its voice framing, never the whole page.
+      text = raw;
+    }
+    if (!text.trim()) return;
+    const voiceMeta: VoiceRequestMeta = {
+      style: detectSpeakingStyle(text),
+      spoken: true,
+      ...(tamil ? { language: "ta-IN" } : {}),
+    };
+    void sendToAdvisor(text.trim(), voiceMeta);
+  }, [searchParams, sendToAdvisor]);
+
+  // ── Voice turn machine ────────────────────────────────────────────────────
+  // Composed over the same two hooks the page already uses: it owns `useVoice`
+  // (mic, recogniser, speaker) and only *observes* `useStreaming`. There is no
+  // second transport and no second send path — a spoken turn goes through
+  // `sendToAdvisor`, the same function the textarea uses, so it reaches
+  // CentralOrchestrator on the same session as everything else.
+  const voiceRuntime = useVoiceRuntime({
+    onSubmit: sendToAdvisor,
+    stream: streamState,
+    // The same id `sendToAdvisor` reads for every turn — surfaced on
+    // `voiceRuntime.session` so a caller recovering after a reload can tell
+    // whether it is still the same conversation. Read fresh on every render
+    // rather than cached, so a session id minted mid-page-life (the first
+    // turn's `agent_info`) shows up here too.
+    sessionId:
+      (typeof window !== "undefined" && localStorage.getItem("aegis_session_id")) || "",
+    // Observed, not owned: the advisor and the conversation stage are decided
+    // by the orchestrator and the middleware. The runtime reads them so it can
+    // decide how to deliver a reply without a second state machine.
+    agent: {
+      name: streamState.agentName,
+      domain: streamState.agentDomain,
+      conversationState: voiceStage.state,
+      intent: voiceStage.intent,
+    },
+    // Server-side transcription by default — see `lib/config`. The advisor
+    // path below is identical either way: a transcript, whoever produced it,
+    // goes through `sendToAdvisor` like a typed message.
+    transcription: VOICE_TRANSCRIPTION,
+    // Abandon the reply the customer just cut into. Only the reply: the
+    // orchestrator's turn completes server-side, so the session, the agent and
+    // everything it wrote to memory are untouched — the next thing they say
+    // continues the same conversation.
+    onCancelResponse: cancelStream,
+    onSpeakEnd: () => setSpeakText(null),
+  });
+  voiceRuntimeRef.current = voiceRuntime;
 
   const handleSend = useCallback(async (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -391,15 +574,35 @@ function AdvisorChat() {
   });
 
   // Names come from the roster; the icon and sub-label are sidebar-only copy.
-  const sidebarAdvisors: { id: AdvisorKey; icon: React.ReactNode; label: string; sub: string }[] = (
-    [
-      { id: "miscellaneous", icon: <Shield className="w-4 h-4" />,   sub: "Executive Risk" },
-      { id: "motor",         icon: <Car className="w-4 h-4" />,      sub: "Vehicle Asset"  },
-      { id: "health",        icon: <Heart className="w-4 h-4" />,    sub: "Health Floater" },
-      { id: "travel",        icon: <Plane className="w-4 h-4" />,    sub: "Global Passage" },
-      { id: "property",      icon: <HomeIcon className="w-4 h-4" />, sub: "Real Estate"    },
-    ] as const
-  ).map(a => ({ ...a, label: ADVISORS[a.id].name }));
+  // Memoized so `AdvisorSidebar`'s `React.memo` isn't defeated by a fresh
+  // array every render — a streamed reply updates this page on every token,
+  // and the channel list never actually changes with it.
+  const sidebarAdvisors: { id: AdvisorKey; icon: React.ReactNode; label: string; sub: string }[] = useMemo(
+    () =>
+      (
+        [
+          { id: "miscellaneous", icon: <Shield className="w-4 h-4" />,   sub: "Executive Risk" },
+          { id: "motor",         icon: <Car className="w-4 h-4" />,      sub: "Vehicle Asset"  },
+          { id: "health",        icon: <Heart className="w-4 h-4" />,    sub: "Health Floater" },
+          { id: "travel",        icon: <Plane className="w-4 h-4" />,    sub: "Global Passage" },
+          { id: "property",      icon: <HomeIcon className="w-4 h-4" />, sub: "Real Estate"    },
+        ] as const
+      ).map(a => ({ ...a, label: ADVISORS[a.id].name })),
+    []
+  );
+
+  // The call view's two captions: whatever each side last said, cleaned the
+  // same way the reply is cleaned before it is spoken — a plan card's raw
+  // `[RECOMMENDATION:{...}]` JSON is exactly as unfit to read on screen here
+  // as it would be to read aloud.
+  const lastUserText = useMemo(() => {
+    const last = [...messages].reverse().find((m) => m.sender === "user");
+    return last ? last.text : null;
+  }, [messages]);
+  const lastAdvisorText = useMemo(() => {
+    const last = [...messages].reverse().find((m) => m.sender === "advisor");
+    return last ? truncateAtStructuredTag(stripDocumentRequestTag(last.text)) : null;
+  }, [messages]);
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
@@ -431,8 +634,30 @@ function AdvisorChat() {
         />
 
         {/* ── CHAT PANEL ───────────────────────────────────────────────────── */}
-        <div className={`flex-1 flex flex-col rounded-[32px] border overflow-hidden h-full transition-all duration-500 bg-slate-900/40 backdrop-blur-3xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] border-white/8 ${advisor.borderGlow} pointer-events-auto`}>
+        <div className={`relative flex-1 flex flex-col rounded-[32px] border overflow-hidden h-full transition-all duration-500 bg-slate-900/40 backdrop-blur-3xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] border-white/8 ${advisor.borderGlow} pointer-events-auto`}>
 
+          {!callMode && (
+            <button
+              onClick={() => setCallMode(true)}
+              title="Switch to a voice call"
+              className="absolute top-4 right-4 z-10 flex items-center gap-2 px-3 py-2 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-xs font-semibold text-white/60 hover:text-white/90 transition-colors"
+            >
+              <Phone className="w-3.5 h-3.5" />
+              Voice call
+            </button>
+          )}
+
+          {callMode ? (
+            <CallView
+              advisor={streamingAdvisor}
+              runtime={voiceRuntime}
+              streamPhase={streamState.phase}
+              lastUserText={lastUserText}
+              lastAdvisorText={lastAdvisorText}
+              onSwitchToChat={() => setCallMode(false)}
+            />
+          ) : (
+          <>
           <MessageTranscript
             connectingTo={connectingTo}
             messages={messages}
@@ -475,12 +700,8 @@ function AdvisorChat() {
             onReturnToPrevious={handleReturnToPrevious}
             isStreaming={isStreaming}
             onSubmit={handleSend}
-            onFinalTranscript={(text) => {
-              setInputVal(text);
-              setTimeout(() => sendToAdvisor(text), 0);
-            }}
+            voiceRuntime={voiceRuntime}
             speakText={speakText}
-            onSpeakEnd={() => setSpeakText(null)}
             voiceAgentDomain={streamState.agentDomain || advisor.pythonDomain}
             textareaRef={textareaRef}
             inputVal={inputVal}
@@ -489,6 +710,8 @@ function AdvisorChat() {
             placeholder={advisor.placeholder}
             onAttach={documents.openForSource}
           />
+          </>
+          )}
         </div>
       </div>
 

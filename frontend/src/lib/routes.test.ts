@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { PROTECTED_PREFIXES, isProtectedPath, safeNextPath } from "./routes";
+import { CONSUMER_HOME, PROTECTED_PREFIXES, isProtectedPath, safeNextPath } from "./routes";
 
 describe("isProtectedPath", () => {
   it("protects the dashboard and everything under it", () => {
@@ -19,6 +19,16 @@ describe("isProtectedPath", () => {
 
   it("keeps the advisor public — talking to Aegis is how customers arrive", () => {
     expect(isProtectedPath("/advisor")).toBe(false);
+  });
+
+  it("protects the Aegis Consumer home itself, not only the pages beneath it", () => {
+    // `/consumer` was in the prefix list for its subpages long before it had an
+    // index of its own. `isProtectedPath` matches a prefix exactly as well as
+    // beneath it, which is what makes the new page protected without a change
+    // to the list — this pins that, because the alternative is a signed-out
+    // stranger being served a page addressed "Vanakkam".
+    expect(isProtectedPath(CONSUMER_HOME)).toBe(true);
+    expect(isProtectedPath("/consumer")).toBe(true);
   });
 
   it("does not protect a page that merely starts with the same letters", () => {
@@ -59,5 +69,14 @@ describe("the edge guard and the route list agree", () => {
     for (const prefix of PROTECTED_PREFIXES) {
       expect(middleware).toContain(`"${prefix}/:path*"`);
     }
+  });
+
+  it("covers the Aegis Consumer home with an existing matcher", () => {
+    // `/consumer/:path*` matches zero trailing segments, so it covers
+    // `/consumer` itself. Stated as a test because it is the kind of thing that
+    // looks like it needs a second matcher and quietly does not.
+    const middleware = readFileSync(join(__dirname, "..", "middleware.ts"), "utf8");
+    expect(middleware).toContain('"/consumer/:path*"');
+    expect(PROTECTED_PREFIXES).toContain(CONSUMER_HOME);
   });
 });

@@ -21,7 +21,8 @@
     "db:studio": "npx prisma studio",
     "db:seed": "node prisma/seed.js",
     "openapi": "node --import tsx scripts/openapi.mjs",
-    "openapi:check": "node --import tsx scripts/openapi.mjs --check"
+    "openapi:check": "node --import tsx scripts/openapi.mjs --check",
+    "db:seed:consumer": "node --import tsx prisma/seed-consumer-demo.js"
   },
   "dependencies": {
     "@prisma/client": "^5.14.0",

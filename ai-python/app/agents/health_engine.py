@@ -11,6 +11,13 @@ from app.utils.money import parse_amount
 
 from .health_plans import HEALTH_PLANS, PLANS_BY_SEGMENT, SEGMENT_THRESHOLDS
 
+# Catalogue keyed the way a scored result refers to a plan. The ranked entries
+# carry `plan_id` ("AEG-HLT-004"), not the catalogue key ("standard_protect"),
+# so anything reading raw plan fields back off a result needs this.
+_PLAN_BY_ID: Dict[str, Dict[str, Any]] = {
+    plan["plan_id"]: plan for plan in HEALTH_PLANS.values()
+}
+
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -337,18 +344,17 @@ def _build_plan_quality(
 
 # ── Top-3 recommendation ──────────────────────────────────────────────────────
 
-def get_top3_recommendations(
+def _rank_segment_plans(
     profile: Dict[str, Any],
-    risk: Optional[Dict[str, Any]] = None,
-) -> Dict[str, Any]:
-    """
-    Main entry point for Sarah AI.
-    Returns a fully-formed dict ready to embed as [RECOMMENDATION:{...}].
-    """
-    segment    = classify_segment(profile)
-    if risk is None:
-        risk = analyse_risk(profile)
+    risk: Dict[str, Any],
+    segment: str,
+) -> List[Dict[str, Any]]:
+    """Every plan in the customer's segment, scored and ranked best-first.
 
+    The single shared scoring pass behind both entry points below, so a
+    best-fit plan is by construction the same plan that would have ranked #1 in
+    the three-plan view — one engine, one ordering, two presentations of it.
+    """
     plan_keys  = PLANS_BY_SEGMENT.get(segment, PLANS_BY_SEGMENT["budget"])
     scored     = []
 
@@ -410,6 +416,23 @@ def get_top3_recommendations(
         }
         plans_out.append(plan_entry)
 
+    return plans_out
+
+
+def get_top3_recommendations(
+    profile: Dict[str, Any],
+    risk: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    """
+    The full ranked shortlist for this profile.
+    Returns a fully-formed dict ready to embed as [RECOMMENDATION:{...}].
+    """
+    segment = classify_segment(profile)
+    if risk is None:
+        risk = analyse_risk(profile)
+
+    plans_out = _rank_segment_plans(profile, risk, segment)
+
     return {
         "type":           "multi_plan",
         "category":       "health",
@@ -418,4 +441,112 @@ def get_top3_recommendations(
         "plans":          plans_out,
         "total_plans":    len(plans_out),
         "recommended":    plans_out[0]["plan_name"] if plans_out else "",
+    }
+
+
+# ── Best-fit (single plan) ────────────────────────────────────────────────────
+
+def _reason_codes(
+    plan: Dict[str, Any],
+    profile: Dict[str, Any],
+    scores: Dict[str, int],
+) -> List[str]:
+    """Why this plan won, traced back to what the customer actually said.
+
+    Each line names the requirement it came from, so the advisor's explanation
+    is a reading of the engine's decision rather than a story told alongside it.
+    Everything here is derived from the profile and the plan catalogue — nothing
+    is asserted that is not in one of them.
+    """
+    codes: List[str] = []
+
+    budget      = _parse_budget(profile.get("budget"))
+    age         = _parse_age(profile.get("age"))
+    family_size = _parse_family_size(profile.get("family_size"))
+    has_ped     = _has_preexisting(profile.get("medical_history"))
+    concern     = str(profile.get("primary_concern") or "").strip()
+    existing    = str(profile.get("existing_coverage") or "").strip()
+    premium_avg = (plan["premium_min"] + plan["premium_max"]) // 2
+
+    if budget:
+        if premium_avg <= budget:
+            codes.append(
+                f"Premium sits within the ₹{budget:,}/month they said was comfortable "
+                f"(plan averages about ₹{premium_avg:,}/month)."
+            )
+        else:
+            codes.append(
+                f"Premium averages about ₹{premium_avg:,}/month against the "
+                f"₹{budget:,}/month they named — above it, and they need to hear that."
+            )
+    if scores["coverage_match"] >= 80:
+        codes.append(
+            f"{plan['coverage_display']} cover matches what {family_size} "
+            f"{'person' if family_size == 1 else 'people'} in this profile need."
+        )
+    if age and age >= 55:
+        codes.append(
+            f"Eldest member is {age} — this plan's eligibility and room-rent terms "
+            f"({plan['room_rent']}) suit older members."
+        )
+    if has_ped:
+        codes.append(
+            f"Existing conditions were declared, so the {plan['ped_waiting']} "
+            f"pre-existing waiting period is a deciding factor here."
+        )
+    if concern:
+        codes.append(f"Their stated concern — \"{concern}\" — drove the weighting.")
+    if existing:
+        codes.append(f"Sits on top of cover they already hold: \"{existing}\".")
+    if not codes:
+        codes.append("Highest overall score against the requirements they confirmed.")
+    return codes
+
+
+def get_best_fit_recommendation(
+    profile: Dict[str, Any],
+    risk: Optional[Dict[str, Any]] = None,
+    exclude_plan_ids: Optional[List[str]] = None,
+) -> Optional[Dict[str, Any]]:
+    """The single plan that best fits this profile.
+
+    A customer asked one question — "what should I buy?" — and three ranked
+    cards is not an answer to it, it is the shortlist handed over for them to do
+    the choosing. The engine already knows which plan scores highest; this
+    returns that one, with the reasons it won, and keeps the rest available for
+    a customer who explicitly asks what else there is.
+
+    `exclude_plan_ids` skips plans already shown, which is how "can I see
+    another option?" is served without dumping the catalogue.
+    """
+    segment = classify_segment(profile)
+    if risk is None:
+        risk = analyse_risk(profile)
+
+    ranked = _rank_segment_plans(profile, risk, segment)
+    if not ranked:
+        return None
+
+    excluded  = set(exclude_plan_ids or [])
+    remaining = [p for p in ranked if p["plan_id"] not in excluded]
+    if not remaining:
+        return None
+
+    best = remaining[0]
+    # Presented on its own, so it is not "rank 2 of 3" to the customer.
+    best = {**best, "rank": 1}
+
+    return {
+        "type":         "single_plan",
+        "category":     "health",
+        "segment":      segment.capitalize(),
+        "risk_summary": risk,
+        "plans":        [best],
+        "total_plans":  1,
+        "recommended":  best["plan_name"],
+        "reason_codes": _reason_codes(_PLAN_BY_ID[best["plan_id"]], profile, best["scores"]),
+        # There are others, and the customer is told so — but they are not sent
+        # until asked for. Names and prices stay server-side until then.
+        "alternatives_available": len(remaining) > 1,
+        "considered_count":       len(ranked),
     }

@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { User, LogOut } from "lucide-react";
+import { User, LogOut, LifeBuoy } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { CUSTOMER_HOME } from "@/lib/authRouting";
-import { LOGIN_ROUTE } from "@/lib/routes";
+import { CONSUMER_HOME, LOGIN_ROUTE } from "@/lib/routes";
 
 /**
  * Login trigger, or the dashboard/sign-out pair when authenticated.
@@ -20,6 +20,21 @@ export function AuthButtons({ onLoginClick }: { onLoginClick?: () => void }) {
   if (isAuthenticated) {
     return (
       <div className="flex items-center gap-3">
+        {/* Aegis Consumer sits beside the dashboard rather than replacing it.
+            The two serve different people — a console for someone who wants
+            every panel, and a five-choice screen for someone who wants help —
+            and which one a customer lands on by default is a product decision,
+            not one to make silently from a nav component. The label is hidden
+            on the narrowest screens so three controls still fit a phone. */}
+        <Link
+          href={CONSUMER_HOME}
+          className="flex items-center gap-1.5 rounded-full border border-slate-250 bg-slate-100 py-2 px-4 text-xs font-black uppercase tracking-wider text-royal-600 transition-all hover:bg-slate-200 dark:border-cyan-400/30 dark:bg-white/[0.03] dark:text-cyan-300 dark:hover:bg-white/[0.08]"
+        >
+          <LifeBuoy className="h-3.5 w-3.5" aria-hidden="true" />
+          <span className="hidden sm:inline">Aegis Consumer</span>
+          <span className="sr-only sm:hidden">Aegis Consumer</span>
+        </Link>
+
         <Link
           // Straight to the dashboard, not through the /dashboard shim, so a
           // signed-in customer is not redirected on the way to their own page.

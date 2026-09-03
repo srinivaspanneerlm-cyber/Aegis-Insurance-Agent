@@ -20,12 +20,14 @@ export const TAGS = [
   { name: "Policies", description: "The public product catalogue." },
   { name: "Chat", description: "The customer-facing AI conversation, including the streaming path." },
   { name: "Upload", description: "Customer document upload." },
+  { name: "Voice", description: "Speech-to-text for a spoken turn. Audio in, transcript out — the recording is held in memory and never stored." },
   { name: "Company", description: "Insurers — shared reference data across tenants." },
   { name: "Admin", description: "Aggregate figures for administrators." },
   { name: "UI Action", description: "Structured actions the AI asks the interface to take." },
   { name: "Enterprise Console", description: "Tenant administration. Read-heavy by design: it watches and reports, and decides nothing a person is answerable for." },
   { name: "Employee Workspace", description: "The queue an employee works, realm-walled as a whole. A customer's session reaches none of it." },
   { name: "Documents", description: "The document platform. Scoped by caller rather than realm-walled — a customer legitimately manages their own documents." },
+  { name: "Consumer", description: "Aegis Consumer — a customer's own vehicles and motor policies. The narrowest surface on the API: scoped to the caller alone, with no permission that opens it wider and no user id accepted anywhere." },
   { name: "Intelligence", description: "A customer's insurance profile, the advice derived from it, and aggregate views for staff." },
   { name: "Communication", description: "Notifications, conversations, timelines and announcements." },
   { name: "Knowledge", description: "Approved guidance and institutional memory. Provenance is the point: advice traced to nothing is advice the business cannot defend." },
@@ -106,6 +108,14 @@ export const ROUTE_META = {
   "POST /api/v1/upload": { tag: "Upload", summary: "Upload documents.", description: "Bounded in count and size; files are scanned before they are stored." },
   "GET /api/v1/upload": { tag: "Upload", summary: "Documents this account may see.", query: paginated },
 
+  // ── Voice ──────────────────────────────────────────────────────────────────
+  "POST /api/v1/voice/transcribe": {
+    tag: "Voice",
+    summary: "Transcribe one recorded voice turn.",
+    description:
+      "Multipart, field `audio`. Accepts the containers browsers actually produce — WebM and Ogg (Opus), MP4 (AAC) — with the declared type checked against the real bytes. Rate-limited alongside the other AI paths, since transcription spends paid provider quota. The recording is never written to disk and never logged; the transcript is returned and dropped.",
+  },
+
   // ── Company ────────────────────────────────────────────────────────────────
   "GET /api/v1/company": { tag: "Company", summary: "Insurers, paginated.", query: paginated },
   "POST /api/v1/company": { tag: "Company", summary: "Add an insurer.", permission: "company.write", description: "Requires fresh authentication." },
@@ -157,6 +167,33 @@ export const ROUTE_META = {
   // ── Documents ──────────────────────────────────────────────────────────────
   // Scoped by caller rather than realm-walled: a customer manages their own
   // documents, and staff routes carry a capability instead.
+  // ── Aegis Consumer ─────────────────────────────────────────────────────────
+  // No permission and no realm on any of these, deliberately. Every route
+  // serves the caller and only the caller, so there is no wider access to
+  // grant — and naming a capability would imply there was.
+  "GET /api/v1/consumer/vehicles": { tag: "Consumer", summary: "The caller's own vehicles." },
+  "POST /api/v1/consumer/vehicles": { tag: "Consumer", summary: "Add a vehicle.", description: "A plate the caller already holds returns the existing vehicle rather than an error — the same bike insured a second year is one vehicle." },
+  "PATCH /api/v1/consumer/vehicles/{id}": { tag: "Consumer", summary: "Correct a vehicle's details." },
+  "GET /api/v1/consumer/policies": { tag: "Consumer", summary: "The caller's own motor policies, with renewal status.", description: "Soonest expiry first. Every policy carries its renewal band, days remaining, next action and the guidance disclaimer, resolved into the caller's language." },
+  "POST /api/v1/consumer/policies": { tag: "Consumer", summary: "Add a policy by hand.", description: "Expiry date is required — every answer this product gives is derived from it. The vehicle may be nested and is written in the same transaction." },
+  "GET /api/v1/consumer/policies/{id}": { tag: "Consumer", summary: "One policy, with its renewal status.", description: "A policy belonging to somebody else reads as absent, not forbidden." },
+  "PATCH /api/v1/consumer/policies/{id}": { tag: "Consumer", summary: "Correct a policy.", description: "Partial: an absent field means leave it alone, never clear it." },
+  "DELETE /api/v1/consumer/policies/{id}": { tag: "Consumer", summary: "Remove a policy from the caller's list.", description: "Soft. The row and the audit trail survive, because the record that somebody was advised about a policy outlives their decision to tidy it away." },
+  "POST /api/v1/consumer/policies/{id}/document": { tag: "Consumer", summary: "Attach a certificate to a policy.", description: "PDF, JPG or PNG up to 10 MB (CONSUMER_DOCUMENT_MAX_BYTES). The declared type is only the first gate — the file's magic bytes decide, and a disguised file is refused and deleted. The same file uploaded twice reuses the stored row rather than keeping a second copy. Returns the policy with its recomputed trust state." },
+  "GET /api/v1/consumer/documents": { tag: "Consumer", summary: "The caller's own policy documents.", description: "Optionally filtered to one policy with ?policyId=. Scoped to the caller in the query, never filtered afterwards." },
+  "GET /api/v1/consumer/documents/{id}": { tag: "Consumer", summary: "One document's metadata.", description: "Somebody else's document reads as absent, not forbidden." },
+  "GET /api/v1/consumer/documents/{id}/file": { tag: "Consumer", summary: "The document itself, for a preview.", description: "Streamed inline with the canonical content type for the format detected at upload — never the type the browser declared — plus nosniff and no-store. Not a static mount: only a row belonging to the caller is served." },
+  "POST /api/v1/consumer/policies/{id}/renewal-request": { tag: "Consumer", summary: "Ask a person for help renewing this policy.", description: "Creates the consent and the request in one step; the request cannot exist without a consent. `agreed` must be exactly true. Nothing is sent automatically — no email, SMS or WhatsApp — the request lands in a queue a person reads. A request already open on the policy answers 200 with the existing one rather than creating a second." },
+  "GET /api/v1/consumer/renewal-requests": { tag: "Consumer", summary: "The caller's own renewal requests, and where each has reached." },
+  "GET /api/v1/consumer/consents": { tag: "Consumer", summary: "What the caller has agreed to, including what they have stopped.", description: "Withdrawn consents are returned too, with the date they were withdrawn. The record of an agreement outlives the agreement." },
+  "POST /api/v1/consumer/consents": { tag: "Consumer", summary: "Record a permission to make contact.", description: "The wording is never accepted from the client — the server decides what the words were and stores a hash of them, which is what makes the record proof rather than bookkeeping. Re-agreeing to a live consent returns it unchanged." },
+  "DELETE /api/v1/consumer/consents/{id}": { tag: "Consumer", summary: "Withdraw a permission.", description: "Nothing is destroyed: `withdrawnAt` is set. Requests already raised under it stay on the record and show as having no live consent, because silently closing them would erase the fact that the customer asked." },
+  "GET /api/v1/consumer/kural/topics": { tag: "Consumer", summary: "What Aegis Kural Lite can be asked.", description: "The six motor topics it holds checked answers for, named up front so a customer does not have to discover the limits by hitting them." },
+  "POST /api/v1/consumer/kural/ask": { tag: "Consumer", summary: "Ask Aegis Kural Lite a motor question.", description: "Retrieval, not generation: a deterministic matcher picks one of six fixed answers or none. No LLM is called, so this is not behind aiLimiter. Always 200 — ANSWERED, NO_MATCH or UNREADABLE — because \"I do not know that one\" is an answer rather than a client error. Every response carries the scope note, the guidance disclaimer and an offer of a human. Pass `policyId` with an expiry question and the renewal engine\'s verdict on that policy is attached; a policy that is not the caller\'s is simply omitted." },
+  "GET /api/v1/renewal-leads": { tag: "Renewal queue", summary: "The renewal request queue, most urgent first.", description: "Needs `lead.read`. `?format=csv` exports the page through the platform's report writer, which quotes every field and neutralises a leading formula character. Filters: `status`, `channel`. Not tenant-scoped — a consumer's organisationId is null by design, so these rows belong to the Aegis consumer funnel." },
+  "GET /api/v1/renewal-leads/{id}": { tag: "Renewal queue", summary: "One renewal request, in full.", description: "Needs `lead.read`. Carries the customer's contact details, because an operator picking it up has to be able to reach them; the policy number is masked." },
+  "PATCH /api/v1/renewal-leads/{id}": { tag: "Renewal queue", summary: "Move a request along the workflow.", description: "Needs `lead.write`. NEW → CONTACTED → QUOTE_REQUESTED / PARTNER_HANDOFF → CLOSED, forward only. NEW cannot jump to CLOSED: a request may only be closed once somebody has made contact. Closing requires a reason from a fixed set. Body is an allow-list — status, closedReason, assignToMe and nothing else." },
+
   "GET /api/v1/documents": { tag: "Documents", summary: "Documents the caller may see.", description: "Always the caller's own. An employee reaching a customer's documents goes through the work item, which is already scoped." },
   "GET /api/v1/documents/requirements": { tag: "Documents", summary: "What this caller still owes." },
   "GET /api/v1/documents/{id}": { tag: "Documents", summary: "One document." },

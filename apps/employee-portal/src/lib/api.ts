@@ -196,6 +196,43 @@ export const workspaceApi = {
       body: JSON.stringify({ status }),
     }),
 
+  // ── Renewal requests ─────────────────────────────────────────────────────
+  //
+  // A different queue from `leads` above, and deliberately so. That one is a
+  // sales enquiry the platform created about a prospect; these are customers who
+  // already hold cover and have asked for help with it. They share the
+  // `lead.read` / `lead.write` capabilities because the authority is the same,
+  // and nothing else.
+
+  renewalRequests: (filters: RenewalQueueFilters = {}, page = 1, limit = 20) =>
+    callPaged<{ leads: RenewalRequest[] }>(`/renewal-leads?${renewalQuery(filters, page, limit)}`),
+
+  /**
+   * Move a request along.
+   *
+   * Only the three fields the API's allow-list accepts. The record also carries
+   * a userId, a consentId and the urgency the queue sorts by; sending any of
+   * them would be refused, and sending them hopefully is how a client comes to
+   * depend on a gap being open.
+   */
+  advanceRenewalRequest: (
+    id: string,
+    body: { status: RenewalStatus; closedReason?: ClosedReason; assignToMe?: boolean }
+  ) =>
+    call<{ lead: RenewalRequest }>(`/renewal-leads/${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    }),
+
+  /**
+   * Where the CSV lives.
+   *
+   * A URL rather than a fetch: the browser downloads it with the session cookie
+   * attached, and a blob assembled here would only re-implement that badly.
+   */
+  renewalRequestsCsvUrl: (filters: RenewalQueueFilters = {}) =>
+    `${API_URL}/renewal-leads?${renewalQuery(filters)}&format=csv`,
+
   policies: (page = 1, limit = 20) =>
     callPaged<{ policies: CataloguePolicy[] }>(`/policies?page=${page}&limit=${limit}`),
 
@@ -366,6 +403,60 @@ export interface Escalation {
 }
 
 export type LeadStatus = "pending" | "contacted" | "qualified" | "won" | "lost";
+
+// ── Renewal requests ─────────────────────────────────────────────────────────
+
+export type RenewalStatus = "NEW" | "CONTACTED" | "QUOTE_REQUESTED" | "PARTNER_HANDOFF" | "CLOSED";
+
+export type ContactChannel = "CALL" | "WHATSAPP" | "EMAIL";
+
+export type ClosedReason =
+  | "RENEWED_WITH_PARTNER"
+  | "RENEWED_ELSEWHERE"
+  | "CUSTOMER_DECLINED"
+  | "UNREACHABLE"
+  | "DUPLICATE_REQUEST"
+  | "NOT_ELIGIBLE";
+
+export interface RenewalQueueFilters {
+  status?: RenewalStatus | "";
+  channel?: ContactChannel | "";
+}
+
+/** Only the filters that were actually chosen reach the query string. */
+function renewalQuery(filters: RenewalQueueFilters, page?: number, limit?: number): string {
+  const params = new URLSearchParams();
+  if (filters.status) params.set("status", filters.status);
+  if (filters.channel) params.set("channel", filters.channel);
+  if (page !== undefined) params.set("page", String(page));
+  if (limit !== undefined) params.set("limit", String(limit));
+  return params.toString();
+}
+
+export interface RenewalRequest {
+  id: string;
+  status: RenewalStatus;
+  /** Already in words. The capitals are the database's business. */
+  statusLabel: string;
+  preferredChannel: ContactChannel;
+  urgencyAtCreation: string;
+  expiryAtCreation: string | null;
+  createdAt: string;
+  updatedAt: string;
+  assignedToId: string | null;
+  closedReason: string | null;
+  customer: { id: string; name: string; email: string; phone: string | null };
+  policy: {
+    id: string;
+    insurer: string | null;
+    /** Masked by the API. The full number never reaches this portal. */
+    policyNumberMasked: string | null;
+    registrationNumber: string | null;
+    expiryDate: string | null;
+  } | null;
+  /** Whether a live permission still stands for the channel they chose. */
+  consentActive: boolean;
+}
 
 export interface Lead {
   id: string;

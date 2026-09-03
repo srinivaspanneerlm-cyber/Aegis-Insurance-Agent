@@ -37,6 +37,10 @@
       "description": "Customer document upload."
     },
     {
+      "name": "Voice",
+      "description": "Speech-to-text for a spoken turn. Audio in, transcript out — the recording is held in memory and never stored."
+    },
+    {
       "name": "Company",
       "description": "Insurers — shared reference data across tenants."
     },
@@ -59,6 +63,10 @@
     {
       "name": "Documents",
       "description": "The document platform. Scoped by caller rather than realm-walled — a customer legitimately manages their own documents."
+    },
+    {
+      "name": "Consumer",
+      "description": "Aegis Consumer — a customer's own vehicles and motor policies. The narrowest surface on the API: scoped to the caller alone, with no permission that opens it wider and no user id accepted anywhere."
     },
     {
       "name": "Intelligence",
@@ -1993,6 +2001,805 @@
         "summary": "Add an insurer.",
         "description": "Requires fresh authentication.",
         "x-permission": "company.write",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed; the offending parameter is named."
+          },
+          "401": {
+            "description": "No valid session."
+          },
+          "403": {
+            "description": "Authenticated, but not permitted."
+          }
+        }
+      }
+    },
+    "/api/v1/consumer/consents": {
+      "get": {
+        "tags": [
+          "Consumer"
+        ],
+        "summary": "What the caller has agreed to, including what they have stopped.",
+        "description": "Withdrawn consents are returned too, with the date they were withdrawn. The record of an agreement outlives the agreement.",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed; the offending parameter is named."
+          },
+          "401": {
+            "description": "No valid session."
+          },
+          "403": {
+            "description": "Authenticated, but not permitted."
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Consumer"
+        ],
+        "summary": "Record a permission to make contact.",
+        "description": "The wording is never accepted from the client — the server decides what the words were and stores a hash of them, which is what makes the record proof rather than bookkeeping. Re-agreeing to a live consent returns it unchanged.",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed; the offending parameter is named."
+          },
+          "401": {
+            "description": "No valid session."
+          },
+          "403": {
+            "description": "Authenticated, but not permitted."
+          }
+        }
+      }
+    },
+    "/api/v1/consumer/consents/{id}": {
+      "delete": {
+        "tags": [
+          "Consumer"
+        ],
+        "summary": "Withdraw a permission.",
+        "description": "Nothing is destroyed: `withdrawnAt` is set. Requests already raised under it stay on the record and show as having no live consent, because silently closing them would erase the fact that the customer asked.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed; the offending parameter is named."
+          },
+          "401": {
+            "description": "No valid session."
+          },
+          "403": {
+            "description": "Authenticated, but not permitted."
+          }
+        }
+      }
+    },
+    "/api/v1/consumer/documents": {
+      "get": {
+        "tags": [
+          "Consumer"
+        ],
+        "summary": "The caller's own policy documents.",
+        "description": "Optionally filtered to one policy with ?policyId=. Scoped to the caller in the query, never filtered afterwards.",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed; the offending parameter is named."
+          },
+          "401": {
+            "description": "No valid session."
+          },
+          "403": {
+            "description": "Authenticated, but not permitted."
+          }
+        }
+      }
+    },
+    "/api/v1/consumer/documents/{id}": {
+      "get": {
+        "tags": [
+          "Consumer"
+        ],
+        "summary": "One document's metadata.",
+        "description": "Somebody else's document reads as absent, not forbidden.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed; the offending parameter is named."
+          },
+          "401": {
+            "description": "No valid session."
+          },
+          "403": {
+            "description": "Authenticated, but not permitted."
+          }
+        }
+      }
+    },
+    "/api/v1/consumer/documents/{id}/file": {
+      "get": {
+        "tags": [
+          "Consumer"
+        ],
+        "summary": "The document itself, for a preview.",
+        "description": "Streamed inline with the canonical content type for the format detected at upload — never the type the browser declared — plus nosniff and no-store. Not a static mount: only a row belonging to the caller is served.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed; the offending parameter is named."
+          },
+          "401": {
+            "description": "No valid session."
+          },
+          "403": {
+            "description": "Authenticated, but not permitted."
+          }
+        }
+      }
+    },
+    "/api/v1/consumer/kural/ask": {
+      "post": {
+        "tags": [
+          "Consumer"
+        ],
+        "summary": "Ask Aegis Kural Lite a motor question.",
+        "description": "Retrieval, not generation: a deterministic matcher picks one of six fixed answers or none. No LLM is called, so this is not behind aiLimiter. Always 200 — ANSWERED, NO_MATCH or UNREADABLE — because \"I do not know that one\" is an answer rather than a client error. Every response carries the scope note, the guidance disclaimer and an offer of a human. Pass `policyId` with an expiry question and the renewal engine's verdict on that policy is attached; a policy that is not the caller's is simply omitted.",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed; the offending parameter is named."
+          },
+          "401": {
+            "description": "No valid session."
+          },
+          "403": {
+            "description": "Authenticated, but not permitted."
+          }
+        }
+      }
+    },
+    "/api/v1/consumer/kural/topics": {
+      "get": {
+        "tags": [
+          "Consumer"
+        ],
+        "summary": "What Aegis Kural Lite can be asked.",
+        "description": "The six motor topics it holds checked answers for, named up front so a customer does not have to discover the limits by hitting them.",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed; the offending parameter is named."
+          },
+          "401": {
+            "description": "No valid session."
+          },
+          "403": {
+            "description": "Authenticated, but not permitted."
+          }
+        }
+      }
+    },
+    "/api/v1/consumer/policies": {
+      "get": {
+        "tags": [
+          "Consumer"
+        ],
+        "summary": "The caller's own motor policies, with renewal status.",
+        "description": "Soonest expiry first. Every policy carries its renewal band, days remaining, next action and the guidance disclaimer, resolved into the caller's language.",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed; the offending parameter is named."
+          },
+          "401": {
+            "description": "No valid session."
+          },
+          "403": {
+            "description": "Authenticated, but not permitted."
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Consumer"
+        ],
+        "summary": "Add a policy by hand.",
+        "description": "Expiry date is required — every answer this product gives is derived from it. The vehicle may be nested and is written in the same transaction.",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed; the offending parameter is named."
+          },
+          "401": {
+            "description": "No valid session."
+          },
+          "403": {
+            "description": "Authenticated, but not permitted."
+          }
+        }
+      }
+    },
+    "/api/v1/consumer/policies/{id}": {
+      "delete": {
+        "tags": [
+          "Consumer"
+        ],
+        "summary": "Remove a policy from the caller's list.",
+        "description": "Soft. The row and the audit trail survive, because the record that somebody was advised about a policy outlives their decision to tidy it away.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed; the offending parameter is named."
+          },
+          "401": {
+            "description": "No valid session."
+          },
+          "403": {
+            "description": "Authenticated, but not permitted."
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Consumer"
+        ],
+        "summary": "One policy, with its renewal status.",
+        "description": "A policy belonging to somebody else reads as absent, not forbidden.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed; the offending parameter is named."
+          },
+          "401": {
+            "description": "No valid session."
+          },
+          "403": {
+            "description": "Authenticated, but not permitted."
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Consumer"
+        ],
+        "summary": "Correct a policy.",
+        "description": "Partial: an absent field means leave it alone, never clear it.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed; the offending parameter is named."
+          },
+          "401": {
+            "description": "No valid session."
+          },
+          "403": {
+            "description": "Authenticated, but not permitted."
+          }
+        }
+      }
+    },
+    "/api/v1/consumer/policies/{id}/document": {
+      "post": {
+        "tags": [
+          "Consumer"
+        ],
+        "summary": "Attach a certificate to a policy.",
+        "description": "PDF, JPG or PNG up to 10 MB (CONSUMER_DOCUMENT_MAX_BYTES). The declared type is only the first gate — the file's magic bytes decide, and a disguised file is refused and deleted. The same file uploaded twice reuses the stored row rather than keeping a second copy. Returns the policy with its recomputed trust state.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed; the offending parameter is named."
+          },
+          "401": {
+            "description": "No valid session."
+          },
+          "403": {
+            "description": "Authenticated, but not permitted."
+          }
+        }
+      }
+    },
+    "/api/v1/consumer/policies/{id}/renewal-request": {
+      "post": {
+        "tags": [
+          "Consumer"
+        ],
+        "summary": "Ask a person for help renewing this policy.",
+        "description": "Creates the consent and the request in one step; the request cannot exist without a consent. `agreed` must be exactly true. Nothing is sent automatically — no email, SMS or WhatsApp — the request lands in a queue a person reads. A request already open on the policy answers 200 with the existing one rather than creating a second.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed; the offending parameter is named."
+          },
+          "401": {
+            "description": "No valid session."
+          },
+          "403": {
+            "description": "Authenticated, but not permitted."
+          }
+        }
+      }
+    },
+    "/api/v1/consumer/renewal-requests": {
+      "get": {
+        "tags": [
+          "Consumer"
+        ],
+        "summary": "The caller's own renewal requests, and where each has reached.",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed; the offending parameter is named."
+          },
+          "401": {
+            "description": "No valid session."
+          },
+          "403": {
+            "description": "Authenticated, but not permitted."
+          }
+        }
+      }
+    },
+    "/api/v1/consumer/vehicles": {
+      "get": {
+        "tags": [
+          "Consumer"
+        ],
+        "summary": "The caller's own vehicles.",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed; the offending parameter is named."
+          },
+          "401": {
+            "description": "No valid session."
+          },
+          "403": {
+            "description": "Authenticated, but not permitted."
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Consumer"
+        ],
+        "summary": "Add a vehicle.",
+        "description": "A plate the caller already holds returns the existing vehicle rather than an error — the same bike insured a second year is one vehicle.",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed; the offending parameter is named."
+          },
+          "401": {
+            "description": "No valid session."
+          },
+          "403": {
+            "description": "Authenticated, but not permitted."
+          }
+        }
+      }
+    },
+    "/api/v1/consumer/vehicles/{id}": {
+      "patch": {
+        "tags": [
+          "Consumer"
+        ],
+        "summary": "Correct a vehicle's details.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "security": [
           {
             "cookieAuth": []
@@ -6609,6 +7416,138 @@
         }
       }
     },
+    "/api/v1/renewal-leads": {
+      "get": {
+        "tags": [
+          "Renewal queue"
+        ],
+        "summary": "The renewal request queue, most urgent first.",
+        "description": "Needs `lead.read`. `?format=csv` exports the page through the platform's report writer, which quotes every field and neutralises a leading formula character. Filters: `status`, `channel`. Not tenant-scoped — a consumer's organisationId is null by design, so these rows belong to the Aegis consumer funnel.",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed; the offending parameter is named."
+          },
+          "401": {
+            "description": "No valid session."
+          },
+          "403": {
+            "description": "Authenticated, but not permitted."
+          }
+        }
+      }
+    },
+    "/api/v1/renewal-leads/{id}": {
+      "get": {
+        "tags": [
+          "Renewal queue"
+        ],
+        "summary": "One renewal request, in full.",
+        "description": "Needs `lead.read`. Carries the customer's contact details, because an operator picking it up has to be able to reach them; the policy number is masked.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed; the offending parameter is named."
+          },
+          "401": {
+            "description": "No valid session."
+          },
+          "403": {
+            "description": "Authenticated, but not permitted."
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Renewal queue"
+        ],
+        "summary": "Move a request along the workflow.",
+        "description": "Needs `lead.write`. NEW → CONTACTED → QUOTE_REQUESTED / PARTNER_HANDOFF → CLOSED, forward only. NEW cannot jump to CLOSED: a request may only be closed once somebody has made contact. Closing requires a reason from a fixed set. Body is an allow-list — status, closedReason, assignToMe and nothing else.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed; the offending parameter is named."
+          },
+          "401": {
+            "description": "No valid session."
+          },
+          "403": {
+            "description": "Authenticated, but not permitted."
+          }
+        }
+      }
+    },
     "/api/v1/ui-action": {
       "post": {
         "tags": [
@@ -6709,6 +7648,44 @@
         ],
         "summary": "Upload documents.",
         "description": "Bounded in count and size; files are scanned before they are stored.",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed; the offending parameter is named."
+          },
+          "401": {
+            "description": "No valid session."
+          },
+          "403": {
+            "description": "Authenticated, but not permitted."
+          }
+        }
+      }
+    },
+    "/api/v1/voice/transcribe": {
+      "post": {
+        "tags": [
+          "Voice"
+        ],
+        "summary": "Transcribe one recorded voice turn.",
+        "description": "Multipart, field `audio`. Accepts the containers browsers actually produce — WebM and Ogg (Opus), MP4 (AAC) — with the declared type checked against the real bytes. Rate-limited alongside the other AI paths, since transcription spends paid provider quota. The recording is never written to disk and never logged; the transcript is returned and dropped.",
         "security": [
           {
             "cookieAuth": []

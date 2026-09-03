@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
 
-from app.routes import chat_routes, action_routes, stream_routes
+from app.routes import chat_routes, action_routes, stream_routes, voice_routes
 from app.routes.health_routes import router as health_router
 from app.models.schemas import ChatRequest, ChatResponse
 from app.middleware.internal_auth import require_internal_auth
@@ -101,7 +101,9 @@ async def metrics():
 )
 async def root_chat_endpoint(request: ChatRequest):
     """Direct root POST endpoint — routes through multi-agent orchestrator."""
-    logger.info(f"Received request on POST /ai-chat: '{request.message[:60]}...'")
+    # Shape only, never content — see app/routes/chat_routes.py for the same
+    # policy on its sibling endpoints.
+    logger.info(f"Received request on POST /ai-chat: chars={len(request.message)}")
     try:
         from app.routes.chat_routes import get_chat_service, _result_to_response
         service = get_chat_service()
@@ -147,6 +149,16 @@ app.include_router(
     prefix="/api/ai",
     dependencies=[Depends(require_internal_auth)],
     tags=["Streaming Chat"],
+)
+
+# Voice transcription. Internal-only for the same reason the stream is: it
+# spends paid provider quota per call, and an open transcription endpoint is a
+# free relay to that provider for anyone who finds it.
+app.include_router(
+    voice_routes.router,
+    prefix="/api/ai",
+    dependencies=[Depends(require_internal_auth)],
+    tags=["Voice"],
 )
 
 # Health router stays public for load-balancer / uptime probes.

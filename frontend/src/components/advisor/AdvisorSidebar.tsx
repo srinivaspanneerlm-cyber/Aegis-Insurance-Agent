@@ -20,7 +20,12 @@ interface AdvisorSidebarProps {
   activeHandshakes: number;
 }
 
-export default function AdvisorSidebar({
+// Memoized: a streamed reply updates `streamState.text` on every token, and
+// none of this sidebar's props change with it — without this, every token
+// re-rendered the whole channel list, icons and all, for nothing. Effective
+// only because `sidebarAdvisors` is memoized at the call site too; a fresh
+// array every render would defeat this the same way.
+const AdvisorSidebar = React.memo(function AdvisorSidebar({
   sidebarAdvisors,
   activeCategory,
   setActiveCategory,
@@ -111,4 +116,6 @@ export default function AdvisorSidebar({
           />
         </div>
   );
-}
+});
+
+export default AdvisorSidebar;

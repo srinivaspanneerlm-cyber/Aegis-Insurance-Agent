@@ -18,11 +18,14 @@ import leadRoutes from "./routes/lead.routes";
 import policyRoutes from "./routes/policy.routes";
 import chatRoutes from "./routes/chat.routes";
 import uploadRoutes from "./routes/upload.routes";
+import voiceRoutes from "./routes/voice.routes";
 import companyRoutes from "./routes/company.routes";
 import employeeRoutes from "./routes/employee.routes";
 import enterpriseRoutes from "./routes/enterprise.routes";
 import platformRoutes from "./routes/platform.routes";
 import documentRoutes from "./routes/documents.routes";
+import consumerRoutes from "./routes/consumer.routes";
+import renewalLeadRoutes from "./routes/renewalLead.routes";
 import intelligenceRoutes from "./routes/intelligence.routes";
 import communicationRoutes from "./routes/communication.routes";
 import knowledgeRoutes from "./routes/knowledge.routes";
@@ -64,11 +67,24 @@ app.use(requestId);
 // Response compression (gzip/deflate) for large JSON/text payloads — a major
 // bandwidth win at scale. Loaded defensively so the app runs with or without
 // the optional dependency installed; toggle via FEATURE_COMPRESSION.
+//
+// Exempted: text/event-stream. gzip is a block codec — it holds output in its
+// internal buffer until enough accumulates (or the stream ends) unless the app
+// calls `res.flush()` after every write, which the SSE proxy does not. Left
+// compressed, an advisor reply stops arriving token-by-token and instead lands
+// on the browser in one burst at the end of the turn, which is silence on the
+// voice path and a frozen bubble on the typed one — exactly what streaming was
+// built to avoid. Every other response type is compressed exactly as before.
 if (FEATURES.COMPRESSION) {
   try {
     // eslint-disable-next-line @typescript-eslint/no-var-requires, global-require
     const compression = require("compression");
-    app.use(compression());
+    app.use(
+      compression({
+        filter: (req: express.Request, res: express.Response) =>
+          res.getHeader("Content-Type") === "text/event-stream" ? false : compression.filter(req, res),
+      })
+    );
   } catch {
     console.warn("[app] 'compression' not installed — running uncompressed. Run `npm install` to enable.");
   }
@@ -157,6 +173,14 @@ apiRouter.use("/platform", platformRoutes);
 // The document platform. Scoped by caller rather than realm-walled — a customer
 // legitimately manages their own documents. See documents.routes.ts.
 apiRouter.use("/documents", documentRoutes);
+// Aegis Consumer. Scoped to the caller alone — the narrowest surface on the
+// platform: no permission opens it wider, because nothing here belongs to
+// anybody but the person asking. See consumer.routes.ts.
+apiRouter.use("/consumer", consumerRoutes);
+// The other half of Aegis Consumer: the queue staff work the renewal requests
+// from. Permission-walled with the existing `lead.*` capabilities rather than
+// scope-walled — these are other people's requests. See renewalLead.routes.ts.
+apiRouter.use("/renewal-leads", renewalLeadRoutes);
 apiRouter.use("/intelligence", intelligenceRoutes);
 apiRouter.use("/communication", communicationRoutes);
 apiRouter.use("/knowledge", knowledgeRoutes);
@@ -168,6 +192,9 @@ registerWorkflowCommunication();
 apiRouter.use("/policies", policyRoutes);
 apiRouter.use("/chat", chatRoutes);
 apiRouter.use("/upload", uploadRoutes);
+// Voice turns: audio in, transcript out. Behind the same auth and the same AI
+// rate limit as the chat routes, because it spends the same paid quota.
+apiRouter.use("/voice", voiceRoutes);
 apiRouter.use("/company", companyRoutes);
 apiRouter.use("/admin", adminRoutes);
 apiRouter.use("/ui-action", uiActionRoutes);

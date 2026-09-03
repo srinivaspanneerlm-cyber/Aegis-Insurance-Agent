@@ -18,6 +18,7 @@ Transfer Policy:
   - The user controls every agent switch.
 """
 import json
+import re
 from typing import Optional, List, Dict, Any
 from pathlib import Path
 
@@ -778,7 +779,6 @@ class CentralOrchestrator:
         DEPRECATED — use IntentDetectionEngine.analyze() instead.
         Kept for backward compatibility with any external callers.
         """
-        msg_lower = message.lower()
         lexicon_map = {
             "motor":         ["car", "bike", "vehicle", "motor", "creta", "enfield", "idv", "ncb"],
             "travel":        ["travel", "trip", "flight", "abroad", "visa", "schengen"],
@@ -786,7 +786,11 @@ class CentralOrchestrator:
             "health":        ["health", "medical", "hospital", "doctor", "critical illness"],
             "executive":     ["executive", "corporate", "business insurance", "d&o"],
         }
+        # Word-boundary anchored like every other domain matcher — see
+        # BaseAgent._forbidden_patterns. Deprecated, but a shim that answers
+        # "motor" for the word "career" is worse than no shim.
         for domain, keywords in lexicon_map.items():
-            if any(kw in msg_lower for kw in keywords):
+            pattern = r"\b(" + "|".join(re.escape(kw) for kw in keywords) + r")\b"
+            if re.search(pattern, message, re.IGNORECASE):
                 return domain
         return self.DEFAULT_AGENT

@@ -62,6 +62,23 @@ export const UPLOADS = {
   MAX_FILES: num("UPLOAD_MAX_FILES", 5),
 };
 
+// ── Voice / speech-to-text ───────────────────────────────────────────────────
+// A spoken turn, not a file upload: the recording is held in memory, sent for
+// transcription and dropped. Kept well under the document limits because
+// nothing here is worth 50 MB — a customer asking a question speaks for seconds.
+export const VOICE = {
+  // ~8 MB is minutes of Opus at the bitrate MediaRecorder picks. Generous for a
+  // question, small enough that concurrent uploads cannot exhaust the process.
+  MAX_AUDIO_BYTES: num("VOICE_MAX_AUDIO_BYTES", 8 * 1024 * 1024),
+  // Below this a recording is a container header and no speech. Refused here so
+  // an empty turn never becomes a paid provider call.
+  MIN_AUDIO_BYTES: num("VOICE_MIN_AUDIO_BYTES", 1200),
+  // The customer is sitting in silence waiting. Slightly above the engine's own
+  // STT timeout so the engine's specific error wins the race and reaches them,
+  // rather than this timer firing first and replacing it with a generic one.
+  TIMEOUT_MS: num("VOICE_STT_TIMEOUT_MS", 25000),
+};
+
 // ── Onboarding ───────────────────────────────────────────────────────────────
 // What a first-time customer is asked once, right after their first sign-in.
 // Bounded server-side: these are the only values that will ever be stored, so a
@@ -72,6 +89,36 @@ export const ONBOARDING = {
   // Mirrors the advisor roster — one interest per specialist domain.
   INTERESTS: ["health", "motor", "travel", "property", "miscellaneous"] as const,
   MAX_INTERESTS: 5,
+};
+
+// ── Aegis Consumer (renewal readiness) ───────────────────────────────────────
+// The zone a customer's calendar day is read in. India-first, because "how many
+// days until my policy expires" is a question about the date on their wall, not
+// about UTC — and a server in another region must not answer it differently.
+//
+// The renewal *bands* are deliberately absent from here. They are the product
+// specification rather than a deployment knob: a threshold widened in one
+// environment would tell two customers with identical policies different
+// things, with nothing in the record to explain why. They live in
+// `src/consumer/renewalStatus.ts` where a test pins every boundary.
+export const CONSUMER = {
+  TIMEZONE: process.env.CONSUMER_TIMEZONE || "Asia/Kolkata",
+
+  /**
+   * The size ceiling on a policy document, separate from `UPLOADS.MAX_BYTES`.
+   *
+   * Lower than the platform's 50 MB on purpose, and not a tightening of it. That
+   * ceiling exists for motor walkaround *videos*, which this flow does not
+   * accept at all: a customer here sends one certificate — a PDF or a photo of a
+   * page — and 10 MB is generous for both. A single number for the two would
+   * have to be the larger one, which on a phone connection means somebody waits
+   * four minutes to be told their video was not wanted.
+   *
+   * Configurable because a deployment on slower infrastructure may want it
+   * lower, and lowering it is safe: the file is rejected at the door, before it
+   * is read, hashed or stored.
+   */
+  DOCUMENT_MAX_BYTES: num("CONSUMER_DOCUMENT_MAX_BYTES", 10 * 1024 * 1024),
 };
 
 export const JOBS = {

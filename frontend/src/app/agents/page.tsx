@@ -12,6 +12,8 @@ import Footer from "@/components/Footer";
 import { EmptyState } from "@/components/ui";
 import { useTheme } from "@/context/ThemeContext";
 import { PLANS_PER_CATEGORY } from "@/lib/platformFacts";
+import { AgentAvatar } from "@/components/brand/AgentAvatar";
+import type { BrandId } from "@/components/brand/geometry";
 
 interface Agent {
   id: string;
@@ -21,7 +23,9 @@ interface Agent {
   rating: number;
   familiesGuided: string;
   experience: number;
-  avatar: string;
+  /** The agent's mark, named rather than derived from `id` so renaming an
+   *  id cannot quietly leave a card wearing the wrong agent's logo. */
+  brand: BrandId;
   badge: string;
   skills: string[];
 }
@@ -40,7 +44,7 @@ export default function AgentsPage() {
       rating: 4.9,
       familiesGuided: `${PLANS_PER_CATEGORY} curated plans`,
       experience: 12,
-      avatar: "👩‍💼",
+      brand: "sarah",
       badge: "AI-Assisted Protection Expert",
       skills: ["Critical Illness Shield", "Family Floater Optimization", "Maternity Cover Expert"]
     },
@@ -52,7 +56,7 @@ export default function AgentsPage() {
       rating: 4.8,
       familiesGuided: `${PLANS_PER_CATEGORY} curated plans`,
       experience: 8,
-      avatar: "👨‍💼",
+      brand: "alex",
       badge: "AI Premium Audit Specialist",
       skills: ["Commercial vehicles", "Zero-Depreciation Cover", "EV Battery Risk Audit"]
     },
@@ -64,7 +68,7 @@ export default function AgentsPage() {
       rating: 4.9,
       familiesGuided: `${PLANS_PER_CATEGORY} curated plans`,
       experience: 10,
-      avatar: "👨‍✈️",
+      brand: "ethan",
       badge: "AI Route Risk Specialist",
       skills: ["Global Emergency Evacuation", "Expat Health Portfolios", "Multi-Trip Coverages"]
     },
@@ -76,7 +80,7 @@ export default function AgentsPage() {
       rating: 4.7,
       familiesGuided: `${PLANS_PER_CATEGORY} curated plans`,
       experience: 7,
-      avatar: "👩‍🔬",
+      brand: "emma",
       badge: "AI Asset Protection Master",
       skills: ["Home Structure Auditing", "Tenant Liability Cover", "Natural Disaster Shields"]
     }
@@ -183,9 +187,7 @@ export default function AgentsPage() {
                   <div>
                     {/* Top row: Agent avatar & Rating */}
                     <div className="flex items-center justify-between mb-5">
-                      <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-3xl border bg-purple-50 border-purple-100 dark:bg-white/5 dark:border-white/10`}>
-                        {agent.avatar}
-                      </div>
+                      <AgentAvatar brand={agent.brand} size={56} title={`${agent.name} — ${agent.specialization} advisor`} />
 
                       <div className="flex flex-col items-end">
                         <div className="flex items-center gap-1">

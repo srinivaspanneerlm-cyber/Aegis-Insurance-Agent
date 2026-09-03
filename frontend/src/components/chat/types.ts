@@ -1,3 +1,5 @@
+import type { BrandId } from "@/components/brand/geometry";
+
 export interface RecommendationData {
   planName: string;
   coverage: string;
@@ -43,6 +45,11 @@ export interface RecommendationData {
   plans?: MultiPlan[];
   total_plans?: number;
   recommended?: string;
+  // Single best-fit result (`type: "single_plan"`): why the engine chose this
+  // plan, and whether anything else is available if the customer asks.
+  reason_codes?: string[];
+  alternatives_available?: boolean;
+  considered_count?: number;
   risk_summary?: Record<string, number>;
   vehicle_cat?: string;
 }
@@ -186,6 +193,11 @@ export interface ChatMessageProps {
   message: ChatMsg;
   advisorAvatar?: string;
   advisorTheme?: string;
+  /**
+   * Mark of the agent who sent this message. Optional so the letter tile stays
+   * the fallback for any caller that has not been given a brand to draw.
+   */
+  advisorBrand?: BrandId;
   /** Name shown for an advisor message that carries no agentName of its own. */
   advisorName?: string;
   onUIAction?: (action: string, planData: RecommendationData) => void;

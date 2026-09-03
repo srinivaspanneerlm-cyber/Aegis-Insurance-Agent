@@ -29,7 +29,10 @@ function OTPInput({
     if (v && i < 5) inputs.current[i + 1]?.focus();
   };
 
-  const digits = value.padEnd(6, "").split("").slice(0, 6);
+  // Padded with a space, not "". `"".padEnd(6, "")` returns "" — JavaScript
+  // ignores an empty pad string — so this produced an empty array and the six
+  // boxes were never rendered at all. There was nowhere on the page to type.
+  const digits = value.padEnd(6, " ").split("").slice(0, 6);
 
   return (
     <div className={`rounded-2xl border p-5 space-y-4 transition-all duration-300

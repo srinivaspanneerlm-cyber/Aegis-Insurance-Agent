@@ -21,6 +21,8 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Dict, List, Optional, Any
 
+from app.utils.money import parse_amount
+
 
 # ── States ─────────────────────────────────────────────────────────────────────
 
@@ -55,10 +57,33 @@ _COMPARE_KW = [
     "cheaper", "less expensive", "lower premium", "compare", "alternative",
     "better option", "other plan", "different plan", "something cheaper",
     "anything else", "other options", "show me more", "compare plans",
+    # How people actually ask, in the singular: "can you show me another
+    # option?" carried none of the plural phrasings above and was read as an
+    # ordinary follow-up, so the request for an alternative went unanswered.
+    "another option", "another plan", "other option", "next best",
+    "next-best", "what else", "anything cheaper", "any other",
     "premium difference", "better coverage", "upgrade", "downgrade",
     "something better", "is there a better", "can you suggest",
     "more affordable", "budget friendly", "better value",
 ]
+_YES_RE = re.compile(
+    r"^\W*(yes|yeah|yep|yup|ya|sure|ok|okay|please|go ahead|go on|"
+    r"aama|seri|sari|show me|tell me|why not|of course|absolutely)\b",
+    re.IGNORECASE,
+)
+
+
+def _reads_as_yes(message: str) -> bool:
+    """A short reply that opens with an agreement.
+
+    Used only to answer a question the advisor just asked, so it deliberately
+    reads the front of the message: "yes please" agrees, while "yes but what
+    about my father's condition" is a new question wearing a yes.
+    """
+    text = (message or "").strip()
+    return bool(text) and bool(_YES_RE.match(text)) and len(text.split()) <= 6
+
+
 _PURCHASE_KW = [
     "buy", "purchase", "proceed", "take this", "select this", "want this",
     "apply", "sign up", "enroll", "get started", "finalize", "confirm",
@@ -68,6 +93,26 @@ _PURCHASE_KW = [
 
 
 # ── Customer profile view ──────────────────────────────────────────────────────
+
+def _first_number(raw: Any) -> Optional[int]:
+    """The first whole number `raw` carries, or None if it carries none.
+
+    A profile field holds what the customer typed, not what a form validated:
+    "3 per, naan 32 vayasu wife 30 kid 5" is a real answer to "how many
+    members?", and int() on it raises. That exception escaped the whole turn,
+    so a customer who answered the question in a sentence — the way this
+    product asks people to — got "I'm experiencing a brief interruption"
+    instead of a recommendation. The number is read out of the text here the
+    way every domain engine already reads it.
+    """
+    if raw is None or isinstance(raw, bool):
+        return None
+    if isinstance(raw, int):
+        return raw
+    if isinstance(raw, float):
+        return int(raw)
+    digits = re.findall(r"\d+", str(raw))
+    return int(digits[0]) if digits else None
 
 @dataclass
 class CustomerProfileView:
@@ -91,20 +136,22 @@ class CustomerProfileView:
         profile: dict,
         has_recommendation: bool = False,
     ) -> "CustomerProfileView":
-        fs = profile.get("family_size")
-        if fs == 1:
+        members = _first_number(profile.get("family_size"))
+        if members == 1:
             coverage = "individual"
-        elif fs and int(fs) > 1:
+        elif members and members > 1:
             coverage = "family"
         else:
             coverage = None
         return cls(
             coverageType            = coverage,
-            memberCount             = fs,
-            eldestAge               = profile.get("age"),
+            memberCount             = members,
+            eldestAge               = _first_number(profile.get("age")),
             city                    = profile.get("location"),
             medicalConditions       = profile.get("medical_history"),
-            monthlyBudget           = profile.get("budget"),
+            # Money, not a count: "15k" is fifteen thousand, and parse_amount
+            # is what the rest of the codebase reads rupees with.
+            monthlyBudget           = parse_amount(profile.get("budget")),
             recommendationCompleted = has_recommendation,
         )
 
@@ -125,7 +172,7 @@ class CustomerProfileView:
         if self.memberCount:    parts.append(f"{self.memberCount} members")
         if self.eldestAge:      parts.append(f"eldest age {self.eldestAge}")
         if self.city:           parts.append(f"city {self.city}")
-        if self.monthlyBudget:  parts.append(f"₹{self.monthlyBudget}/month budget")
+        if self.monthlyBudget:  parts.append(f"₹{self.monthlyBudget:,.0f}/month budget")
         if self.medicalConditions: parts.append(f"medical: {self.medicalConditions}")
         return ", ".join(parts) if parts else "(no profile data yet)"
 
@@ -141,6 +188,11 @@ class MiddlewareContext:
     locked:            bool              # Rec is locked — DO NOT regenerate card
     force_compare:     bool              # Generate alternative plan (skip cache)
     existing_rec_summary: Optional[str]  # Brief summary of cached rec (for EXPLAIN mode)
+    # Ask whether they want the next-best option — and show nothing this turn.
+    # "Is there anything cheaper?" is a question, and answering it by putting
+    # the rest of the catalogue on screen is the behaviour this whole flow
+    # exists to stop. The customer gets asked; the card waits for the answer.
+    offer_alternatives: bool = False
 
 
 # ── Middleware ─────────────────────────────────────────────────────────────────
@@ -197,6 +249,15 @@ class ConversationMiddleware:
         # 1. Detect intent
         intent = self._detect_intent(message)
 
+        # Buy what? Before a plan has been recommended there is nothing to
+        # purchase, and the words people use to agree to something — "go
+        # ahead", "proceed", "confirm" — are the same words they use to buy.
+        # "Yes, please. Go ahead." is how a customer consents to *see* the
+        # recommendation, and reading it as a purchase sent them to the
+        # payment-steps reply on the one turn the plan was meant to appear.
+        if intent == ConversationIntent.PURCHASE and not has_rec:
+            intent = ConversationIntent.GENERAL
+
         # 2. Determine state
         state = self._determine_state(
             profile_view=pv,
@@ -206,17 +267,37 @@ class ConversationMiddleware:
             intent=intent,
         )
 
-        # 3. Recommendation lock:
+        # 3. Alternatives — offered first, shown second.
+        #    An agent records that it offered (profile field `alternative_offered`),
+        #    so a customer who then says "yes, go on" gets the alternative even
+        #    though that reply carries no compare keyword of its own. If they say
+        #    something else instead, the offer simply lapses rather than being
+        #    put to them again.
+        awaiting_answer    = bool(profile.get("alternative_offered"))
+        offer_alternatives = False
+        force_compare      = False
+        if awaiting_answer:
+            force_compare = (
+                intent == ConversationIntent.COMPARE or _reads_as_yes(message)
+            )
+        elif intent == ConversationIntent.COMPARE and has_rec:
+            # Alternative to what? Asked before anything has been recommended,
+            # "is there something cheaper?" is a question about the market, not
+            # a request for the next-best plan — and offering one would abandon
+            # a consultation that has not finished asking.
+            offer_alternatives = True
+
+        # 4. Recommendation lock:
         #    Lock when rec exists AND state is RECOMMENDATION_PRESENTED
-        #    AND intent is NOT compare/purchase (which require fresh rec)
+        #    AND this turn is not one that needs a fresh plan. Asking whether
+        #    they'd like an alternative is itself a locked turn — the question
+        #    is the whole reply, and no new card comes with it.
         locked = (
             has_rec
             and state == ConversationState.RECOMMENDATION_PRESENTED
-            and intent not in (ConversationIntent.COMPARE, ConversationIntent.PURCHASE)
+            and intent != ConversationIntent.PURCHASE
+            and not force_compare
         )
-
-        # 4. Force compare: generate an alternative (skip cache)
-        force_compare = (intent == ConversationIntent.COMPARE)
 
         # 5. Build rec summary for EXPLAIN mode
         rec_summary = self._build_rec_summary(existing_recommendation) if has_rec else None
@@ -228,6 +309,7 @@ class ConversationMiddleware:
             locked=locked,
             force_compare=force_compare,
             existing_rec_summary=rec_summary,
+            offer_alternatives=offer_alternatives,
         )
 
     # ── Intent detection ──────────────────────────────────────────────────────

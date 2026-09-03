@@ -12,6 +12,17 @@ export const STORAGE_KEYS = {
   THEME: "aegis_theme",
   /** Advisor/voice conversation session id. */
   SESSION_ID: "aegis_session_id",
+  /**
+   * Which session id the home-page wake greeting was last spoken for.
+   * `""` stands for "no conversation session existed yet" rather than absence
+   * of the key, so a page load before any turn ever compares equal to itself.
+   */
+  GREETING_SESSION: "aegis_greeting_session",
+  /**
+   * Text carried from the home-page wake mic into `/advisor`'s first turn.
+   * Session-only and consumed once — see `lib/wakeGreeting`.
+   */
+  VOICE_HANDOFF: "aegis_voice_handoff",
   /** Currently selected plan handed off into the purchase flow. */
   SELECTED_PLAN: "selectedPlanDetails",
   /** Serialized multi-step purchase state. */
